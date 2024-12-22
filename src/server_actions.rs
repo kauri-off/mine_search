@@ -10,8 +10,7 @@ use tokio::net::TcpStream;
 use crate::{
     mc_session::ConnectionWrapper,
     packets::{
-        Handshake, LoginStart, PacketActions, SetCompression, StatusRequest,
-        StatusResponse,
+        Handshake, LoginStart, PacketActions, SetCompression, StatusRequest, StatusResponse,
     },
 };
 

@@ -1,6 +1,5 @@
 use std::io;
 
-use async_trait::async_trait;
 use minecraft_protocol::{
     packet_builder::PacketBuilder, packet_reader::PacketReader, types::var_int::VarInt,
     UncompressedPacket,
@@ -64,7 +63,6 @@ pub struct StatusResponse {
     pub response: String,
 }
 
-#[async_trait]
 impl PacketActions for StatusResponse {
     fn serialize(&self) -> UncompressedPacket {
         PacketBuilder::new(VarInt(0x00))
