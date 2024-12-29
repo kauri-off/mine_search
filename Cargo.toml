@@ -3,6 +3,10 @@ name = "mc_lookup"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "mc_lookup"
+path = "src/main.rs"
+
 [dependencies]
 tokio = { version = "1.42.0", features = ["full"] }
 minecraft_protocol = { git = "https://github.com/kauri-off/minecraft_protocol.git" }
@@ -12,7 +16,7 @@ serde_json = "1.0.133"
 diesel = { version = "2.2.0", features = ["sqlite", "returning_clauses_for_sqlite_3_35", "chrono"] }
 # build libsqlite3 as part of the build process
 # uncomment this line if you run into setup issues
-# libsqlite3-sys = { version = "0.30", features = ["bundled"] }
+libsqlite3-sys = { version = "0.30", features = ["bundled"] }
 dotenvy = "0.15"
 chrono = "0.4.39"
 colored = "2.2.0"

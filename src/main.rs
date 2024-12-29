@@ -14,7 +14,7 @@ mod packets;
 mod schema;
 mod server_actions;
 
-const MAX_WORKERS: usize = 512;
+const MAX_WORKERS: usize = 150;
 
 pub async fn handle_valid_ip(
     ip: &IpAddr,
@@ -96,6 +96,14 @@ async fn worker(db: Arc<Mutex<DatabaseWrapper>>) {
 
 #[tokio::main]
 async fn main() {
+    let now = Local::now();
+    let time_string = now.format("%Y-%m-%d %H:%M:%S").to_string();
+
+    println!(
+        "🕒 [{}] | 🌟 mc_lookup | 🚀 Started ",
+        time_string.red().bold()
+    );
+
     let db = Arc::new(Mutex::new(DatabaseWrapper::establish()));
 
     let mut workers = vec![];
