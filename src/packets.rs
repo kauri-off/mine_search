@@ -54,7 +54,7 @@ impl PacketActions for StatusRequest {
         PacketBuilder::new(VarInt(0x00)).build()
     }
 
-    fn deserialize(packet: UncompressedPacket) -> io::Result<Self> {
+    fn deserialize(_packet: UncompressedPacket) -> io::Result<Self> {
         Ok(StatusRequest {})
     }
 }

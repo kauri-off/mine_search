@@ -19,5 +19,6 @@ CREATE TABLE players (
     name TEXT NOT NULL,
     last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     server_id INTEGER NOT NULL,
-    FOREIGN KEY (server_id) REFERENCES server (id)
+    FOREIGN KEY (server_id) REFERENCES server (id),
+    UNIQUE (name, server_id)
 );

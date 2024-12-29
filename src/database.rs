@@ -1,26 +1,25 @@
-use std::{env, sync::Arc};
+use std::env;
 
 use chrono::NaiveDateTime;
 use diesel::{
-    prelude::{Associations, Identifiable, Insertable, Queryable},
+    prelude::{AsChangeset, Associations, Identifiable, Insertable, Queryable},
     Connection, Selectable, SqliteConnection,
 };
 use dotenvy::dotenv;
-use tokio::sync::Mutex;
 
 pub struct DatabaseWrapper {
     pub conn: SqliteConnection,
 }
 
 impl DatabaseWrapper {
-    pub fn establish() -> Arc<Mutex<Self>> {
+    pub fn establish() -> Self {
         dotenv().ok();
 
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
         let conn = SqliteConnection::establish(&database_url)
             .unwrap_or_else(|_| panic!("Error connecting to {}", database_url));
 
-        Arc::new(Mutex::new(Self { conn }))
+        Self { conn }
     }
 }
 
@@ -52,20 +51,20 @@ pub struct PlayersModel {
 
 #[derive(Insertable)]
 #[diesel(table_name = crate::schema::server)]
-pub struct ServerInsert {
-    pub addr: String,
+pub struct ServerInsert<'a> {
+    pub addr: &'a str,
     pub online: i32,
     pub max: i32,
-    pub version_name: String,
+    pub version_name: &'a str,
     pub protocol: i32,
     pub license: bool,
     pub white_list: Option<bool>,
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, AsChangeset)]
 #[diesel(table_name = crate::schema::players)]
-pub struct PlayerInsert {
-    pub uuid: String,
-    pub name: String,
+pub struct PlayerInsert<'a> {
+    pub uuid: &'a str,
+    pub name: &'a str,
     pub server_id: i32,
 }

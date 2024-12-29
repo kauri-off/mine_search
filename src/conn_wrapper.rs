@@ -8,6 +8,7 @@ use crate::packets::PacketActions;
 pub trait ConnectionWrapper {
     async fn read_packet<T: PacketActions>(&mut self) -> io::Result<T>;
     async fn write_packet<T: PacketActions>(&mut self, packet: T) -> io::Result<()>;
+    #[allow(dead_code)]
     async fn write<T: PacketActions>(
         &mut self,
         packet: T,

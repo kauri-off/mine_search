@@ -30,11 +30,11 @@ pub async fn get_extra_data(ip: String, port: u16, protocol: i32) -> io::Result<
 
     get_login_start(protocol).write(&mut conn).await?;
 
-    let mut threshold = None;
+    // let mut threshold = None;
     let packet = Packet::read_uncompressed(&mut conn).await?;
 
     let packet = if packet.packet_id.0 == 0x03 {
-        threshold = Some(SetCompression::deserialize(packet)?.threshold.0);
+        let threshold = Some(SetCompression::deserialize(packet)?.threshold.0);
         Packet::read(&mut conn, threshold).await?
     } else {
         Packet::UnCompressed(packet)
