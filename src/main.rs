@@ -1,9 +1,9 @@
-use std::{io, net::IpAddr, sync::Arc};
+use std::{io, net::IpAddr, sync::Arc, time::Duration};
 
 use chrono::{Local, Timelike};
 use colored::Colorize;
 use database::{DatabaseWrapper, PlayerInsert, ServerInsert, ServerModel};
-use diesel::{insert_into, ExpressionMethods, RunQueryDsl, SelectableHelper};
+use diesel::{insert_into, query_dsl::methods::SelectDsl, ExpressionMethods, RunQueryDsl, SelectableHelper};
 use mc_lookup::{check_server, generate_random_ip};
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
 use tokio::sync::Mutex;
@@ -51,12 +51,6 @@ pub async fn handle_valid_ip(
 
         insert_into(schema::players::dsl::players)
             .values(&player_model)
-            .on_conflict((schema::players::dsl::name, schema::players::dsl::server_id))
-            .do_update()
-            .set(
-                schema::players::dsl::last_seen
-                    .eq(Local::now().naive_local().with_nanosecond(0).unwrap()),
-            )
             .execute(&mut db.lock().await.conn)
             .unwrap();
     }
@@ -94,6 +88,45 @@ async fn worker(db: Arc<Mutex<DatabaseWrapper>>) {
     }
 }
 
+async fn updater(db: Arc<Mutex<DatabaseWrapper>>) {
+    loop {
+        println!("Updating...");
+
+        let servers: Vec<ServerModel> = schema::server::dsl::server
+            .select(ServerModel::as_select())
+            .load(&mut db.lock().await.conn)
+            .unwrap();
+
+        for server in servers {
+            let status = get_status(server.addr, 25565).await;
+            if status.is_err() {
+                continue;
+            }
+
+            for player in status.unwrap().players.sample.unwrap_or_default() {
+                let player_model = PlayerInsert {
+                    uuid: &player.id,
+                    name: &player.name,
+                    server_id: server.id,
+                };
+
+                insert_into(schema::players::dsl::players)
+                    .values(&player_model)
+                    .on_conflict((schema::players::dsl::name, schema::players::dsl::server_id))
+                    .do_update()
+                    .set(
+                        schema::players::dsl::last_seen
+                            .eq(Local::now().naive_local().with_nanosecond(0).unwrap()),
+                    )
+                    .execute(&mut db.lock().await.conn)
+                    .unwrap();
+            }
+        }
+
+        tokio::time::sleep(Duration::from_secs(600)).await;
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let now = Local::now();
@@ -106,6 +139,7 @@ async fn main() {
 
     let db = Arc::new(Mutex::new(DatabaseWrapper::establish()));
 
+    let updater_thread = tokio::spawn(updater(db.clone()));
     let mut workers = vec![];
 
     for _ in 0..MAX_WORKERS {
@@ -115,4 +149,6 @@ async fn main() {
     for task in workers {
         let _ = task.await;
     }
+
+    updater_thread.await.unwrap();
 }
