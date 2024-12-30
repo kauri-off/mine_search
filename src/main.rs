@@ -14,7 +14,7 @@ use diesel::{
 };
 use mc_lookup::{check_server, generate_random_ip};
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
-use tokio::{sync::Mutex, time::timeout};
+use tokio::{sync::{Mutex, Semaphore}, time::timeout};
 
 mod conn_wrapper;
 mod database;
@@ -106,53 +106,71 @@ async fn updater(db: Arc<Mutex<DatabaseWrapper>>) {
             .load(&mut db.lock().await.conn)
             .unwrap();
 
-        for server in servers {
-            let status = match timeout(Duration::from_secs(2), get_status(&server.ip, 25565)).await
-            {
-                Ok(t) => match t {
-                    Ok(b) => b,
-                    Err(_) => continue,
-                },
-                Err(_) => continue,
-            };
+        let semaphore = Arc::new(Semaphore::new(50));
 
-            let motd = status.description.get_motd();
-            let server_update = ServerUpdate {
-                online: status.players.online as i32,
-                max: status.players.max as i32,
-                version_name: &status.version.name,
-                protocol: status.version.protocol as i32,
-                description: motd.as_deref(),
-            };
+        let handles: Vec<_> = servers
+            .into_iter()
+            .map(|value| {
+                let permit = semaphore.clone().acquire_owned();
+                let th_db = db.clone();
 
-            diesel::update(schema::servers::dsl::servers)
-                .filter(schema::servers::dsl::ip.eq(&server.ip))
-                .set(server_update)
-                .execute(&mut db.lock().await.conn)
-                .unwrap();
-
-            for player in status.players.sample.unwrap_or_default() {
-                let player_model = PlayerInsert {
-                    uuid: &player.id,
-                    name: &player.name,
-                    server_id: server.id,
-                };
-
-                insert_into(schema::players::dsl::players)
-                    .values(&player_model)
-                    .on_conflict((schema::players::dsl::name, schema::players::dsl::server_id))
-                    .do_update()
-                    .set(
-                        schema::players::dsl::last_seen
-                            .eq(Local::now().naive_local().with_nanosecond(0).unwrap()),
-                    )
-                    .execute(&mut db.lock().await.conn)
-                    .unwrap();
-            }
+                tokio::spawn(async move {
+                    let _permit = permit.await;
+                    update_server(value, th_db).await;
+                })
+            })
+            .collect();
+    
+        for handle in handles {
+            let _ = handle.await;
         }
 
-        println!("Updating...{}", "DONE".red());
+        println!("Updating: {}", "DONE".red());
         tokio::time::sleep(Duration::from_secs(600)).await;
+    }
+}
+
+async fn update_server(server: ServerModel, db: Arc<Mutex<DatabaseWrapper>>) {
+    let status = match timeout(Duration::from_secs(2), get_status(&server.ip, 25565)).await {
+        Ok(t) => match t {
+            Ok(b) => b,
+            Err(_) => return,
+        },
+        Err(_) => return,
+    };
+
+    let motd = status.description.get_motd();
+    let server_update = ServerUpdate {
+        online: status.players.online as i32,
+        max: status.players.max as i32,
+        version_name: &status.version.name,
+        protocol: status.version.protocol as i32,
+        description: motd.as_deref(),
+    };
+
+    diesel::update(schema::servers::dsl::servers)
+        .filter(schema::servers::dsl::ip.eq(&server.ip))
+        .set(server_update)
+        .execute(&mut db.lock().await.conn)
+        .unwrap();
+
+    for player in status.players.sample.unwrap_or_default() {
+        let player_model = PlayerInsert {
+            uuid: &player.id,
+            name: &player.name,
+            server_id: server.id,
+        };
+
+        insert_into(schema::players::dsl::players)
+            .values(&player_model)
+            .on_conflict((schema::players::dsl::name, schema::players::dsl::server_id))
+            .do_update()
+            .set(
+                schema::players::dsl::last_seen
+                    .eq(Local::now().naive_local().with_nanosecond(0).unwrap()),
+            )
+            .execute(&mut db.lock().await.conn)
+            .unwrap();
     }
 }
 
