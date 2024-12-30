@@ -61,6 +61,7 @@ pub async fn handle_valid_ip(
 
         insert_into(schema::players::dsl::players)
             .values(&player_model)
+            .on_conflict_do_nothing()
             .execute(&mut db.lock().await.conn)
             .unwrap();
     }
