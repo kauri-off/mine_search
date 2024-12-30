@@ -8,7 +8,7 @@ use std::{
 
 use chrono::{Local, Timelike};
 use colored::Colorize;
-use database::{DatabaseWrapper, PlayerInsert, ServerInsert, ServerModel};
+use database::{DatabaseWrapper, PlayerInsert, ServerInsert, ServerModel, ServerUpdate};
 use diesel::{
     insert_into, query_dsl::methods::SelectDsl, ExpressionMethods, RunQueryDsl, SelectableHelper,
 };
@@ -27,11 +27,12 @@ pub async fn handle_valid_ip(
     port: u16,
     db: Arc<Mutex<DatabaseWrapper>>,
 ) -> io::Result<()> {
-    let status = get_status(format!("{}", ip), port).await?;
+    let status = get_status(&format!("{}", ip), port).await?;
 
     let extra_data =
         get_extra_data(format!("{}", ip), port, status.version.protocol as i32).await?;
 
+    let motd = status.description.get_motd();
     let server_insert = ServerInsert {
         ip: &format!("{}", ip),
         online: status.players.online as i32,
@@ -40,11 +41,12 @@ pub async fn handle_valid_ip(
         protocol: status.version.protocol as i32,
         license: extra_data.license,
         white_list: extra_data.white_list,
+        description: motd.as_deref(),
     };
 
-    let server: ServerModel = insert_into(schema::server::dsl::server)
+    let server: ServerModel = insert_into(schema::servers::dsl::servers)
         .values(server_insert)
-        .on_conflict(schema::server::dsl::ip)
+        .on_conflict(schema::servers::dsl::ip)
         .do_nothing()
         .returning(ServerModel::as_returning())
         .get_result(&mut db.lock().await.conn)
@@ -89,9 +91,7 @@ async fn worker(db: Arc<Mutex<DatabaseWrapper>>) {
         let addr = generate_random_ip();
 
         if check_server(&IpAddr::V4(addr), 25565).await {
-            if let Err(_) = handle_valid_ip(&IpAddr::V4(addr), 25565, db.clone()).await {
-                // println!("Err: {}", addr);
-            }
+            let _ = handle_valid_ip(&IpAddr::V4(addr), 25565, db.clone()).await;
         }
     }
 }
@@ -100,25 +100,37 @@ async fn updater(db: Arc<Mutex<DatabaseWrapper>>) {
     loop {
         println!("Updating...");
 
-        let servers: Vec<ServerModel> = schema::server::dsl::server
+        let servers: Vec<ServerModel> = schema::servers::dsl::servers
             .select(ServerModel::as_select())
             .load(&mut db.lock().await.conn)
             .unwrap();
 
         for server in servers {
-            let status = timeout(Duration::from_secs(2), get_status(server.ip, 25565)).await;
+            let status = match timeout(Duration::from_secs(2), get_status(&server.ip, 25565)).await
+            {
+                Ok(t) => match t {
+                    Ok(b) => b,
+                    Err(_) => continue,
+                },
+                Err(_) => continue,
+            };
 
-            if status.is_err() {
-                continue;
-            }
+            let motd = status.description.get_motd();
+            let server_update = ServerUpdate {
+                online: status.players.online as i32,
+                max: status.players.max as i32,
+                version_name: &status.version.name,
+                protocol: status.version.protocol as i32,
+                description: motd.as_deref(),
+            };
 
-            let status = status.unwrap();
+            diesel::update(schema::servers::dsl::servers)
+                .filter(schema::servers::dsl::ip.eq(&server.ip))
+                .set(server_update)
+                .execute(&mut db.lock().await.conn)
+                .unwrap();
 
-            if status.is_err() {
-                continue;
-            }
-
-            for player in status.unwrap().players.sample.unwrap_or_default() {
+            for player in status.players.sample.unwrap_or_default() {
                 let player_model = PlayerInsert {
                     uuid: &player.id,
                     name: &player.name,
@@ -150,17 +162,17 @@ async fn main() {
     let now = Local::now();
     let time_string = now.format("%Y-%m-%d %H:%M:%S").to_string();
 
-    println!(
-        "🕒 [{}] | 🌟 mc_lookup | 🚀 Started ",
-        time_string.red().bold()
-    );
+    println!("[{}] Minecarft Lookup | Started", time_string);
 
     let threads: i32 = env::var("WORKERS")
         .unwrap_or("150".to_string())
         .parse()
         .unwrap();
 
+    println!("Threads: {}", threads);
+
     let db = Arc::new(Mutex::new(DatabaseWrapper::establish()));
+    println!("[+] Connection to database established");
 
     let updater_thread = tokio::spawn(updater(db.clone()));
     let mut workers = vec![];
@@ -168,6 +180,8 @@ async fn main() {
     for _ in 0..threads {
         workers.push(tokio::spawn(worker(db.clone())));
     }
+
+    println!("[+] All threads started");
 
     for task in workers {
         let _ = task.await;

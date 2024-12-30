@@ -11,7 +11,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    server (id) {
+    servers (id) {
         id -> Integer,
         ip -> Text,
         online -> Integer,
@@ -20,9 +20,10 @@ diesel::table! {
         protocol -> Integer,
         license -> Bool,
         white_list -> Nullable<Bool>,
+        description -> Nullable<Text>,
     }
 }
 
-diesel::joinable!(players -> server (server_id));
+diesel::joinable!(players -> servers (server_id));
 
-diesel::allow_tables_to_appear_in_same_query!(players, server,);
+diesel::allow_tables_to_appear_in_same_query!(players, servers,);
