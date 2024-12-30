@@ -1,5 +1,9 @@
 use std::{
-    env, io::{self, ErrorKind}, net::IpAddr, sync::Arc, time::Duration
+    env,
+    io::{self, ErrorKind},
+    net::IpAddr,
+    sync::Arc,
+    time::Duration,
 };
 
 use chrono::{Local, Timelike};
@@ -10,7 +14,7 @@ use diesel::{
 };
 use mc_lookup::{check_server, generate_random_ip};
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, time::timeout};
 
 mod conn_wrapper;
 mod database;
@@ -102,7 +106,14 @@ async fn updater(db: Arc<Mutex<DatabaseWrapper>>) {
             .unwrap();
 
         for server in servers {
-            let status = get_status(server.ip, 25565).await;
+            let status = timeout(Duration::from_secs(2), get_status(server.ip, 25565)).await;
+
+            if status.is_err() {
+                continue;
+            }
+
+            let status = status.unwrap();
+
             if status.is_err() {
                 continue;
             }
@@ -127,7 +138,7 @@ async fn updater(db: Arc<Mutex<DatabaseWrapper>>) {
             }
         }
 
-        println!("Updating...DONE");
+        println!("Updating...{}", "DONE".red());
         tokio::time::sleep(Duration::from_secs(600)).await;
     }
 }
@@ -143,7 +154,6 @@ async fn main() {
         "🕒 [{}] | 🌟 mc_lookup | 🚀 Started ",
         time_string.red().bold()
     );
-
 
     let threads: i32 = env::var("WORKERS")
         .unwrap_or("150".to_string())
