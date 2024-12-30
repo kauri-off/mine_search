@@ -28,7 +28,7 @@ impl DatabaseWrapper {
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct ServerModel {
     pub id: i32,
-    pub addr: String,
+    pub ip: String,
     pub online: i32,
     pub max: i32,
     pub version_name: String,
@@ -52,7 +52,7 @@ pub struct PlayersModel {
 #[derive(Insertable)]
 #[diesel(table_name = crate::schema::server)]
 pub struct ServerInsert<'a> {
-    pub addr: &'a str,
+    pub ip: &'a str,
     pub online: i32,
     pub max: i32,
     pub version_name: &'a str,

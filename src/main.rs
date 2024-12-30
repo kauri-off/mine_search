@@ -1,9 +1,16 @@
-use std::{io, net::IpAddr, sync::Arc, time::Duration};
+use std::{
+    io::{self, ErrorKind},
+    net::IpAddr,
+    sync::Arc,
+    time::Duration,
+};
 
 use chrono::{Local, Timelike};
 use colored::Colorize;
 use database::{DatabaseWrapper, PlayerInsert, ServerInsert, ServerModel};
-use diesel::{insert_into, query_dsl::methods::SelectDsl, ExpressionMethods, RunQueryDsl, SelectableHelper};
+use diesel::{
+    insert_into, query_dsl::methods::SelectDsl, ExpressionMethods, RunQueryDsl, SelectableHelper,
+};
 use mc_lookup::{check_server, generate_random_ip};
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
 use tokio::sync::Mutex;
@@ -27,7 +34,7 @@ pub async fn handle_valid_ip(
         get_extra_data(format!("{}", ip), port, status.version.protocol as i32).await?;
 
     let server_insert = ServerInsert {
-        addr: &format!("{}", ip),
+        ip: &format!("{}", ip),
         online: status.players.online as i32,
         max: status.players.max as i32,
         version_name: &status.version.name,
@@ -38,9 +45,11 @@ pub async fn handle_valid_ip(
 
     let server: ServerModel = insert_into(schema::server::dsl::server)
         .values(server_insert)
+        .on_conflict(schema::server::dsl::ip)
+        .do_nothing()
         .returning(ServerModel::as_returning())
         .get_result(&mut db.lock().await.conn)
-        .unwrap();
+        .map_err(|_| ErrorKind::InvalidInput)?;
 
     for player in status.players.sample.unwrap_or_default() {
         let player_model = PlayerInsert {
@@ -98,7 +107,7 @@ async fn updater(db: Arc<Mutex<DatabaseWrapper>>) {
             .unwrap();
 
         for server in servers {
-            let status = get_status(server.addr, 25565).await;
+            let status = get_status(server.ip, 25565).await;
             if status.is_err() {
                 continue;
             }
@@ -129,6 +138,8 @@ async fn updater(db: Arc<Mutex<DatabaseWrapper>>) {
 
 #[tokio::main]
 async fn main() {
+    colored::control::set_override(true);
+
     let now = Local::now();
     let time_string = now.format("%Y-%m-%d %H:%M:%S").to_string();
 

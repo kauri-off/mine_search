@@ -13,7 +13,7 @@ diesel::table! {
 diesel::table! {
     server (id) {
         id -> Integer,
-        addr -> Text,
+        ip -> Text,
         online -> Integer,
         max -> Integer,
         version_name -> Text,
@@ -25,7 +25,4 @@ diesel::table! {
 
 diesel::joinable!(players -> server (server_id));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    players,
-    server,
-);
+diesel::allow_tables_to_appear_in_same_query!(players, server,);
