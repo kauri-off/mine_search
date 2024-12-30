@@ -1,8 +1,5 @@
 use std::{
-    io::{self, ErrorKind},
-    net::IpAddr,
-    sync::Arc,
-    time::Duration,
+    env, io::{self, ErrorKind}, net::IpAddr, sync::Arc, time::Duration
 };
 
 use chrono::{Local, Timelike};
@@ -20,8 +17,6 @@ mod database;
 mod packets;
 mod schema;
 mod server_actions;
-
-const MAX_WORKERS: usize = 150;
 
 pub async fn handle_valid_ip(
     ip: &IpAddr,
@@ -132,6 +127,7 @@ async fn updater(db: Arc<Mutex<DatabaseWrapper>>) {
             }
         }
 
+        println!("Updating...DONE");
         tokio::time::sleep(Duration::from_secs(600)).await;
     }
 }
@@ -148,12 +144,18 @@ async fn main() {
         time_string.red().bold()
     );
 
+
+    let threads: i32 = env::var("WORKERS")
+        .unwrap_or("150".to_string())
+        .parse()
+        .unwrap();
+
     let db = Arc::new(Mutex::new(DatabaseWrapper::establish()));
 
     let updater_thread = tokio::spawn(updater(db.clone()));
     let mut workers = vec![];
 
-    for _ in 0..MAX_WORKERS {
+    for _ in 0..threads {
         workers.push(tokio::spawn(worker(db.clone())));
     }
 
