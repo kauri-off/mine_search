@@ -11,6 +11,7 @@ CREATE TABLE server_new (
     white_list BOOLEAN
 );
 
+PRAGMA foreign_keys = OFF;
 
 INSERT INTO server_new (id, ip, online, max, version_name, protocol, license, white_list)
 SELECT id, addr, online, max, version_name, protocol, license, white_list
@@ -19,3 +20,5 @@ FROM server;
 DROP TABLE server;
 
 ALTER TABLE server_new RENAME TO server;
+
+PRAGMA foreign_keys = ON;
