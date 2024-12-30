@@ -14,7 +14,10 @@ use diesel::{
 };
 use mc_lookup::{check_server, generate_random_ip};
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
-use tokio::{sync::{Mutex, Semaphore}, time::timeout};
+use tokio::{
+    sync::{Mutex, Semaphore},
+    time::timeout,
+};
 
 mod conn_wrapper;
 mod database;
@@ -69,20 +72,22 @@ pub async fn handle_valid_ip(
     let timestamp = Local::now().format("%H:%M:%S").to_string();
 
     println!(
-        "[{}] {} {} | {} {} | {} {}/{} | {}",
+        "[{}] {} {} | {} {} | {} {}/{} | {} | {} {}",
         timestamp,
-        "🌐 Address:".blue(),
-        ip,
-        "🛠  Version:".yellow(),
-        status.version.name,
-        "👥 Players:".green(),
-        status.players.online,
+        "🌐",
+        ip.to_string().blue(),
+        "🛠 ",
+        status.version.name.yellow(),
+        "👥",
+        status.players.online.to_string().green(),
         status.players.max,
         if extra_data.license {
             "yes".red()
         } else {
             "no".green()
-        }
+        },
+        "🚀",
+        status.description.get_motd().unwrap_or_default()
     );
     Ok(())
 }
@@ -120,7 +125,7 @@ async fn updater(db: Arc<Mutex<DatabaseWrapper>>) {
                 })
             })
             .collect();
-    
+
         for handle in handles {
             let _ = handle.await;
         }
