@@ -94,10 +94,14 @@ pub async fn handle_valid_ip(
 
 async fn worker(db: Arc<Mutex<DatabaseWrapper>>) {
     loop {
-        let addr = generate_random_ip();
+        let ip = IpAddr::V4(generate_random_ip());
 
-        if check_server(&IpAddr::V4(addr), 25565).await {
-            let _ = handle_valid_ip(&IpAddr::V4(addr), 25565, db.clone()).await;
+        if check_server(&ip, 25565).await {
+            let _ = timeout(
+                Duration::from_secs(5),
+                handle_valid_ip(&ip, 25565, db.clone()),
+            )
+            .await;
         }
     }
 }
@@ -197,6 +201,12 @@ async fn main() {
 
     let db = Arc::new(Mutex::new(DatabaseWrapper::establish()));
     println!("[+] Connection to database established");
+
+    let count: i64 = schema::servers::dsl::servers
+        .select(diesel::dsl::count(schema::servers::dsl::id))
+        .first(&mut db.lock().await.conn)
+        .unwrap();
+    println!("Servers in db: {}", count);
 
     let updater_thread = tokio::spawn(updater(db.clone()));
     let mut workers = vec![];

@@ -1,9 +1,6 @@
 use std::io::{self, Error, ErrorKind};
 
-use minecraft_protocol::{
-    packet_builder::PacketBuilder, packet_reader::PacketReader, types::var_int::VarInt, Packet,
-    UncompressedPacket,
-};
+use minecraft_protocol::{packet_reader::PacketReader, types::var_int::VarInt, Packet};
 use tokio::net::TcpStream;
 
 use crate::{
@@ -28,7 +25,14 @@ pub async fn get_extra_data(ip: String, port: u16, protocol: i32) -> io::Result<
     })
     .await?;
 
-    get_login_start(protocol).write(&mut conn).await?;
+    LoginStart {
+        name: "LookupPlayer".to_string(),
+        uuid: 0x1f6969963dace4643bfa0c99a4db549,
+    }
+    .get_by_protocol(protocol)
+    .write(&mut conn)
+    .await
+    .unwrap();
 
     // let mut threshold = None;
     let packet = Packet::read_uncompressed(&mut conn).await?;
@@ -67,29 +71,4 @@ pub async fn get_extra_data(ip: String, port: u16, protocol: i32) -> io::Result<
         license: false,
         white_list: Some(false),
     })
-}
-
-fn get_login_start(protocol: i32) -> UncompressedPacket {
-    if protocol > 763 {
-        LoginStart {
-            name: "LookupPlayer".to_string(),
-            uuid: 0x1f6969963dace4643bfa0c99a4db549,
-        }
-        .serialize()
-    } else if protocol > 761 {
-        PacketBuilder::new(VarInt(0x00))
-            .write("LookupPlayer".to_string())
-            .write_option(Some(0x1f6969963dace4643bfa0c99a4db549 as u128))
-            .build()
-    } else if protocol > 758 {
-        PacketBuilder::new(VarInt(0x00))
-            .write("LookupPlayer".to_string())
-            .write_option::<bool>(None)
-            .write_option(Some(0x1f6969963dace4643bfa0c99a4db549 as u128))
-            .build()
-    } else {
-        PacketBuilder::new(VarInt(0x00))
-            .write("LookupPlayer".to_string())
-            .build()
-    }
 }

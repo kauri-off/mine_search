@@ -103,6 +103,29 @@ impl PacketActions for LoginStart {
     }
 }
 
+impl LoginStart {
+    pub fn get_by_protocol(&self, protocol: i32) -> UncompressedPacket {
+        if protocol > 763 {
+            self.serialize()
+        } else if protocol > 761 {
+            PacketBuilder::new(VarInt(0x00))
+                .write(self.name.clone())
+                .write_option(Some(self.uuid))
+                .build()
+        } else if protocol > 758 {
+            PacketBuilder::new(VarInt(0x00))
+                .write(self.name.clone())
+                .write_option::<bool>(None)
+                .write_option(Some(self.uuid))
+                .build()
+        } else {
+            PacketBuilder::new(VarInt(0x00))
+                .write(self.name.clone())
+                .build()
+        }
+    }
+}
+
 pub struct SetCompression {
     pub threshold: VarInt,
 }
