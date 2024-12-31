@@ -12,7 +12,7 @@ use database::{DatabaseWrapper, PlayerInsert, ServerInsert, ServerModel, ServerU
 use diesel::{
     insert_into, query_dsl::methods::SelectDsl, ExpressionMethods, RunQueryDsl, SelectableHelper,
 };
-use mc_lookup::{check_server, generate_random_ip};
+use mine_search::{check_server, generate_random_ip};
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
 use tokio::{
     sync::{Mutex, Semaphore},

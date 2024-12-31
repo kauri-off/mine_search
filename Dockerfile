@@ -14,4 +14,4 @@ COPY src src
 RUN cargo build --release
 RUN echo "DATABASE_URL=/data/db/database.db" >> .env
 
-CMD ["target/release/mc_lookup"]
+CMD ["target/release/mine_search"]
