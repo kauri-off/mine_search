@@ -53,7 +53,7 @@
 
 | Variable       | Description                         |
 |----------------|-------------------------------------|
-| `DATABASE_URL`| Path to the SQLite3 database file.  |
+| `WORKERS` | Number of threads searching for a servers |
 
 ## License
 
