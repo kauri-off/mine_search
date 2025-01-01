@@ -199,7 +199,6 @@ async fn main() {
 
     let db = Arc::new(Mutex::new(DatabaseWrapper::establish()));
     println!("[+] Connection to database established");
-    handle_valid_ip(&"160.251.237.212".parse().unwrap(), 25565, db.clone()).await.unwrap();
 
     let count: i64 = schema::servers::dsl::servers
         .select(diesel::dsl::count(schema::servers::dsl::id))
