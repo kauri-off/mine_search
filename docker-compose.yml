@@ -1,10 +1,32 @@
-version: "3.9"
-
 services:
-  app:
+  rust-app:
     build: .
     environment:
-      - WORKERS=900
-    volumes:
-      - ./db:/data/db
+      - THREADS=900
+      - DATABASE_URL=postgres://db_user:a523d6c4a761ba5b@postgres-container/search_db
+    depends_on:
+      - postgres
+    networks:
+      - app-network
     restart: unless-stopped
+
+  postgres:
+    image: postgres
+    container_name: postgres-container
+    environment:
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: a523d6c4a761ba5b
+      POSTGRES_DB: search_db
+    networks:
+      - app-network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432/tcp"
+    restart: unless-stopped
+
+networks:
+  app-network:
+
+volumes:
+  postgres-data:

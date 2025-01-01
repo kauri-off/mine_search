@@ -9,9 +9,7 @@ use std::{
 use chrono::{Local, Timelike};
 use colored::Colorize;
 use database::{DatabaseWrapper, PlayerInsert, ServerInsert, ServerModel, ServerUpdate};
-use diesel::{
-    insert_into, query_dsl::methods::SelectDsl, ExpressionMethods, RunQueryDsl, SelectableHelper,
-};
+use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
 use mine_search::{check_server, generate_random_ip};
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
 use tokio::{
@@ -192,7 +190,7 @@ async fn main() {
 
     println!("[{}] Minecarft Lookup | Started", time_string);
 
-    let threads: i32 = env::var("WORKERS")
+    let threads: i32 = env::var("THREADS")
         .unwrap_or("150".to_string())
         .parse()
         .unwrap();
@@ -201,6 +199,7 @@ async fn main() {
 
     let db = Arc::new(Mutex::new(DatabaseWrapper::establish()));
     println!("[+] Connection to database established");
+    handle_valid_ip(&"160.251.237.212".parse().unwrap(), 25565, db.clone()).await.unwrap();
 
     let count: i64 = schema::servers::dsl::servers
         .select(diesel::dsl::count(schema::servers::dsl::id))

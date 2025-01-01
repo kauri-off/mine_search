@@ -3,20 +3,17 @@ use std::env;
 use chrono::NaiveDateTime;
 use diesel::{
     prelude::{AsChangeset, Associations, Identifiable, Insertable, Queryable},
-    Connection, Selectable, SqliteConnection,
+    Connection, PgConnection, Selectable,
 };
-use dotenvy::dotenv;
 
 pub struct DatabaseWrapper {
-    pub conn: SqliteConnection,
+    pub conn: PgConnection,
 }
 
 impl DatabaseWrapper {
     pub fn establish() -> Self {
-        dotenv().ok();
-
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let conn = SqliteConnection::establish(&database_url)
+        let conn = PgConnection::establish(&database_url)
             .unwrap_or_else(|_| panic!("Error connecting to {}", database_url));
 
         Self { conn }
@@ -25,7 +22,7 @@ impl DatabaseWrapper {
 
 #[derive(Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::servers)]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ServerModel {
     pub id: i32,
     pub ip: String,
@@ -41,17 +38,18 @@ pub struct ServerModel {
 #[derive(Queryable, Selectable, Identifiable, Associations)]
 #[diesel(table_name = crate::schema::players)]
 #[diesel(belongs_to(ServerModel, foreign_key = server_id))]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct PlayerModel {
     pub id: i32,
     pub uuid: String,
     pub name: String,
     pub last_seen: NaiveDateTime,
-    pub server_id: i32,
+    pub server_id: Option<i32>,
 }
 
 #[derive(Insertable)]
 #[diesel(table_name = crate::schema::servers)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ServerInsert<'a> {
     pub ip: &'a str,
     pub online: i32,
@@ -65,6 +63,7 @@ pub struct ServerInsert<'a> {
 
 #[derive(Insertable, AsChangeset)]
 #[diesel(table_name = crate::schema::servers)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ServerUpdate<'a> {
     pub online: i32,
     pub max: i32,
@@ -75,6 +74,7 @@ pub struct ServerUpdate<'a> {
 
 #[derive(Insertable, AsChangeset)]
 #[diesel(table_name = crate::schema::players)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct PlayerInsert<'a> {
     pub uuid: &'a str,
     pub name: &'a str,
