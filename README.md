@@ -1,20 +1,20 @@
 # MineSearch
 
-**mine_search** is a Minecraft server search engine. It allows you to search for Minecraft servers using a SQLite3 database. The application is designed to be lightweight, flexible, and easy to deploy.
+**mine_search** is a Minecraft server search engine. It allows you to search for Minecraft servers using a PostgreSQL database. The application is designed to be lightweight, flexible, and easy to deploy.
 
 ## Features
 
 - **Search Minecraft servers**: Quickly find information about Minecraft servers from the database.
-- **SQLite3 database**: All server data is stored in a lightweight SQLite3 database.
+- **PostgreSQL database**: All server data is stored in a robust PostgreSQL database.
 - **Docker support**: Easily run the application in a Docker container.
-- **Environment configuration**: Specify the path to the SQLite3 database in a `.env` file.
+- **Environment configuration**: Specify the connection details to the PostgreSQL database in a `.env` file.
 
 ## Getting Started
 
 ### Prerequisites
 
 - [Docker](https://www.docker.com/) installed on your system
-- SQLite3 database file with server data
+- PostgreSQL database with server data
 - [Diesel CLI](https://diesel.rs/) for managing the database schema
 
 ### Installation
@@ -25,9 +25,16 @@
    cd mine_search
    ```
 
-2. Create a `.env` file in the root directory and specify the path to your SQLite3 database file:
+2. Create a `.env` file in the root directory and specify the connection details to your PostgreSQL database:
    ```env
-   DATABASE_URL=/path/to/your/database.db
+   DATABASE_URL=postgres://username:password@localhost:5432/mine_search_db
+   ```
+
+   If you are running the application using Docker, specify the connection details for the PostgreSQL container, for example:
+   ```env
+   POSTGRES_USER=postgres
+   POSTGRES_PASSWORD=password
+   POSTGRES_DB=mine_search_db
    ```
 
 3. Set up the database using Diesel:
@@ -35,12 +42,21 @@
    diesel setup
    ```
 
-4. Run app with docker:
+### Running the Application
+
+#### Using Docker
+
+1. Build and run the application in a Docker container:
    ```bash
    docker compose up -d --build
    ```
 
-5. Or run native:
+2. The application will be accessible based on the configuration in the `docker-compose.yml` file.
+
+#### Native Execution
+
+1. Ensure you have Rust and Cargo installed on your system.
+2. Run the application directly:
    ```bash
    cargo run
    ```
@@ -51,9 +67,13 @@
 
 ## Environment Variables
 
-| Variable       | Description                         |
-|----------------|-------------------------------------|
-| `WORKERS` | Number of threads searching for a servers |
+| Variable          | Description                         |
+|-------------------|-------------------------------------|
+| `THREADS`         | Number of threads searching for servers |
+| `DATABASE_URL`    | PostgreSQL connection string         |
+| `POSTGRES_USER`   | PostgreSQL username                  |
+| `POSTGRES_PASSWORD` | PostgreSQL password               |
+| `POSTGRES_DB`     | PostgreSQL database name            |
 
 ## License
 
@@ -65,7 +85,7 @@ Contributions are welcome! Feel free to open issues or submit pull requests to i
 
 ## Acknowledgements
 
-- [SQLite](https://www.sqlite.org/)
+- [PostgreSQL](https://www.postgresql.org/)
 - [Diesel](https://diesel.rs/)
 - [Docker](https://www.docker.com/)
 
