@@ -28,7 +28,21 @@ pub enum ChatObject {
 impl ChatObject {
     pub fn get_motd(&self) -> Option<String> {
         match self {
-            ChatObject::Object(chat_component_object) => chat_component_object.text.clone(),
+            ChatObject::Object(chat_component_object) => {
+                let mut result = String::new();
+
+                if let Some(text) = &chat_component_object.text {
+                    result += text.as_str();
+                }
+
+                if let Some(extra) = &chat_component_object.extra {
+                    for object in extra {
+                        result += &object.get_motd().unwrap_or("".to_string());
+                    }
+                }
+
+                Some(result)
+            }
             ChatObject::Array(vec) => {
                 let mut result = String::new();
 
