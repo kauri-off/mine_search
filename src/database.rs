@@ -5,6 +5,7 @@ use diesel::{
     prelude::{AsChangeset, Associations, Identifiable, Insertable, Queryable},
     Connection, PgConnection, Selectable,
 };
+use serde_json::Value;
 
 pub struct DatabaseWrapper {
     pub conn: PgConnection,
@@ -32,7 +33,7 @@ pub struct ServerModel {
     pub protocol: i32,
     pub license: bool,
     pub white_list: Option<bool>,
-    pub description: Option<String>,
+    pub description: Value,
 }
 
 #[derive(Queryable, Selectable, Identifiable, Associations)]
@@ -58,7 +59,7 @@ pub struct ServerInsert<'a> {
     pub protocol: i32,
     pub license: bool,
     pub white_list: Option<bool>,
-    pub description: Option<&'a str>,
+    pub description: &'a Value,
 }
 
 #[derive(Insertable, AsChangeset)]
@@ -69,7 +70,7 @@ pub struct ServerUpdate<'a> {
     pub max: i32,
     pub version_name: &'a str,
     pub protocol: i32,
-    pub description: Option<&'a str>,
+    pub description: &'a Value,
 }
 
 #[derive(Insertable, AsChangeset)]

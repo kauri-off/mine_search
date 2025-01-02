@@ -13,7 +13,7 @@ minecraft_protocol = { git = "https://github.com/kauri-off/minecraft_protocol.gi
 rand = "0.8.5"
 serde = { version = "1.0.216", features = ["derive"] }
 serde_json = "1.0.133"
-diesel = { version = "2.2.0", features = ["postgres", "chrono"] }
+diesel = { version = "2.2.0", features = ["postgres", "chrono", "serde_json"] }
 # build libpq and openssl as part of the build process
 # uncomment these lines if you run into setup issues
 pq-sys = { version = "0.6", features = ["bundled"] }

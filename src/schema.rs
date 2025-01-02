@@ -20,8 +20,8 @@ diesel::table! {
         protocol -> Int4,
         license -> Bool,
         white_list -> Nullable<Bool>,
-        description -> Nullable<Text>,
         last_seen -> Timestamp,
+        description -> Jsonb,
     }
 }
 

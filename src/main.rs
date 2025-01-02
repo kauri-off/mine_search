@@ -10,7 +10,8 @@ use chrono::{Local, Timelike};
 use colored::Colorize;
 use database::{DatabaseWrapper, PlayerInsert, ServerInsert, ServerModel, ServerUpdate};
 use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
-use mine_search::{check_server, generate_random_ip};
+use mine_search::{check_server, description_to_str, generate_random_ip};
+use serde_json::json;
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
 use tokio::{
     sync::{Mutex, Semaphore},
@@ -33,7 +34,6 @@ pub async fn handle_valid_ip(
     let extra_data =
         get_extra_data(format!("{}", ip), port, status.version.protocol as i32).await?;
 
-    let motd = status.description.get_motd();
     let server_insert = ServerInsert {
         ip: &format!("{}", ip),
         online: status.players.online as i32,
@@ -42,7 +42,9 @@ pub async fn handle_valid_ip(
         protocol: status.version.protocol as i32,
         license: extra_data.license,
         white_list: extra_data.white_list,
-        description: motd.as_deref(),
+        description: &json!({
+            "payload": status.description
+        }),
     };
 
     let server: ServerModel = insert_into(schema::servers::dsl::servers)
@@ -85,7 +87,7 @@ pub async fn handle_valid_ip(
             "no".green()
         },
         "🚀",
-        status.description.get_motd().unwrap_or_default()
+        description_to_str(status.description).unwrap_or("".to_string())
     );
     Ok(())
 }
@@ -146,13 +148,14 @@ async fn update_server(server: ServerModel, db: Arc<Mutex<DatabaseWrapper>>) {
         Err(_) => return,
     };
 
-    let motd = status.description.get_motd();
     let server_update = ServerUpdate {
         online: status.players.online as i32,
         max: status.players.max as i32,
         version_name: &status.version.name,
         protocol: status.version.protocol as i32,
-        description: motd.as_deref(),
+        description: &json!({
+            "payload": status.description,
+        }),
     };
 
     diesel::update(schema::servers::dsl::servers)
