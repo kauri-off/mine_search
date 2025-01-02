@@ -21,6 +21,7 @@ diesel::table! {
         license -> Bool,
         white_list -> Nullable<Bool>,
         description -> Nullable<Text>,
+        last_seen -> Timestamp,
     }
 }
 

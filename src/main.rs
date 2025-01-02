@@ -157,7 +157,11 @@ async fn update_server(server: ServerModel, db: Arc<Mutex<DatabaseWrapper>>) {
 
     diesel::update(schema::servers::dsl::servers)
         .filter(schema::servers::dsl::ip.eq(&server.ip))
-        .set(server_update)
+        .set((
+            server_update,
+            schema::servers::dsl::last_seen
+                .eq(Local::now().naive_local().with_nanosecond(0).unwrap()),
+        ))
         .execute(&mut db.lock().await.conn)
         .unwrap();
 
