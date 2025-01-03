@@ -19,10 +19,10 @@ jobs:
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build Worker image
-        run: docker build -t ghcr.io/${{ github.repository }}/worker:latest -f worker.Dockerfile
+        run: docker build -t ghcr.io/${{ github.repository }}/worker:latest -f worker.Dockerfile .
 
       - name: Build Backend image
-        run: docker build -t ghcr.io/${{ github.repository }}/backend:latest -f backend.Dockerfile
+        run: docker build -t ghcr.io/${{ github.repository }}/backend:latest -f backend.Dockerfile .
 
       - name: Push Worker image
         run: docker push ghcr.io/${{ github.repository }}/worker:latest
