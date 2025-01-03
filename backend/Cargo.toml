@@ -1,0 +1,16 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.8.1"
+db_schema = { path = "../db_schema" }
+tokio = { version = "1.42.0", features = ["full"] }
+
+diesel = { version = "2.2.0", features = ["postgres", "chrono", "serde_json"] }
+pq-sys = { version = "0.6", features = ["bundled"] }
+openssl-sys = { version = "0.9.100", features = ["vendored"] } 
+tracing-subscriber = "0.3.19"
+tracing = "0.1.41"
+tower-http = { version = "0.6.2", features = ["trace"] }

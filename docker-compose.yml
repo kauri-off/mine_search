@@ -1,6 +1,9 @@
 services:
-  rust-app:
-    build: .
+  worker:
+    build:
+      context: .
+      dockerfile: worker.Dockerfile
+    # image: ghcr.io/kauri-off/mine_search/worker:latest
     environment:
       - THREADS=900
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
@@ -8,6 +11,21 @@ services:
       - postgres
     networks:
       - app-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    # image: ghcr.io/kauri-off/mine_search/worker:latest
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+    ports:
+      - "127.0.0.1:3000:3000"
     restart: unless-stopped
 
   postgres:

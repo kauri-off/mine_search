@@ -20,17 +20,20 @@
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/kauri-off/mine_search
    cd mine_search
    ```
 
 2. Create a `.env` file in the root directory and specify the connection details to your PostgreSQL database:
+
    ```env
    DATABASE_URL=postgres://username:password@localhost:5432/mine_search_db
    ```
 
    If you are running the application using Docker, specify the connection details for the PostgreSQL container, for example:
+
    ```env
    POSTGRES_USER=postgres
    POSTGRES_PASSWORD=password
@@ -47,7 +50,9 @@
 #### Using Docker
 
 1. Build and run the application in a Docker container:
+
    ```bash
+   source .env
    docker compose up -d --build
    ```
 
@@ -58,6 +63,7 @@
 1. Ensure you have Rust and Cargo installed on your system.
 2. Run the application directly:
    ```bash
+   source .env
    cargo run
    ```
 
@@ -67,13 +73,13 @@
 
 ## Environment Variables
 
-| Variable          | Description                         |
-|-------------------|-------------------------------------|
-| `THREADS`         | Number of threads searching for servers |
-| `DATABASE_URL`    | PostgreSQL connection string         |
-| `POSTGRES_USER`   | PostgreSQL username                  |
-| `POSTGRES_PASSWORD` | PostgreSQL password               |
-| `POSTGRES_DB`     | PostgreSQL database name            |
+| Variable            | Description                             |
+| ------------------- | --------------------------------------- |
+| `THREADS`           | Number of threads searching for servers |
+| `DATABASE_URL`      | PostgreSQL connection string            |
+| `POSTGRES_USER`     | PostgreSQL username                     |
+| `POSTGRES_PASSWORD` | PostgreSQL password                     |
+| `POSTGRES_DB`       | PostgreSQL database name                |
 
 ## License
 
@@ -88,4 +94,3 @@ Contributions are welcome! Feel free to open issues or submit pull requests to i
 - [PostgreSQL](https://www.postgresql.org/)
 - [Diesel](https://diesel.rs/)
 - [Docker](https://www.docker.com/)
-

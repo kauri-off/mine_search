@@ -18,10 +18,11 @@ use tokio::{
     time::timeout,
 };
 
+use db_schema::schema;
+
 mod conn_wrapper;
 mod database;
 mod packets;
-mod schema;
 mod server_actions;
 
 pub async fn handle_valid_ip(

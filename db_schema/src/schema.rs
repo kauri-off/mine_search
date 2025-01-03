@@ -27,4 +27,7 @@ diesel::table! {
 
 diesel::joinable!(players -> servers (server_id));
 
-diesel::allow_tables_to_appear_in_same_query!(players, servers,);
+diesel::allow_tables_to_appear_in_same_query!(
+    players,
+    servers,
+);
