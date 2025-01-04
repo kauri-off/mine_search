@@ -217,16 +217,23 @@ async fn main() {
     println!("Servers in db: {}", count);
 
     let updater_thread = tokio::spawn(updater(db.clone()));
-    let mut workers = vec![];
+    let only_update: bool = env::var("ONLY_UPDATE")
+        .unwrap_or("false".to_string())
+        .parse()
+        .unwrap_or(false);
 
-    for _ in 0..threads {
-        workers.push(tokio::spawn(worker(db.clone())));
-    }
+    if !only_update {
+        let mut workers = vec![];
 
-    println!("[+] All threads started");
+        for _ in 0..threads {
+            workers.push(tokio::spawn(worker(db.clone())));
+        }
 
-    for task in workers {
-        let _ = task.await;
+        println!("[+] All threads started");
+
+        for task in workers {
+            let _ = task.await;
+        }
     }
 
     updater_thread.await.unwrap();

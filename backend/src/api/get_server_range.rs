@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::database::{DatabaseWrapper, ServerModel};
 
+use super::get_server::ServerResponse;
+
 #[derive(Serialize, Deserialize)]
 pub struct ServerRequest {
     pub limit: i64,
@@ -20,8 +22,8 @@ pub struct ServerRequest {
 pub async fn get_server_range(
     State(db): State<Arc<DatabaseWrapper>>,
     Json(body): Json<ServerRequest>,
-) -> Result<Json<Vec<ServerModel>>, StatusCode> {
-    let server_list = servers
+) -> Result<Json<Vec<ServerResponse>>, StatusCode> {
+    let server_list: Vec<ServerModel> = servers
         .limit(body.limit)
         .offset(body.offset)
         .select(ServerModel::as_select())
@@ -29,5 +31,5 @@ pub async fn get_server_range(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(server_list))
+    Ok(Json(server_list.into_iter().map(|t| t.into()).collect()))
 }
