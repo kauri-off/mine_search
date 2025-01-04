@@ -17,6 +17,7 @@ serde = { version = "1.0.216", features = ["derive"] }
 serde_json = "1.0.133"
 
 diesel = { version = "2.2.0", features = ["postgres", "chrono", "serde_json"] }
+diesel-async = { version = "0.5.2", features = ["postgres", "deadpool"] }
 pq-sys = { version = "0.6", features = ["bundled"] }
 openssl-sys = { version = "0.9.100", features = ["vendored"] } 
 

@@ -9,14 +9,12 @@ use std::{
 use chrono::{Local, Timelike};
 use colored::Colorize;
 use database::{DatabaseWrapper, PlayerInsert, ServerInsert, ServerModel, ServerUpdate};
-use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel_async::RunQueryDsl;
 use mine_search::{check_server, description_to_str, generate_random_ip};
 use serde_json::json;
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
-use tokio::{
-    sync::{Mutex, Semaphore},
-    time::timeout,
-};
+use tokio::{sync::Semaphore, time::timeout};
 
 use db_schema::schema;
 
@@ -25,11 +23,7 @@ mod database;
 mod packets;
 mod server_actions;
 
-pub async fn handle_valid_ip(
-    ip: &IpAddr,
-    port: u16,
-    db: Arc<Mutex<DatabaseWrapper>>,
-) -> io::Result<()> {
+pub async fn handle_valid_ip(ip: &IpAddr, port: u16, db: Arc<DatabaseWrapper>) -> io::Result<()> {
     let status = get_status(&format!("{}", ip), port).await?;
 
     let extra_data =
@@ -47,13 +41,15 @@ pub async fn handle_valid_ip(
             "payload": status.description
         }),
     };
+    let mut conn = db.pool.get().await.unwrap();
 
     let server: ServerModel = insert_into(schema::servers::dsl::servers)
         .values(server_insert)
         .on_conflict(schema::servers::dsl::ip)
         .do_nothing()
         .returning(ServerModel::as_returning())
-        .get_result(&mut db.lock().await.conn)
+        .get_result(&mut conn)
+        .await
         .map_err(|_| ErrorKind::InvalidInput)?;
 
     for player in status.players.sample.unwrap_or_default() {
@@ -66,7 +62,8 @@ pub async fn handle_valid_ip(
         insert_into(schema::players::dsl::players)
             .values(&player_model)
             .on_conflict_do_nothing()
-            .execute(&mut db.lock().await.conn)
+            .execute(&mut conn)
+            .await
             .unwrap();
     }
 
@@ -93,7 +90,7 @@ pub async fn handle_valid_ip(
     Ok(())
 }
 
-async fn worker(db: Arc<Mutex<DatabaseWrapper>>) {
+async fn worker(db: Arc<DatabaseWrapper>) {
     loop {
         let ip = IpAddr::V4(generate_random_ip());
 
@@ -107,13 +104,14 @@ async fn worker(db: Arc<Mutex<DatabaseWrapper>>) {
     }
 }
 
-async fn updater(db: Arc<Mutex<DatabaseWrapper>>) {
+async fn updater(db: Arc<DatabaseWrapper>) {
     loop {
         println!("Updating...");
 
         let servers: Vec<ServerModel> = schema::servers::dsl::servers
             .select(ServerModel::as_select())
-            .load(&mut db.lock().await.conn)
+            .load(&mut db.pool.get().await.unwrap())
+            .await
             .unwrap();
 
         let semaphore = Arc::new(Semaphore::new(50));
@@ -140,7 +138,7 @@ async fn updater(db: Arc<Mutex<DatabaseWrapper>>) {
     }
 }
 
-async fn update_server(server: ServerModel, db: Arc<Mutex<DatabaseWrapper>>) {
+async fn update_server(server: ServerModel, db: Arc<DatabaseWrapper>) {
     let status = match timeout(Duration::from_secs(2), get_status(&server.ip, 25565)).await {
         Ok(t) => match t {
             Ok(b) => b,
@@ -158,6 +156,7 @@ async fn update_server(server: ServerModel, db: Arc<Mutex<DatabaseWrapper>>) {
             "payload": status.description,
         }),
     };
+    let mut conn = db.pool.get().await.unwrap();
 
     diesel::update(schema::servers::dsl::servers)
         .filter(schema::servers::dsl::ip.eq(&server.ip))
@@ -166,7 +165,8 @@ async fn update_server(server: ServerModel, db: Arc<Mutex<DatabaseWrapper>>) {
             schema::servers::dsl::last_seen
                 .eq(Local::now().naive_local().with_nanosecond(0).unwrap()),
         ))
-        .execute(&mut db.lock().await.conn)
+        .execute(&mut conn)
+        .await
         .unwrap();
 
     for player in status.players.sample.unwrap_or_default() {
@@ -184,7 +184,8 @@ async fn update_server(server: ServerModel, db: Arc<Mutex<DatabaseWrapper>>) {
                 schema::players::dsl::last_seen
                     .eq(Local::now().naive_local().with_nanosecond(0).unwrap()),
             )
-            .execute(&mut db.lock().await.conn)
+            .execute(&mut conn)
+            .await
             .unwrap();
     }
 }
@@ -205,12 +206,13 @@ async fn main() {
 
     println!("Threads: {}", threads);
 
-    let db = Arc::new(Mutex::new(DatabaseWrapper::establish()));
+    let db = Arc::new(DatabaseWrapper::establish());
     println!("[+] Connection to database established");
 
     let count: i64 = schema::servers::dsl::servers
         .select(diesel::dsl::count(schema::servers::dsl::id))
-        .first(&mut db.lock().await.conn)
+        .first(&mut db.pool.get().await.unwrap())
+        .await
         .unwrap();
     println!("Servers in db: {}", count);
 

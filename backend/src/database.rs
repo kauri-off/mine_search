@@ -1,6 +1,7 @@
 use std::env;
 
 use chrono::NaiveDateTime;
+use db_schema::schema;
 use diesel::{
     prelude::{AsChangeset, Associations, Identifiable, Insertable, Queryable},
     Selectable,
@@ -9,6 +10,7 @@ use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
     AsyncPgConnection,
 };
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub struct DatabaseWrapper {
@@ -26,8 +28,8 @@ impl DatabaseWrapper {
     }
 }
 
-#[derive(Queryable, Selectable, Identifiable)]
-#[diesel(table_name = crate::schema::servers)]
+#[derive(Queryable, Selectable, Identifiable, Serialize, Deserialize)]
+#[diesel(table_name = schema::servers)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ServerModel {
     pub id: i32,
@@ -42,7 +44,7 @@ pub struct ServerModel {
 }
 
 #[derive(Queryable, Selectable, Identifiable, Associations)]
-#[diesel(table_name = crate::schema::players)]
+#[diesel(table_name = schema::players)]
 #[diesel(belongs_to(ServerModel, foreign_key = server_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct PlayerModel {
@@ -54,7 +56,7 @@ pub struct PlayerModel {
 }
 
 #[derive(Insertable)]
-#[diesel(table_name = crate::schema::servers)]
+#[diesel(table_name = schema::servers)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ServerInsert<'a> {
     pub ip: &'a str,
@@ -68,7 +70,7 @@ pub struct ServerInsert<'a> {
 }
 
 #[derive(Insertable, AsChangeset)]
-#[diesel(table_name = crate::schema::servers)]
+#[diesel(table_name = schema::servers)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ServerUpdate<'a> {
     pub online: i32,
@@ -79,7 +81,7 @@ pub struct ServerUpdate<'a> {
 }
 
 #[derive(Insertable, AsChangeset)]
-#[diesel(table_name = crate::schema::players)]
+#[diesel(table_name = schema::players)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct PlayerInsert<'a> {
     pub uuid: &'a str,
