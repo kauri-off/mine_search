@@ -28,7 +28,7 @@ impl DatabaseWrapper {
     }
 }
 
-#[derive(Queryable, Selectable, Identifiable, Serialize, Deserialize)]
+#[derive(Queryable, Selectable, Identifiable, Serialize, Deserialize, Debug)]
 #[diesel(table_name = schema::servers)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ServerModel {
@@ -43,7 +43,7 @@ pub struct ServerModel {
     pub description: Value,
 }
 
-#[derive(Queryable, Selectable, Identifiable, Associations)]
+#[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Deserialize, Debug)]
 #[diesel(table_name = schema::players)]
 #[diesel(belongs_to(ServerModel, foreign_key = server_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]

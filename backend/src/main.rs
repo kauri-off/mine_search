@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use api::{get_server::get_server, get_server_range::get_server_range};
+use api::{get_players::get_players, get_server::get_server, get_server_range::get_server_range};
 use axum::{routing::post, Router};
 use database::DatabaseWrapper;
 use tower_http::{
@@ -28,6 +28,7 @@ async fn main() {
     let app = Router::new()
         .route("/api/server", post(get_server))
         .route("/api/servers", post(get_server_range))
+        .route("/api/players", post(get_players))
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)

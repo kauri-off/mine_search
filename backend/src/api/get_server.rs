@@ -72,7 +72,10 @@ fn chat_object_to_html(chat: &ChatObject) -> String {
         ChatObject::Array(array) => array.iter().map(|obj| chat_object_to_html(obj)).collect(),
         ChatObject::JsonPrimitive(value) => {
             if value.is_string() {
-                format!("<span>{}</span>", value.as_str().unwrap())
+                format!(
+                    "<span style=\"color: white;\" >{}</span>",
+                    value.as_str().unwrap()
+                )
             } else {
                 value.to_string()
             }
@@ -106,6 +109,8 @@ fn chat_component_object_to_html(component: &ChatComponentObject) -> String {
         }
         if let Some(color) = &component.color {
             style.push_str(&format!("color: {}; ", color));
+        } else {
+            style.push_str("color: white; ");
         }
 
         // If there are any styles, apply them to the tag
