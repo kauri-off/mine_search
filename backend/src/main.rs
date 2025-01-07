@@ -3,7 +3,10 @@ use std::sync::Arc;
 use api::{get_server::get_server, get_server_range::get_server_range};
 use axum::{routing::post, Router};
 use database::DatabaseWrapper;
-use tower_http::trace::{self, TraceLayer};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::{self, TraceLayer},
+};
 use tracing::Level;
 
 mod api;
@@ -16,7 +19,7 @@ async fn main() {
         .compact()
         .init();
 
-    let layer = TraceLayer::new_for_http()
+    let logging = TraceLayer::new_for_http()
         .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
         .on_response(trace::DefaultOnResponse::new().level(Level::INFO));
 
@@ -25,7 +28,13 @@ async fn main() {
     let app = Router::new()
         .route("/api/server", post(get_server))
         .route("/api/servers", post(get_server_range))
-        .layer(layer)
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any),
+        )
+        .layer(logging)
         .with_state(db);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

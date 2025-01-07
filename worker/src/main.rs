@@ -8,7 +8,9 @@ use std::{
 
 use chrono::{Local, Timelike};
 use colored::Colorize;
-use database::{DatabaseWrapper, PlayerInsert, ServerInsert, ServerModel, ServerUpdate};
+use database::{
+    DatabaseWrapper, PlayerInsert, ServerInsert, ServerModel, ServerModelMini, ServerUpdate,
+};
 use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use mine_search::{check_server, description_to_str, generate_random_ip};
@@ -108,8 +110,8 @@ async fn updater(db: Arc<DatabaseWrapper>) {
     loop {
         println!("Updating...");
 
-        let servers: Vec<ServerModel> = schema::servers::dsl::servers
-            .select(ServerModel::as_select())
+        let servers: Vec<ServerModelMini> = schema::servers::dsl::servers
+            .select(ServerModelMini::as_select())
             .load(&mut db.pool.get().await.unwrap())
             .await
             .unwrap();
@@ -138,7 +140,7 @@ async fn updater(db: Arc<DatabaseWrapper>) {
     }
 }
 
-async fn update_server(server: ServerModel, db: Arc<DatabaseWrapper>) {
+async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
     let status = match timeout(Duration::from_secs(2), get_status(&server.ip, 25565)).await {
         Ok(t) => match t {
             Ok(b) => b,

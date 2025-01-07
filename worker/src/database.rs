@@ -41,6 +41,14 @@ pub struct ServerModel {
     pub description: Value,
 }
 
+#[derive(Queryable, Selectable, Identifiable)]
+#[diesel(table_name = crate::schema::servers)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct ServerModelMini {
+    pub id: i32,
+    pub ip: String,
+}
+
 #[derive(Queryable, Selectable, Identifiable, Associations)]
 #[diesel(table_name = crate::schema::players)]
 #[diesel(belongs_to(ServerModel, foreign_key = server_id))]
