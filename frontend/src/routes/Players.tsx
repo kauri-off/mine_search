@@ -5,6 +5,7 @@ function Players() {
   return (
     <>
       <NavBar page={Page.PLAYERS} />
+      <h1 className="text-center">TODO</h1>
     </>
   );
 }

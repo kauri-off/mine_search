@@ -8,4 +8,5 @@ export interface ServerModel {
     white_list: boolean | null,
     description: any,
     description_html: string,
+    last_seen: string
 }

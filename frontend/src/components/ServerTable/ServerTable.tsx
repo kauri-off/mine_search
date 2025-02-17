@@ -1,9 +1,14 @@
+import ServerStatus from "../ServerStatus";
 import ServerTableProps from "./ServerTable.types";
 
 function ServerTable({ server }: ServerTableProps) {
   return (
     <div className="p-4">
       <ul className="list-group">
+        <li className="list-group-item d-flex">
+          <strong style={{ width: 150 }}>Status</strong>
+          <ServerStatus server={server} />
+        </li>
         <li className="list-group-item d-flex">
           <strong style={{ width: 150 }}>IP</strong>
           <span>{server.ip}</span>

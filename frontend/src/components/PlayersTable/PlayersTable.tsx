@@ -11,12 +11,23 @@ function PlayersTable({ players }: PlayersProps) {
           </tr>
         </thead>
         <tbody>
-          {players.map((player) => (
-            <tr key={player.id}>
-              <td>{player.name}</td>
-              <td>{player.last_seen}</td>
-            </tr>
-          ))}
+          {players.map((player) => {
+            let date = new Date(player.last_seen);
+            const formattedDate = new Intl.DateTimeFormat("en-US", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            }).format(date);
+            return (
+              <tr key={player.id}>
+                <td>{player.name}</td>
+                <td>{formattedDate}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

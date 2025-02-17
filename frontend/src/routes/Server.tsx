@@ -15,11 +15,17 @@ function Server() {
   const [server, setServer] = useState<ServerModel | null>(null);
   const [players, setPlayers] = useState<PlayerModel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    getServer(ip!).then((res) => {
-      setServer(res.data);
-    });
+    getServer(ip!)
+      .then((res) => {
+        setServer(res.data);
+      })
+      .catch((_e) => {
+        setLoading(false);
+        setError(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -31,11 +37,25 @@ function Server() {
     });
   }, [server]);
 
+  if (error) {
+    return (
+      <>
+        <NavBar page={Page.NONE} />
+        <h1>Error</h1>
+      </>
+    );
+  }
+
   return (
     <>
       <NavBar page={Page.NONE} />
-      {loading ? <Loading /> : <ServerTable server={server!} />}
-      {!loading && <PlayersTable players={players} />}
+      {loading ? (
+        <Loading />
+      ) : (
+        <>
+          <ServerTable server={server!} /> <PlayersTable players={players} />
+        </>
+      )}
     </>
   );
 }
