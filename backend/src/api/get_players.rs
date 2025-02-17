@@ -1,12 +1,15 @@
 use std::sync::Arc;
 
 use axum::{extract::State, http::StatusCode, Json};
-use db_schema::schema::servers::dsl::*;
+use db_schema::{
+    models::{players::PlayerModel, servers::ServerModel},
+    schema::servers::dsl::*,
+};
 use diesel::{BelongingToDsl, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 
-use crate::database::{DatabaseWrapper, PlayerModel, ServerModel};
+use crate::database::DatabaseWrapper;
 
 #[derive(Serialize, Deserialize)]
 pub struct PlayersRequest {

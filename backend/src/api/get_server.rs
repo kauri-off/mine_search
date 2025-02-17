@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
 use axum::{extract::State, http::StatusCode, Json};
-use db_schema::schema::servers::dsl::*;
+use chrono::NaiveDateTime;
+use db_schema::{models::servers::ServerModel, schema::servers::dsl::*};
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::database::{DatabaseWrapper, ServerModel};
+use crate::database::DatabaseWrapper;
 
 #[derive(Serialize, Deserialize)]
 pub struct ServerRequest {
@@ -23,6 +24,7 @@ pub struct ServerResponse {
     pub protocol: i32,
     pub license: bool,
     pub white_list: Option<bool>,
+    pub last_seen: NaiveDateTime,
     pub description: Value,
     pub description_html: String,
 }
@@ -37,6 +39,7 @@ impl From<ServerModel> for ServerResponse {
             protocol: value.protocol,
             license: value.license,
             white_list: value.white_list,
+            last_seen: value.last_seen,
             description: value.description.clone(),
             description_html: parse_html(value.description),
         }

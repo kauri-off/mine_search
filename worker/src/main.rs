@@ -8,9 +8,7 @@ use std::{
 
 use chrono::{Local, Timelike};
 use colored::Colorize;
-use database::{
-    DatabaseWrapper, PlayerInsert, ServerInsert, ServerModel, ServerModelMini, ServerUpdate,
-};
+use database::DatabaseWrapper;
 use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use mine_search::{check_server, description_to_str, generate_random_ip};
@@ -18,7 +16,13 @@ use serde_json::json;
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
 use tokio::{sync::Semaphore, time::timeout};
 
-use db_schema::schema;
+use db_schema::{
+    models::{
+        players::PlayerInsert,
+        servers::{ServerInsert, ServerModel, ServerModelMini, ServerUpdate},
+    },
+    schema,
+};
 
 mod conn_wrapper;
 mod database;

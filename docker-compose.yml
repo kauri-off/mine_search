@@ -5,8 +5,8 @@ services:
       dockerfile: worker.Dockerfile
     # image: ghcr.io/kauri-off/mine_search/worker:latest
     environment:
-      - THREADS=900
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
+      THREADS: 900
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
     depends_on:
       - postgres
     networks:
@@ -19,13 +19,28 @@ services:
       dockerfile: backend.Dockerfile
     # image: ghcr.io/kauri-off/mine_search/worker:latest
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
+      BACKEND_PASSWORD: ${BACKEND_PASSWORD}
     depends_on:
       - postgres
     networks:
       - app-network
     ports:
       - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      VITE_BASE_URL: "http://localhost:3000/api"
+    networks:
+      - app-network
+    ports:
+      - "127.0.0.1:8080:3000"
     restart: unless-stopped
 
   postgres:
