@@ -17,7 +17,7 @@ services:
     build:
       context: .
       dockerfile: backend.Dockerfile
-    # image: ghcr.io/kauri-off/mine_search/worker:latest
+    # image: ghcr.io/kauri-off/mine_search/backend:latest
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
       BACKEND_PASSWORD: ${BACKEND_PASSWORD}
@@ -35,8 +35,6 @@ services:
       dockerfile: frontend.Dockerfile
     depends_on:
       - postgres
-    environment:
-      VITE_BASE_URL: "http://localhost:3000/api"
     networks:
       - app-network
     ports:
