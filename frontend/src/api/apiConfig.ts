@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const apiClient = axios.create({
   baseURL: '/api',
+  // baseURL: 'http://localhost:3000/api', // for dev
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -10,12 +11,12 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(config => {
   // Проверяем, нужно ли добавлять PIN
-  if (config.headers['use-pin']) {
-    const pin = localStorage.getItem('panel_pin');
-    if (pin) {
-      config.headers['x-password'] = pin;
+  if (config.headers['use-auth']) {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = token;
     }
-    delete config.headers['use-pin']; // Удаляем кастомный флаг
+    delete config.headers['use-auth']; // Удаляем кастомный флаг
   }
   return config;
 });

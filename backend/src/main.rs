@@ -1,9 +1,10 @@
 use std::{env, sync::Arc};
 
 use api::{get_players::get_players, get_server::get_server, get_server_range::get_server_range};
-use axum::{middleware, routing::post, Json, Router};
+use auth::{auth_api, check_password};
+use axum::{middleware, routing::post, Router};
 use database::DatabaseWrapper;
-use serde_json::{json, Value};
+use rand::{distr::Alphanumeric, rng, Rng};
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::{self, TraceLayer},
@@ -28,15 +29,18 @@ async fn main() {
     let db = Arc::new(DatabaseWrapper::establish());
 
     let protected = Router::new()
-        .route("/api/server", post(get_server))
-        .route("/api/servers", post(get_server_range))
-        .route("/api/players", post(get_players))
-        .route("/api/check", post(check_password))
-        .layer(middleware::from_fn(auth::password_middleware));
+        .route("/server", post(get_server))
+        .route("/servers", post(get_server_range))
+        .route("/players", post(get_players))
+        .route("/check_auth", post(check_password))
+        .layer(middleware::from_fn(auth::auth_middleware));
+
+    let api = Router::new()
+        .route("/auth", post(auth_api))
+        .merge(protected);
 
     let app = Router::new()
-        .route("/api/protected", post(is_protected))
-        .merge(protected)
+        .nest("/api", api)
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
@@ -50,14 +54,23 @@ async fn main() {
 
     if env::var("BACKEND_PASSWORD").is_ok() {
         println!("[+] Backend Password is set");
+    } else {
+        let password = generate_random_string(8);
+        env::set_var("BACKEND_PASSWORD", &password);
+        println!("[+] Backend password: {}", password);
     }
+
+    let secret = generate_random_string(32);
+    env::set_var("BACKEND_SECRET", &secret);
+    println!("[+] Secret is set");
 
     println!("🚀 Server started successfully");
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn is_protected() -> Json<Value> {
-    Json(json!(env::var("BACKEND_PASSWORD").is_ok()))
+fn generate_random_string(length: usize) -> String {
+    let mut rng = rng();
+    (0..length)
+        .map(|_| rng.sample(Alphanumeric) as char) // генерируем случайные символы
+        .collect() // собираем в строку
 }
-
-async fn check_password() {}
