@@ -5,8 +5,9 @@ services:
       dockerfile: worker.Dockerfile
     # image: ghcr.io/kauri-off/mine_search/worker:latest
     environment:
-      THREADS: 900
+      THREADS: ${THREADS}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
+      ONLY_UPDATE: ${ONLY_UPDATE}
     depends_on:
       - postgres
     networks:
