@@ -43,15 +43,15 @@ pub async fn fetch_server_list(
             .unwrap_or_default()
     };
 
-    let mut query = servers
-        .into_boxed()
-        .filter(id.lt(server_id))
-        .limit(body.limit);
+    let mut query = servers.into_boxed().filter(id.lt(server_id));
+
     if let Some(license_filter) = body.license {
         query = query.filter(license.eq(license_filter));
     }
 
     let server_list: Vec<ServerModel> = query
+        .limit(body.limit)
+        .order(id.desc())
         .select(ServerModel::as_select())
         .load(&mut conn)
         .await
