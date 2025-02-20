@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ServerModel } from "../../api/models/ServerModel";
-import { getServers } from "../../api/serversApi";
+import { fetchServerList } from "../../api/serversApi";
 import Server from "../ServerCard";
 import { useInView } from "react-intersection-observer";
 import Loading from "../Loading";
@@ -19,7 +19,7 @@ function ServerList() {
     try {
       const lastServerIp =
         servers.length > 0 ? servers[servers.length - 1].ip : null;
-      const res = await getServers(10, lastServerIp, false);
+      const res = await fetchServerList(10, lastServerIp, false);
 
       if (res.data.length === 0) {
         setHasMore(false);
@@ -45,7 +45,7 @@ function ServerList() {
         <Server key={server.ip} server={server} />
       ))}
       {loading && <Loading />}
-      {!hasMore && <p>Больше серверов нет.</p>}
+      {!hasMore && <p>No servers left.</p>}
       <div ref={ref} style={{ height: "1px" }}></div>
     </>
   );

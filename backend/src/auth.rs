@@ -12,7 +12,7 @@ struct Claims {
     pub ip: String,
 }
 
-pub async fn auth_middleware(req: Request, next: Next) -> Result<Response, StatusCode> {
+pub async fn middleware_check(req: Request, next: Next) -> Result<Response, StatusCode> {
     if let Some(jwt) = req.headers().get("Authorization") {
         let secret = env::var("BACKEND_SECRET").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         let _claims = decode::<Claims>(
@@ -38,7 +38,7 @@ pub struct AuthReturn {
     pub token: String,
 }
 
-pub async fn auth_api(Json(body): Json<AuthBody>) -> Result<Json<AuthReturn>, StatusCode> {
+pub async fn authenticate_user(Json(body): Json<AuthBody>) -> Result<Json<AuthReturn>, StatusCode> {
     let password = env::var("BACKEND_PASSWORD").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let secret = env::var("BACKEND_SECRET").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -67,4 +67,4 @@ pub async fn auth_api(Json(body): Json<AuthBody>) -> Result<Json<AuthReturn>, St
     Ok(Json(AuthReturn { token: jwt }))
 }
 
-pub async fn check_password() {}
+pub async fn validate_credentials() {}

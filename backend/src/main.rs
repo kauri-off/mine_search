@@ -1,7 +1,10 @@
 use std::{env, sync::Arc};
 
-use api::{get_players::get_players, get_server::get_server, get_server_range::get_server_range};
-use auth::{auth_api, check_password};
+use api::{
+    fetch_players::fetch_player_list, fetch_server_info::fetch_server_info,
+    fetch_server_list::fetch_server_list,
+};
+use auth::{authenticate_user, validate_credentials};
 use axum::{middleware, routing::post, Router};
 use database::DatabaseWrapper;
 use rand::{distr::Alphanumeric, rng, Rng};
@@ -28,19 +31,19 @@ async fn main() {
 
     let db = Arc::new(DatabaseWrapper::establish());
 
-    let protected = Router::new()
-        .route("/server", post(get_server))
-        .route("/servers", post(get_server_range))
-        .route("/players", post(get_players))
-        .route("/check_auth", post(check_password))
-        .layer(middleware::from_fn(auth::auth_middleware));
+    let protected_routes = Router::new()
+        .route("/server/info", post(fetch_server_info))
+        .route("/servers/list", post(fetch_server_list))
+        .route("/players/list", post(fetch_player_list))
+        .route("/auth/validate", post(validate_credentials))
+        .layer(middleware::from_fn(auth::middleware_check));
 
-    let api = Router::new()
-        .route("/auth", post(auth_api))
-        .merge(protected);
+    let public_api = Router::new()
+        .route("/auth/login", post(authenticate_user))
+        .merge(protected_routes);
 
     let app = Router::new()
-        .nest("/api", api)
+        .nest("/api/v1", public_api)
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)

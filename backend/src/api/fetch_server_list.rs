@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::database::DatabaseWrapper;
 
-use super::get_server::ServerResponse;
+use super::fetch_server_info::ServerResponse;
 
 #[derive(Serialize, Deserialize)]
 pub struct ServerRequest {
@@ -17,7 +17,7 @@ pub struct ServerRequest {
     pub license: Option<bool>,
 }
 
-pub async fn get_server_range(
+pub async fn fetch_server_list(
     State(db): State<Arc<DatabaseWrapper>>,
     Json(body): Json<ServerRequest>,
 ) -> Result<Json<Vec<ServerResponse>>, StatusCode> {

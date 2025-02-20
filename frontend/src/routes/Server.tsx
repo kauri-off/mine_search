@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { PlayerModel } from "../api/models/PlayerModel";
 import { ServerModel } from "../api/models/ServerModel";
-import { getPlayers, getServer } from "../api/serversApi";
+import { fetchServerPlayers, fetchServerInfo } from "../api/serversApi";
 import Loading from "../components/Loading";
 import NavBar from "../components/NavBar";
 import { Page } from "../components/NavBar/NavBar.types";
@@ -18,7 +18,7 @@ function Server() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    getServer(ip!)
+    fetchServerInfo(ip!)
       .then((res) => {
         setServer(res.data);
       })
@@ -31,7 +31,7 @@ function Server() {
   useEffect(() => {
     if (!server) return;
 
-    getPlayers(server.ip).then((res) => {
+    fetchServerPlayers(server.ip).then((res) => {
       setPlayers(res.data);
       setLoading(false);
     });

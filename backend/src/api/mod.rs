@@ -1,3 +1,3 @@
-pub mod get_players;
-pub mod get_server;
-pub mod get_server_range;
+pub mod fetch_players;
+pub mod fetch_server_info;
+pub mod fetch_server_list;

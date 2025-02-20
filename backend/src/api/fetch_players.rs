@@ -16,7 +16,7 @@ pub struct PlayersRequest {
     pub server_ip: String,
 }
 
-pub async fn get_players(
+pub async fn fetch_player_list(
     State(db): State<Arc<DatabaseWrapper>>,
     Json(body): Json<PlayersRequest>,
 ) -> Result<Json<Vec<PlayerModel>>, StatusCode> {

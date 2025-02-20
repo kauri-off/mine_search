@@ -55,7 +55,7 @@ fn parse_html(value: Value) -> String {
     }
 }
 
-pub async fn get_server(
+pub async fn fetch_server_info(
     State(db): State<Arc<DatabaseWrapper>>,
     Json(body): Json<ServerRequest>,
 ) -> Result<Json<ServerResponse>, StatusCode> {

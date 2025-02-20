@@ -3,7 +3,7 @@ import NavBar from "../components/NavBar";
 import { Page } from "../components/NavBar/NavBar.types";
 import ServerList from "../components/ServerList";
 import ServerSearchBar from "../components/ServerSearchBar";
-import { auth, checkAuth } from "../api/serversApi";
+import { authenticate, verifyAuth } from "../api/serversApi";
 import AuthField from "../components/AuthField";
 
 function Home() {
@@ -11,13 +11,13 @@ function Home() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    checkAuth().then(() => {
+    verifyAuth().then(() => {
       setReady(true);
     });
   }, []);
 
   const callback = (text: string) => {
-    auth(text)
+    authenticate(text)
       .then((res) => {
         localStorage.setItem("token", res.data.token);
         setReady(true);
