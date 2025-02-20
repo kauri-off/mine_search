@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { Page } from "../components/NavBar/NavBar.types";
 import ServerList from "../components/ServerList";
@@ -9,12 +10,21 @@ import AuthField from "../components/AuthField";
 function Home() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    verifyAuth().then(() => {
-      setReady(true);
-    });
-  }, []);
+    const params = new URLSearchParams(location.search);
+    const token = params.get("token");
+
+    if (token) {
+      localStorage.setItem("token", token);
+      params.delete("token");
+      navigate("/");
+    } else {
+      verifyAuth().then(() => setReady(true));
+    }
+  }, [location, navigate]);
 
   const callback = (text: string) => {
     authenticate(text)
@@ -30,13 +40,12 @@ function Home() {
   return (
     <>
       <NavBar page={Page.HOME} />
-      {ready && (
+      {ready ? (
         <div className="container">
           <ServerSearchBar />
           <ServerList />
         </div>
-      )}
-      {!ready && (
+      ) : (
         <>
           <AuthField callback={callback} />
           {error && <p className="text-danger">{error}</p>}
