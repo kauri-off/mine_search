@@ -1,14 +1,11 @@
-use std::sync::Arc;
-
+use super::fetch_server_info::ServerResponse;
+use crate::database::DatabaseWrapper;
 use axum::{extract::State, http::StatusCode, Json};
 use db_schema::{models::servers::ServerModel, schema::servers::dsl::*};
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{dsl::max, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
-
-use crate::database::DatabaseWrapper;
-
-use super::fetch_server_info::ServerResponse;
+use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
 pub struct ServerRequest {
@@ -21,44 +18,44 @@ pub async fn fetch_server_list(
     State(db): State<Arc<DatabaseWrapper>>,
     Json(body): Json<ServerRequest>,
 ) -> Result<Json<Vec<ServerResponse>>, StatusCode> {
-    let mut conn = db.pool.get().await.unwrap();
+    let mut conn = db
+        .pool
+        .get()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let server: ServerModel = if let Some(offset_ip) = body.offset_ip {
+    // Если offset_ip указан, выбираем id для данного ip.
+    // Иначе получаем максимальное значение id с помощью агрегатной функции max().
+    // Обратите внимание, что тип id – i32, поэтому и возвращаемые типы должны быть i32.
+    let server_id: i32 = if let Some(ref offset_ip) = body.offset_ip {
         servers
             .filter(ip.eq(offset_ip))
-            .select(ServerModel::as_select())
-            .get_result(&mut conn)
+            .select(id)
+            .first::<i32>(&mut conn)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     } else {
         servers
-            .order(id.desc())
-            .select(ServerModel::as_select())
-            .get_result(&mut conn)
+            .select(max(id))
+            .first::<Option<i32>>(&mut conn)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .unwrap_or_default()
     };
 
-    let server_list: Vec<ServerModel> = if let Some(l) = body.license {
-        servers
-            .filter(id.lt(server.id))
-            .filter(license.eq(l))
-            .limit(body.limit)
-            .order(id.desc())
-            .select(ServerModel::as_select())
-            .load(&mut conn)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-    } else {
-        servers
-            .filter(id.lt(server.id))
-            .limit(body.limit)
-            .order(id.desc())
-            .select(ServerModel::as_select())
-            .load(&mut conn)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-    };
+    let mut query = servers
+        .into_boxed()
+        .filter(id.lt(server_id))
+        .limit(body.limit);
+    if let Some(license_filter) = body.license {
+        query = query.filter(license.eq(license_filter));
+    }
 
-    Ok(Json(server_list.into_iter().map(|t| t.into()).collect()))
+    let server_list: Vec<ServerModel> = query
+        .select(ServerModel::as_select())
+        .load(&mut conn)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(server_list.into_iter().map(Into::into).collect()))
 }
