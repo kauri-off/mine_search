@@ -1,10 +1,11 @@
 use std::{env, sync::Arc};
 
 use api::{
-    fetch_players::fetch_player_list, fetch_server_info::fetch_server_info,
+    auth::{authenticate_user, validate_credentials},
+    fetch_players::fetch_player_list,
+    fetch_server_info::fetch_server_info,
     fetch_server_list::fetch_server_list,
 };
-use auth::{authenticate_user, validate_credentials};
 use axum::{middleware, routing::post, Router};
 use database::DatabaseWrapper;
 use rand::{distr::Alphanumeric, rng, Rng};
@@ -15,7 +16,7 @@ use tower_http::{
 use tracing::Level;
 
 mod api;
-mod auth;
+mod api_middleware;
 mod database;
 
 #[tokio::main]
@@ -36,7 +37,7 @@ async fn main() {
         .route("/servers/list", post(fetch_server_list))
         .route("/players/list", post(fetch_player_list))
         .route("/auth/validate", post(validate_credentials))
-        .layer(middleware::from_fn(auth::middleware_check));
+        .layer(middleware::from_fn(api_middleware::middleware_check));
 
     let public_api = Router::new()
         .route("/auth/login", post(authenticate_user))
