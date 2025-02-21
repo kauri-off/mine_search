@@ -24,17 +24,23 @@ export const fetchServerPlayers = (server_ip: string) => {
     });
 };
 
-export const authenticate = (password: string) => {
-    return apiClient.post("/auth/login", { password });
-}
-
-
-
 export const verifyAuth = () => {
     return apiClient.post("/auth/validate", null, {
         headers: {
             'use-auth': true
         }
     });
+}
+
+export const fetchStats = () => {
+    return apiClient.post("/stats", null, {
+        headers: {
+            'use-auth': true
+        }
+    });
+}
+
+export const authenticate = (password: string) => {
+    return apiClient.post("/auth/login", { password });
 }
 

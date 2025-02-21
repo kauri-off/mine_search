@@ -5,6 +5,7 @@ use api::{
     fetch_players::fetch_player_list,
     fetch_server_info::fetch_server_info,
     fetch_server_list::fetch_server_list,
+    fetch_stats::fetch_stats,
 };
 use axum::{middleware, routing::post, Router};
 use database::DatabaseWrapper;
@@ -37,6 +38,7 @@ async fn main() {
         .route("/servers/list", post(fetch_server_list))
         .route("/players/list", post(fetch_player_list))
         .route("/auth/validate", post(validate_credentials))
+        .route("/stats", post(fetch_stats))
         .layer(middleware::from_fn(api_middleware::middleware_check));
 
     let public_api = Router::new()

@@ -2,6 +2,7 @@
 export enum Page {
     HOME, 
     PLAYERS,
+    STATS,
     NONE
 }
 

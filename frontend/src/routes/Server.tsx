@@ -22,7 +22,7 @@ function Server() {
       .then((res) => {
         setServer(res.data);
       })
-      .catch((_e) => {
+      .catch(() => {
         setLoading(false);
         setError(true);
       });
