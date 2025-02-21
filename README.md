@@ -37,16 +37,29 @@ cd mine_search
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/diesel-rs/diesel/releases/latest/download/diesel_cli-installer.sh | sh
 ```
 
+To verify the installation, run:
+
+```bash
+diesel --version
+```
+
 ### 3. Start PostgreSQL
 
 ```bash
 docker compose up postgres -d
 ```
 
-### 4. Run database migrations
+### 4. Set up environment variables
 
 ```bash
-diesel migration run
+export $(grep -v '^#' .env | xargs)
+export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:5432/${POSTGRES_DB}"
+```
+
+### 5. Run database migrations
+
+```bash
+~/.cargo/bin/diesel migration run
 ```
 
 ## Running the Application
