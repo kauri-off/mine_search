@@ -8,5 +8,6 @@ export interface ServerModel {
     white_list: boolean | null,
     description: any,
     description_html: string,
-    last_seen: string
+    last_seen: string,
+    player_count: number
 }

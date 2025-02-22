@@ -1,8 +1,9 @@
 use super::fetch_server_info::ServerResponse;
 use crate::database::DatabaseWrapper;
 use axum::{extract::State, http::StatusCode, Json};
-use db_schema::{models::servers::ServerModel, schema::servers::dsl::*};
-use diesel::{dsl::max, ExpressionMethods, QueryDsl, SelectableHelper};
+use db_schema::{models::servers::ServerModel, schema::*};
+use diesel::dsl::*;
+use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -28,34 +29,48 @@ pub async fn fetch_server_list(
     // Иначе получаем максимальное значение id с помощью агрегатной функции max().
     // Обратите внимание, что тип id – i32, поэтому и возвращаемые типы должны быть i32.
     let server_id: i32 = if let Some(ref offset_ip) = body.offset_ip {
-        servers
-            .filter(ip.eq(offset_ip))
-            .select(id)
+        servers::dsl::servers
+            .filter(servers::dsl::ip.eq(offset_ip))
+            .select(servers::dsl::id)
             .first::<i32>(&mut conn)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     } else {
-        servers
-            .select(max(id))
+        servers::dsl::servers
+            .select(max(servers::dsl::id))
             .first::<Option<i32>>(&mut conn)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .unwrap_or_default()
     };
 
-    let mut query = servers.into_boxed().filter(id.lt(server_id));
-
-    if let Some(license_filter) = body.license {
-        query = query.filter(license.eq(license_filter));
+    let server_list = match body.license {
+        Some(l) => {
+            servers::table
+                .left_join(players::table.on(players::server_id.eq(servers::id.nullable())))
+                .filter(servers::id.lt(server_id))
+                .filter(servers::license.eq(l))
+                .group_by(servers::id)
+                .select((ServerModel::as_select(), count(players::id).nullable()))
+                .load::<(ServerModel, Option<i64>)>(&mut db.pool.get().await.unwrap())
+                .await
+        }
+        None => {
+            servers::table
+                .left_join(players::table.on(players::server_id.eq(servers::id.nullable())))
+                .filter(servers::id.lt(server_id))
+                .group_by(servers::id)
+                .select((ServerModel::as_select(), count(players::id).nullable()))
+                .load::<(ServerModel, Option<i64>)>(&mut db.pool.get().await.unwrap())
+                .await
+        }
     }
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let server_list: Vec<ServerModel> = query
-        .limit(body.limit)
-        .order(id.desc())
-        .select(ServerModel::as_select())
-        .load(&mut conn)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    Ok(Json(server_list.into_iter().map(Into::into).collect()))
+    Ok(Json(
+        server_list
+            .into_iter()
+            .map(|(server, count)| ServerResponse::new(server, count.unwrap_or_default()))
+            .collect(),
+    ))
 }
