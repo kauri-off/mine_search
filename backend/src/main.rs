@@ -7,11 +7,19 @@ use api::{
     fetch_server_list::fetch_server_list,
     fetch_stats::fetch_stats,
 };
-use axum::{middleware, routing::post, Router};
+use axum::{
+    http::{
+        header::{CONTENT_TYPE, COOKIE},
+        Method,
+    },
+    middleware,
+    routing::post,
+    Router,
+};
 use database::DatabaseWrapper;
 use rand::{distr::Alphanumeric, rng, Rng};
 use tower_http::{
-    cors::{Any, CorsLayer},
+    cors::CorsLayer,
     trace::{self, TraceLayer},
 };
 use tracing::Level;
@@ -49,9 +57,9 @@ async fn main() {
         .nest("/api/v1", public_api)
         .layer(
             CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods(Any)
-                .allow_headers(Any),
+                .allow_methods([Method::POST, Method::OPTIONS])
+                .allow_headers([COOKIE, CONTENT_TYPE])
+                .allow_credentials(true),
         )
         .layer(logging)
         .with_state(db);

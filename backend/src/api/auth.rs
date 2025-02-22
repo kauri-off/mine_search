@@ -1,10 +1,12 @@
 use std::env;
 
 use axum::{
-    http::{HeaderMap, StatusCode},
+    http::{header::SET_COOKIE, HeaderMap, HeaderValue, StatusCode},
+    response::IntoResponse,
     Json,
 };
 use chrono::{Duration, Utc};
+use cookie::{Cookie, SameSite};
 use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 
@@ -24,10 +26,11 @@ pub struct AuthBody {
 pub struct AuthReturn {
     pub token: String,
 }
+
 pub async fn authenticate_user(
     headers: HeaderMap,
     Json(body): Json<AuthBody>,
-) -> Result<Json<AuthReturn>, StatusCode> {
+) -> Result<impl IntoResponse, StatusCode> {
     let password = env::var("BACKEND_PASSWORD").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let secret = env::var("BACKEND_SECRET").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -56,7 +59,19 @@ pub async fn authenticate_user(
     )
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(AuthReturn { token: jwt }))
+    let cookie = Cookie::build(("token", &jwt))
+        .path("/api")
+        .http_only(true)
+        .secure(true)
+        .same_site(SameSite::Strict);
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        SET_COOKIE,
+        HeaderValue::from_str(&cookie.to_string()).unwrap(),
+    );
+
+    Ok((headers, Json(AuthReturn { token: jwt })))
 }
 
 pub async fn validate_credentials() {}
