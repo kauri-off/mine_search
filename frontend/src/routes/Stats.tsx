@@ -4,17 +4,25 @@ import { Page } from "../components/NavBar/NavBar.types";
 import Loading from "../components/Loading";
 import { StatsModel } from "../api/models/StatsModel";
 import { fetchStats } from "../api/serversApi";
+import { useNavigate } from "react-router-dom";
 
 function Stats() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<StatsModel | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchStats().then((res) => {
-      setLoading(false);
-      setStats(res.data);
-    });
-  }, []);
+    fetchStats()
+      .then((res) => {
+        setLoading(false);
+        setStats(res.data);
+      })
+      .catch((res) => {
+        if (res.status == 401) {
+          navigate("/auth");
+        }
+      });
+  }, [navigate]);
 
   return (
     <>
