@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import NavBar from "../components/NavBar";
 import { Page } from "../components/NavBar/NavBar.types";
 import { useLocation, useNavigate } from "react-router-dom";
-import { authenticate, verifyAuth } from "../api/serversApi";
+import { authenticate, setCookieReq, verifyAuth } from "../api/serversApi";
 import AuthField from "../components/AuthField";
 
 function Auth() {
@@ -15,9 +15,7 @@ function Auth() {
     const token = params.get("token");
 
     if (token) {
-      localStorage.setItem("token", token);
-      params.delete("token");
-      navigate("/");
+      setCookieReq(token).then(() => navigate("/"));
     } else {
       verifyAuth().then(() => navigate("/"));
     }

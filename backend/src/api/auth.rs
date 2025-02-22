@@ -7,15 +7,9 @@ use axum::{
 };
 use chrono::{Duration, Utc};
 use cookie::{Cookie, SameSite};
-use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Claims {
-    pub exp: usize, // Required (validate_exp defaults to true in validation). Expiration time (as UTC timestamp)
-    pub iat: usize, // Optional. Issued at (as UTC timestamp)
-    pub ip: String,
-}
+use crate::jwt_wrapper::{jwt_encode, Claims};
 
 #[derive(Serialize, Deserialize)]
 pub struct AuthBody {
@@ -32,7 +26,6 @@ pub async fn authenticate_user(
     Json(body): Json<AuthBody>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let password = env::var("BACKEND_PASSWORD").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let secret = env::var("BACKEND_SECRET").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if body.password != password {
         return Err(StatusCode::UNAUTHORIZED);
@@ -52,12 +45,7 @@ pub async fn authenticate_user(
 
     let my_claims = Claims { exp, iat, ip };
 
-    let jwt = encode(
-        &Header::default(),
-        &my_claims,
-        &EncodingKey::from_secret(secret.as_ref()),
-    )
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let jwt = jwt_encode(my_claims).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let cookie = Cookie::build(("token", &jwt))
         .path("/api")

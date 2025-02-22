@@ -24,3 +24,6 @@ export const authenticate = (password: string) => {
     return apiClient.post("/auth/login", { password });
 }
 
+export const setCookieReq = (token: string) => {
+    return apiClient.post("/auth/set_cookie", { token });
+}

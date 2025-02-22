@@ -6,6 +6,7 @@ use api::{
     fetch_server_info::fetch_server_info,
     fetch_server_list::fetch_server_list,
     fetch_stats::fetch_stats,
+    set_cookie::set_cookie,
 };
 use axum::{
     http::{
@@ -27,6 +28,7 @@ use tracing::Level;
 mod api;
 mod api_middleware;
 mod database;
+mod jwt_wrapper;
 
 #[tokio::main]
 async fn main() {
@@ -51,6 +53,7 @@ async fn main() {
 
     let public_api = Router::new()
         .route("/auth/login", post(authenticate_user))
+        .route("/auth/set_cookie", post(set_cookie))
         .merge(protected_routes);
 
     let app = Router::new()
