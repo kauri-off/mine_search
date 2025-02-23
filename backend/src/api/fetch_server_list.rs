@@ -51,8 +51,9 @@ pub async fn fetch_server_list(
         };
 
     let server_list = servers::table
-        .left_join(players::table.on(players::server_id.eq(servers::id.nullable())))
         .filter(filter)
+        .order(servers::id.desc())
+        .left_join(players::table.on(players::server_id.eq(servers::id.nullable())))
         .limit(body.limit)
         .group_by(servers::id)
         .select((ServerModel::as_select(), count(players::id).nullable()))
