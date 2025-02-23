@@ -6,7 +6,7 @@ use axum::{
     Json,
 };
 use chrono::{Duration, Utc};
-use cookie::{Cookie, SameSite};
+use cookie::{time, Cookie, SameSite};
 use serde::{Deserialize, Serialize};
 
 use crate::jwt_wrapper::{jwt_encode, Claims};
@@ -51,7 +51,8 @@ pub async fn authenticate_user(
         .path("/api")
         .http_only(true)
         .secure(true)
-        .same_site(SameSite::Strict);
+        .same_site(SameSite::Strict)
+        .max_age(time::Duration::days(30));
 
     let mut headers = HeaderMap::new();
     headers.insert(

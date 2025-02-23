@@ -3,7 +3,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use cookie::{Cookie, SameSite};
+use cookie::{time, Cookie, SameSite};
 use serde::{Deserialize, Serialize};
 
 use crate::jwt_wrapper::jwt_decode;
@@ -20,7 +20,8 @@ pub async fn set_cookie(Json(token): Json<Token>) -> Result<impl IntoResponse, S
         .path("/api")
         .http_only(true)
         .secure(true)
-        .same_site(SameSite::Strict);
+        .same_site(SameSite::Strict)
+        .max_age(time::Duration::days(30));
 
     let mut headers = HeaderMap::new();
     headers.insert(
