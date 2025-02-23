@@ -1,7 +1,8 @@
 use super::fetch_server_info::ServerResponse;
 use crate::database::DatabaseWrapper;
+use crate::database::ServerModelWithPlayers;
 use axum::{extract::State, http::StatusCode, Json};
-use db_schema::{models::servers::ServerModel, schema::*};
+use db_schema::schema::*;
 use diesel::dsl::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
@@ -56,15 +57,22 @@ pub async fn fetch_server_list(
         .left_join(players::table.on(players::server_id.eq(servers::id.nullable())))
         .limit(body.limit)
         .group_by(servers::id)
-        .select((ServerModel::as_select(), count(players::id).nullable()))
-        .load::<(ServerModel, Option<i64>)>(&mut db.pool.get().await.unwrap())
+        .select((
+            servers::id,
+            servers::ip,
+            servers::online,
+            servers::max,
+            servers::version_name,
+            servers::protocol,
+            servers::license,
+            servers::white_list,
+            servers::last_seen,
+            servers::description,
+            count(players::id).nullable(),
+        ))
+        .load::<ServerModelWithPlayers>(&mut conn)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(
-        server_list
-            .into_iter()
-            .map(|(server, count)| ServerResponse::new(server, count.unwrap_or_default()))
-            .collect(),
-    ))
+    Ok(Json(server_list.into_iter().map(Into::into).collect()))
 }

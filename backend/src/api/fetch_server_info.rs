@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{extract::State, http::StatusCode, Json};
 use chrono::NaiveDateTime;
-use db_schema::{models::servers::ServerModel, schema::*};
+use db_schema::schema::*;
 use diesel::dsl::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::database::DatabaseWrapper;
+use crate::database::ServerModelWithPlayers;
 
 #[derive(Serialize, Deserialize)]
 pub struct ServerRequest {
@@ -31,22 +32,50 @@ pub struct ServerResponse {
     pub player_count: i64,
 }
 
-impl ServerResponse {
-    pub fn new(server_model: ServerModel, player_count: i64) -> ServerResponse {
+impl From<ServerModelWithPlayers> for ServerResponse {
+    fn from(value: ServerModelWithPlayers) -> ServerResponse {
         ServerResponse {
-            ip: server_model.ip,
-            online: server_model.online,
-            max: server_model.max,
-            version_name: server_model.version_name,
-            protocol: server_model.protocol,
-            license: server_model.license,
-            white_list: server_model.white_list,
-            last_seen: server_model.last_seen,
-            description: server_model.description.clone(),
-            description_html: parse_html(server_model.description),
-            player_count,
+            ip: value.ip,
+            online: value.online,
+            max: value.max,
+            version_name: value.version_name,
+            protocol: value.protocol,
+            license: value.license,
+            white_list: value.white_list,
+            last_seen: value.last_seen,
+            description: value.description.clone(),
+            description_html: parse_html(value.description),
+            player_count: value.player_count.unwrap_or_default(),
         }
     }
+}
+
+pub async fn fetch_server_info(
+    State(db): State<Arc<DatabaseWrapper>>,
+    Json(body): Json<ServerRequest>,
+) -> Result<Json<ServerResponse>, StatusCode> {
+    let server = servers::table
+        .left_join(players::table.on(players::server_id.eq(servers::id.nullable())))
+        .filter(servers::ip.eq(body.ip))
+        .group_by(servers::id)
+        .select((
+            servers::id,
+            servers::ip,
+            servers::online,
+            servers::max,
+            servers::version_name,
+            servers::protocol,
+            servers::license,
+            servers::white_list,
+            servers::last_seen,
+            servers::description,
+            count(players::id).nullable(),
+        ))
+        .first::<ServerModelWithPlayers>(&mut db.pool.get().await.unwrap())
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(server.into()))
 }
 
 fn parse_html(value: Value) -> String {
@@ -56,22 +85,6 @@ fn parse_html(value: Value) -> String {
         Some(t) => chat_object_to_html(&t),
         None => "<span></span>".to_string(),
     }
-}
-
-pub async fn fetch_server_info(
-    State(db): State<Arc<DatabaseWrapper>>,
-    Json(body): Json<ServerRequest>,
-) -> Result<Json<ServerResponse>, StatusCode> {
-    let (server, count) = servers::table
-        .left_join(players::table.on(players::server_id.eq(servers::id.nullable())))
-        .filter(servers::ip.eq(body.ip))
-        .group_by(servers::id)
-        .select((ServerModel::as_select(), count(players::id).nullable()))
-        .first::<(ServerModel, Option<i64>)>(&mut db.pool.get().await.unwrap())
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    Ok(Json(ServerResponse::new(server, count.unwrap_or_default())))
 }
 
 fn chat_object_to_html(chat: &ChatObject) -> String {
