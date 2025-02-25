@@ -46,6 +46,7 @@ pub async fn handle_valid_ip(ip: &IpAddr, port: u16, db: Arc<DatabaseWrapper>) -
         description: &json!({
             "payload": status.description
         }),
+        was_online: true,
     };
     let mut conn = db.pool.get().await.unwrap();
 
@@ -146,11 +147,16 @@ async fn updater(db: Arc<DatabaseWrapper>) {
 
 async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
     let status = match timeout(Duration::from_secs(2), get_status(&server.ip, 25565)).await {
-        Ok(t) => match t {
-            Ok(b) => b,
-            Err(_) => return,
-        },
-        Err(_) => return,
+        Ok(Ok(b)) => b,
+        _ => {
+            diesel::update(schema::servers::table)
+                .filter(schema::servers::ip.eq(&server.ip))
+                .set(schema::servers::was_online.eq(false))
+                .execute(&mut db.pool.get().await.unwrap())
+                .await
+                .unwrap();
+            return;
+        }
     };
 
     let server_update = ServerUpdate {
@@ -161,16 +167,14 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
         description: &json!({
             "payload": status.description,
         }),
+        was_online: true,
+        last_seen: Local::now().naive_local().with_nanosecond(0).unwrap(),
     };
     let mut conn = db.pool.get().await.unwrap();
 
     diesel::update(schema::servers::dsl::servers)
         .filter(schema::servers::dsl::ip.eq(&server.ip))
-        .set((
-            server_update,
-            schema::servers::dsl::last_seen
-                .eq(Local::now().naive_local().with_nanosecond(0).unwrap()),
-        ))
+        .set(server_update)
         .execute(&mut conn)
         .await
         .unwrap();

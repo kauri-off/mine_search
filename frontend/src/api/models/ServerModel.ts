@@ -9,5 +9,6 @@ export interface ServerModel {
     description: any,
     description_html: string,
     last_seen: string,
-    player_count: number
+    player_count: number,
+    was_online: boolean
 }

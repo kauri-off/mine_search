@@ -39,6 +39,7 @@ pub struct ServerInsert<'a> {
     pub license: bool,
     pub white_list: Option<bool>,
     pub description: &'a Value,
+    pub was_online: bool,
 }
 
 #[derive(Insertable, AsChangeset)]
@@ -50,4 +51,6 @@ pub struct ServerUpdate<'a> {
     pub version_name: &'a str,
     pub protocol: i32,
     pub description: &'a Value,
+    pub was_online: bool,
+    pub last_seen: NaiveDateTime,
 }

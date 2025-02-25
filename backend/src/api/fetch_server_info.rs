@@ -30,6 +30,7 @@ pub struct ServerResponse {
     pub description: Value,
     pub description_html: String,
     pub player_count: i64,
+    pub was_online: bool,
 }
 
 impl From<ServerModelWithPlayers> for ServerResponse {
@@ -46,6 +47,7 @@ impl From<ServerModelWithPlayers> for ServerResponse {
             description: value.description.clone(),
             description_html: parse_html(value.description),
             player_count: value.player_count.unwrap_or_default(),
+            was_online: value.was_online,
         }
     }
 }
@@ -69,6 +71,7 @@ pub async fn fetch_server_info(
             servers::white_list,
             servers::last_seen,
             servers::description,
+            servers::was_online,
             count(players::id).nullable(),
         ))
         .first::<ServerModelWithPlayers>(&mut db.pool.get().await.unwrap())

@@ -59,6 +59,7 @@ export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:
 ### 5. Run database migrations
 
 ```bash
+cd db_schema
 ~/.cargo/bin/diesel migration run
 ```
 

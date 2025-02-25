@@ -68,6 +68,7 @@ pub async fn fetch_server_list(
             servers::white_list,
             servers::last_seen,
             servers::description,
+            servers::was_online,
             count(players::id).nullable(),
         ))
         .load::<ServerModelWithPlayers>(&mut conn)

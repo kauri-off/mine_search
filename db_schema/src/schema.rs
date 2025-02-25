@@ -22,6 +22,7 @@ diesel::table! {
         white_list -> Nullable<Bool>,
         last_seen -> Timestamp,
         description -> Jsonb,
+        was_online -> Bool,
     }
 }
 

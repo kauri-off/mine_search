@@ -37,5 +37,6 @@ pub struct ServerModelWithPlayers {
     pub white_list: Option<bool>,
     pub last_seen: NaiveDateTime,
     pub description: Value,
+    pub was_online: bool,
     pub player_count: Option<i64>,
 }
