@@ -50,9 +50,9 @@ pub async fn handle_valid_ip(ip: &IpAddr, port: u16, db: Arc<DatabaseWrapper>) -
     };
     let mut conn = db.pool.get().await.unwrap();
 
-    let server: ServerModel = insert_into(schema::servers::dsl::servers)
+    let server: ServerModel = insert_into(schema::servers::table)
         .values(server_insert)
-        .on_conflict(schema::servers::dsl::ip)
+        .on_conflict(schema::servers::ip)
         .do_nothing()
         .returning(ServerModel::as_returning())
         .get_result(&mut conn)
@@ -66,7 +66,7 @@ pub async fn handle_valid_ip(ip: &IpAddr, port: u16, db: Arc<DatabaseWrapper>) -
             server_id: server.id,
         };
 
-        insert_into(schema::players::dsl::players)
+        insert_into(schema::players::table)
             .values(&player_model)
             .on_conflict_do_nothing()
             .execute(&mut conn)
@@ -115,7 +115,7 @@ async fn updater(db: Arc<DatabaseWrapper>) {
     loop {
         println!("Updating...");
 
-        let servers: Vec<ServerModelMini> = schema::servers::dsl::servers
+        let servers: Vec<ServerModelMini> = schema::servers::table
             .select(ServerModelMini::as_select())
             .load(&mut db.pool.get().await.unwrap())
             .await
@@ -172,8 +172,8 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
     };
     let mut conn = db.pool.get().await.unwrap();
 
-    diesel::update(schema::servers::dsl::servers)
-        .filter(schema::servers::dsl::ip.eq(&server.ip))
+    diesel::update(schema::servers::table)
+        .filter(schema::servers::ip.eq(&server.ip))
         .set(server_update)
         .execute(&mut conn)
         .await
@@ -186,12 +186,12 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
             server_id: server.id,
         };
 
-        insert_into(schema::players::dsl::players)
+        insert_into(schema::players::table)
             .values(&player_model)
-            .on_conflict((schema::players::dsl::name, schema::players::dsl::server_id))
+            .on_conflict((schema::players::name, schema::players::server_id))
             .do_update()
             .set(
-                schema::players::dsl::last_seen
+                schema::players::last_seen
                     .eq(Local::now().naive_local().with_nanosecond(0).unwrap()),
             )
             .execute(&mut conn)
@@ -219,8 +219,8 @@ async fn main() {
     let db = Arc::new(DatabaseWrapper::establish());
     println!("[+] Connection to database established");
 
-    let count: i64 = schema::servers::dsl::servers
-        .select(diesel::dsl::count(schema::servers::dsl::id))
+    let count: i64 = schema::servers::table
+        .select(diesel::dsl::count(schema::servers::id))
         .first(&mut db.pool.get().await.unwrap())
         .await
         .unwrap();

@@ -30,15 +30,15 @@ pub async fn fetch_server_list(
     // Иначе получаем максимальное значение id с помощью агрегатной функции max().
     // Обратите внимание, что тип id – i32, поэтому и возвращаемые типы должны быть i32.
     let server_id: i32 = if let Some(ref offset_ip) = body.offset_ip {
-        servers::dsl::servers
-            .filter(servers::dsl::ip.eq(offset_ip))
-            .select(servers::dsl::id)
+        servers::table
+            .filter(servers::ip.eq(offset_ip))
+            .select(servers::id)
             .first::<i32>(&mut conn)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     } else {
-        servers::dsl::servers
-            .select(max(servers::dsl::id))
+        servers::table
+            .select(max(servers::id))
             .first::<Option<i32>>(&mut conn)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
