@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ServerModel } from "../../api/models/ServerModel";
 import { fetchServerList } from "../../api/serversApi";
-import Server from "../ServerCard";
+import ServerCard from "../ServerCard";
 import { useInView } from "react-intersection-observer";
 import Loading from "../Loading";
 
@@ -41,9 +41,16 @@ function ServerList() {
 
   return (
     <>
-      {servers.map((server) => (
-        <Server key={server.ip} server={server} />
-      ))}
+      <div className="container">
+        <div className="row row-cols-1 row-cols-sm-1 row-cols-md-2 row-cols-lg-3">
+          {servers.map((server) => (
+            <div className="server-card col" key={server.ip}>
+              <ServerCard server={server} />
+            </div>
+          ))}
+        </div>
+      </div>
+
       {loading && <Loading />}
       {!hasMore && <p>No servers left.</p>}
       <div ref={ref} style={{ height: "1px" }}></div>

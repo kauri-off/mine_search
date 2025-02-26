@@ -12,7 +12,7 @@ function PlayersTable({ players }: PlayersProps) {
         </thead>
         <tbody>
           {players.map((player) => {
-            let date = new Date(player.last_seen);
+            let date = new Date(player.last_seen + "Z");
             const formattedDate = new Intl.DateTimeFormat("en-US", {
               year: "numeric",
               month: "2-digit",
