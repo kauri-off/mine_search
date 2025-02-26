@@ -19,7 +19,7 @@ function Stats() {
       })
       .catch((res) => {
         if (res.status == 401) {
-          navigate("/auth");
+          navigate("/auth?back_url=/stats");
         }
       });
   }, [navigate]);

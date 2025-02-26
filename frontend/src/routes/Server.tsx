@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { PlayerModel } from "../api/models/PlayerModel";
 import { ServerModel } from "../api/models/ServerModel";
 import { fetchServerPlayers, fetchServerInfo } from "../api/serversApi";
@@ -17,6 +17,7 @@ function Server() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     fetchServerInfo(ip!)
@@ -28,7 +29,7 @@ function Server() {
         setError(true);
 
         if (res.status == 401) {
-          navigate("/auth");
+          navigate("/auth?back_url=" + location.pathname);
         }
       });
   }, [navigate]);

@@ -9,15 +9,18 @@ function Auth() {
   const [error, setError] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const [url, setUrl] = useState("/");
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get("token");
+    const back_url = params.get("back_url") ?? "/";
+    setUrl(back_url);
 
     if (token) {
-      setCookieReq(token).then(() => navigate("/"));
+      setCookieReq(token).then(() => navigate(back_url));
     } else {
-      verifyAuth().then(() => navigate("/"));
+      verifyAuth().then(() => navigate(back_url));
     }
   }, [location, navigate]);
 
@@ -25,7 +28,7 @@ function Auth() {
     authenticate(text)
       .then((res) => {
         localStorage.setItem("token", res.data.token);
-        navigate("/");
+        navigate(url);
       })
       .catch(() => {
         setError("Password is incorrect");
