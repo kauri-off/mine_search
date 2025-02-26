@@ -19,7 +19,7 @@ function ServerList() {
     try {
       const lastServerIp =
         servers.length > 0 ? servers[servers.length - 1].ip : null;
-      const res = await fetchServerList(18, lastServerIp, false);
+      const res = await fetchServerList(18, lastServerIp, false, true);
 
       if (res.data.length === 0) {
         setHasMore(false);

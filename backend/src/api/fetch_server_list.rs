@@ -14,6 +14,7 @@ pub struct ServerRequest {
     pub limit: i64,
     pub offset_ip: Option<String>,
     pub license: Option<bool>,
+    pub has_players: Option<bool>,
 }
 
 pub async fn fetch_server_list(
@@ -26,9 +27,6 @@ pub async fn fetch_server_list(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // Если offset_ip указан, выбираем id для данного ip.
-    // Иначе получаем максимальное значение id с помощью агрегатной функции max().
-    // Обратите внимание, что тип id – i32, поэтому и возвращаемые типы должны быть i32.
     let server_id: i32 = if let Some(ref offset_ip) = body.offset_ip {
         servers::table
             .filter(servers::ip.eq(offset_ip))
@@ -45,11 +43,19 @@ pub async fn fetch_server_list(
             .unwrap_or_default()
     };
 
-    let filter: Box<dyn BoxableExpression<_, diesel::pg::Pg, SqlType = diesel::sql_types::Bool>> =
-        match body.license {
-            Some(t) => Box::new(servers::id.lt(server_id).and(servers::license.eq(t))),
-            None => Box::new(servers::id.lt(server_id)),
-        };
+    let mut filter: Box<
+        dyn BoxableExpression<_, diesel::pg::Pg, SqlType = diesel::sql_types::Bool>,
+    > = Box::new(servers::id.lt(server_id));
+
+    if let Some(license) = body.license {
+        filter = Box::new(filter.and(servers::license.eq(license)));
+    }
+
+    let players_count_filter_value = match body.has_players {
+        Some(true) => 0,
+        Some(false) => -1,
+        None => -1,
+    };
 
     let server_list = servers::table
         .filter(filter)
@@ -57,6 +63,7 @@ pub async fn fetch_server_list(
         .left_join(players::table.on(players::server_id.eq(servers::id.nullable())))
         .limit(body.limit)
         .group_by(servers::id)
+        .having(count(players::id).gt(players_count_filter_value))
         .select((
             servers::id,
             servers::ip,
