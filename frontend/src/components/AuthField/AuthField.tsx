@@ -1,34 +1,45 @@
-import { useState } from "react";
+import { useState, ChangeEvent, FormEvent } from "react";
 import { AuthFieldProps } from "./AuthField.types";
 
-function AuthField({ callback }: AuthFieldProps) {
-  const [password, setPassword] = useState("");
+const AuthField = ({ callback }: AuthFieldProps) => {
+  const [password, setPassword] = useState<string>("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    callback(password); // Pass the password via callback
+    callback(password);
+  };
+
+  const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-3">
-      <div className="mb-3">
-        <label htmlFor="passwordInput" className="form-label">
-          Enter Password:
-        </label>
-        <input
-          type="password"
-          className="form-control"
-          id="passwordInput"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-        />
+    <div className="container p-4">
+      <div className="row justify-content-center">
+        <div className="col-md-6">
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label htmlFor="passwordInput" className="form-label">
+                Enter Password:
+              </label>
+              <input
+                type="password"
+                id="passwordInput"
+                className="form-control"
+                value={password}
+                onChange={handlePasswordChange}
+                placeholder="Enter your password"
+                required
+              />
+            </div>
+            <button type="submit" className="btn btn-primary w-100">
+              Submit
+            </button>
+          </form>
+        </div>
       </div>
-      <button type="submit" className="btn btn-primary">
-        Submit
-      </button>
-    </form>
+    </div>
   );
-}
+};
 
 export default AuthField;
