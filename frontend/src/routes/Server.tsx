@@ -58,9 +58,14 @@ function Server() {
       {loading ? (
         <Loading />
       ) : (
-        <>
-          <ServerTable server={server!} /> <PlayersTable players={players} />
-        </>
+        <div className="container">
+          <div className="row">
+            <ServerTable server={server!} />
+          </div>
+          <div className="row">
+            <PlayersTable players={players} />
+          </div>
+        </div>
       )}
     </>
   );

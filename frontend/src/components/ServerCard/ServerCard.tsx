@@ -13,7 +13,7 @@ function ServerCard({ server }: ServerProps) {
   }).format(date);
 
   return (
-    <div className="card mb-3 border-secondary shadow">
+    <div className="card mb-3">
       <div className="card-header d-flex align-items-center">
         <span className="me-3">
           <strong>{server.player_count}</strong> / {server.max}

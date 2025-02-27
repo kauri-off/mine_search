@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { Page } from "../components/NavBar/NavBar.types";
-import ServerList from "../components/ServerList";
+import ServerList from "../components/FilterableServerList";
 import ServerSearchBar from "../components/ServerSearchBar";
 import { useEffect } from "react";
 import { verifyAuth } from "../api/serversApi";
@@ -21,8 +21,12 @@ function Home() {
     <>
       <NavBar page={Page.HOME} />
       <div className="container">
-        <ServerSearchBar />
-        <ServerList />
+        <div className="row">
+          <ServerSearchBar />
+        </div>
+        <div className="row">
+          <ServerList />
+        </div>
       </div>
     </>
   );

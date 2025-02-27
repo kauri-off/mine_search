@@ -4,12 +4,18 @@ import { fetchServerList } from "../../api/serversApi";
 import ServerCard from "../ServerCard";
 import { useInView } from "react-intersection-observer";
 import Loading from "../Loading";
+import Filters from "../Filters";
+import { FiltersList } from "../Filters/Filters.types";
 
-function ServerList() {
+function FilterableServerList() {
   const [servers, setServers] = useState<ServerModel[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [ref, inView] = useInView();
+  const [filter, setFilter] = useState<FiltersList>({
+    licensed: null,
+    has_players: null,
+  });
 
   const fetchServers = async () => {
     if (loading || !hasMore) return;
@@ -19,7 +25,12 @@ function ServerList() {
     try {
       const lastServerIp =
         servers.length > 0 ? servers[servers.length - 1].ip : null;
-      const res = await fetchServerList(18, lastServerIp, false, true);
+      const res = await fetchServerList(
+        18,
+        lastServerIp,
+        filter.licensed,
+        filter.has_players
+      );
 
       if (res.data.length === 0) {
         setHasMore(false);
@@ -39,12 +50,19 @@ function ServerList() {
     }
   }, [inView]);
 
+  useEffect(() => {
+    setServers([]);
+    fetchServers();
+  }, [filter]);
+
   return (
     <>
       <div className="container">
-        <div className="row row-cols-1 row-cols-sm-1 row-cols-md-2 row-cols-lg-3">
+        <Filters callback={setFilter} />
+
+        <div className="row row-cols-1 row-cols-sm-1 row-cols-lg-2 row-cols-xxl-3">
           {servers.map((server) => (
-            <div className="server-card col" key={server.ip}>
+            <div className="col" key={server.ip}>
               <ServerCard server={server} />
             </div>
           ))}
@@ -58,4 +76,4 @@ function ServerList() {
   );
 }
 
-export default ServerList;
+export default FilterableServerList;

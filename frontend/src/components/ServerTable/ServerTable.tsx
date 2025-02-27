@@ -2,16 +2,32 @@ import ServerStatus from "../ServerStatus";
 import ServerTableProps from "./ServerTable.types";
 
 function ServerTable({ server }: ServerTableProps) {
+  let date = new Date(server.last_seen + "Z");
+  const formattedDate = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date);
+
   return (
-    <div className="p-4">
+    <div className="col">
       <ul className="list-group">
         <li className="list-group-item d-flex">
           <strong style={{ width: 150 }}>Status</strong>
-          <ServerStatus server={server} />
+          <span>
+            <ServerStatus server={server} />
+          </span>
         </li>
         <li className="list-group-item d-flex">
           <strong style={{ width: 150 }}>IP</strong>
           <span>{server.ip}</span>
+        </li>
+        <li className="list-group-item d-flex">
+          <strong style={{ width: 150 }}>Last Seen</strong>
+          <span>{formattedDate}</span>
         </li>
         <li className="list-group-item d-flex">
           <strong style={{ width: 150 }}>Online</strong>
@@ -39,7 +55,7 @@ function ServerTable({ server }: ServerTableProps) {
         </li>
       </ul>
       <div
-        className="bg-dark p-3 mt-3 text-light rounded"
+        className="bg-dark p-3 my-3 text-light rounded"
         dangerouslySetInnerHTML={{ __html: server.description_html }}
       ></div>
     </div>
