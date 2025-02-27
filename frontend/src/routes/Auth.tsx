@@ -26,8 +26,7 @@ function Auth() {
 
   const callback = (text: string) => {
     authenticate(text)
-      .then((res) => {
-        localStorage.setItem("token", res.data.token);
+      .then(() => {
         navigate(url);
       })
       .catch(() => {

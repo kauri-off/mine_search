@@ -1,6 +1,7 @@
 export interface FiltersList {
     licensed: boolean | null,
-    has_players: boolean | null
+    has_players: boolean | null,
+    white_list: boolean | null
 }
 
 export interface FiltersProps {

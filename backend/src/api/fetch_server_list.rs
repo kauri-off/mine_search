@@ -15,6 +15,7 @@ pub struct ServerRequest {
     pub offset_ip: Option<String>,
     pub license: Option<bool>,
     pub has_players: Option<bool>,
+    pub white_list: Option<bool>,
 }
 
 pub async fn fetch_server_list(
@@ -44,11 +45,19 @@ pub async fn fetch_server_list(
     };
 
     let mut filter: Box<
-        dyn BoxableExpression<_, diesel::pg::Pg, SqlType = diesel::sql_types::Bool>,
-    > = Box::new(servers::id.lt(server_id));
+        dyn BoxableExpression<
+            _,
+            diesel::pg::Pg,
+            SqlType = diesel::sql_types::Nullable<diesel::sql_types::Bool>,
+        >,
+    > = Box::new(servers::id.lt(server_id).nullable());
 
     if let Some(license) = body.license {
         filter = Box::new(filter.and(servers::license.eq(license)));
+    }
+
+    if let Some(white_list) = body.white_list {
+        filter = Box::new(filter.and(servers::white_list.eq(white_list)));
     }
 
     let players_count_filter_value = match body.has_players {

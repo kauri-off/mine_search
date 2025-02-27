@@ -16,10 +16,16 @@ function FilterableServerList() {
   const [ref, inView] = useInView();
 
   const [filters, setFilters] = useState<FiltersList>(() => {
-    const savedFilters = localStorage.getItem(LOCAL_STORAGE_KEY);
-    return savedFilters
-      ? JSON.parse(savedFilters)
-      : { licensed: null, has_players: null };
+    try {
+      const savedFilters = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (savedFilters) {
+        return JSON.parse(savedFilters);
+      } else {
+        return { licensed: null, has_players: null, white_list: null };
+      }
+    } catch (_) {
+      return { licensed: null, has_players: null, white_list: null };
+    }
   });
 
   useEffect(() => {
@@ -38,7 +44,8 @@ function FilterableServerList() {
         18,
         lastServerIp,
         filters.licensed,
-        filters.has_players
+        filters.has_players,
+        filters.white_list
       );
 
       setServers((prev) => (reset ? res.data : [...prev, ...res.data]));
