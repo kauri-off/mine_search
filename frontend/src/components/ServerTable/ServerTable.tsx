@@ -55,7 +55,7 @@ function ServerTable({ server }: ServerTableProps) {
         </li>
       </ul>
       <div
-        className="bg-dark p-3 my-3 text-light rounded"
+        className="bg-black p-3 my-3 text-light rounded"
         dangerouslySetInnerHTML={{ __html: server.description_html }}
       ></div>
     </div>

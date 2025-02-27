@@ -25,7 +25,7 @@ function ServerCard({ server }: ServerProps) {
       <div className="card-body">
         <h5 className="card-title">Version: {server.version_name}</h5>
         <p
-          className="card-text bg-dark p-1 rounded"
+          className="card-text bg-black p-1 rounded"
           dangerouslySetInnerHTML={{ __html: server.description_html }}
         ></p>
         <div className="d-flex flex-wrap gap-3 mb-3">
