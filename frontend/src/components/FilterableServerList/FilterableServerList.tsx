@@ -33,7 +33,7 @@ function FilterableServerList() {
     setLoading(true);
 
     try {
-      const lastServerIp = reset ? null : servers[-1]?.ip;
+      const lastServerIp = reset ? null : servers[servers.length - 1]?.ip;
       const res = await fetchServerList(
         18,
         lastServerIp,
