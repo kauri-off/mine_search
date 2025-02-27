@@ -4,5 +4,6 @@ export interface FiltersList {
 }
 
 export interface FiltersProps {
-    callback: (filters: FiltersList) => void;
+    filters: FiltersList,
+    setFilters: React.Dispatch<React.SetStateAction<FiltersList>>
 }

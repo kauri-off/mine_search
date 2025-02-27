@@ -7,36 +7,42 @@ import Loading from "../Loading";
 import Filters from "../Filters";
 import { FiltersList } from "../Filters/Filters.types";
 
+const LOCAL_STORAGE_KEY = "server_filters";
+
 function FilterableServerList() {
   const [servers, setServers] = useState<ServerModel[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [ref, inView] = useInView();
-  const [filter, setFilter] = useState<FiltersList>({
-    licensed: null,
-    has_players: null,
+
+  const [filters, setFilters] = useState<FiltersList>(() => {
+    const savedFilters = localStorage.getItem(LOCAL_STORAGE_KEY);
+    return savedFilters
+      ? JSON.parse(savedFilters)
+      : { licensed: null, has_players: null };
   });
 
-  const fetchServers = async () => {
-    if (loading || !hasMore) return;
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filters));
+    fetchServers(true);
+  }, [filters]);
+
+  const fetchServers = async (reset = false) => {
+    if (loading || (!reset && !hasMore)) return;
 
     setLoading(true);
 
     try {
-      const lastServerIp =
-        servers.length > 0 ? servers[servers.length - 1].ip : null;
+      const lastServerIp = reset ? null : servers[-1]?.ip;
       const res = await fetchServerList(
         18,
         lastServerIp,
-        filter.licensed,
-        filter.has_players
+        filters.licensed,
+        filters.has_players
       );
 
-      if (res.data.length === 0) {
-        setHasMore(false);
-      } else {
-        setServers((prev) => [...prev, ...res.data]);
-      }
+      setServers((prev) => (reset ? res.data : [...prev, ...res.data]));
+      setHasMore(res.data.length > 0);
     } catch (error) {
       console.error("Ошибка загрузки серверов:", error);
     } finally {
@@ -50,16 +56,10 @@ function FilterableServerList() {
     }
   }, [inView]);
 
-  useEffect(() => {
-    setServers([]);
-    fetchServers();
-  }, [filter]);
-
   return (
     <>
       <div className="container">
-        <Filters callback={setFilter} />
-
+        <Filters filters={filters} setFilters={setFilters} />
         <div className="row row-cols-1 row-cols-sm-1 row-cols-lg-2 row-cols-xxl-3">
           {servers.map((server) => (
             <div className="col" key={server.ip}>
