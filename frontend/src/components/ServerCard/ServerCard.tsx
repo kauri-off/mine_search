@@ -38,10 +38,18 @@ function ServerCard({ server }: ServerProps) {
           </span>
           <span
             className={`badge ${
-              server.white_list ? "bg-danger" : "bg-success"
+              server.white_list === true
+                ? "bg-danger"
+                : server.white_list === false
+                ? "bg-success"
+                : "bg-secondary"
             } w-auto`}
           >
-            {server.white_list ? "Whitelist: Yes" : "Whitelist: No"}
+            {server.white_list === true
+              ? "Whitelist: Yes"
+              : server.white_list === false
+              ? "Whitelist: No"
+              : "Whitelist: Unknown"}
           </span>
           <span className="badge bg-secondary w-auto">
             Last seen: {formattedDate}

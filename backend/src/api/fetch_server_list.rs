@@ -60,7 +60,7 @@ pub async fn fetch_server_list(
     let players_count_filter = match body.has_players {
         Some(true) => "COUNT(players.id) > 0",
         Some(false) => "COUNT(players.id) = 0",
-        None => "1 = 1", // Всегда истинное условие, фактически убирает фильтр
+        None => "TRUE",
     };
 
     let server_list = servers::table
@@ -86,6 +86,8 @@ pub async fn fetch_server_list(
             servers::was_online,
             count(players::id).nullable(),
         ))
+        // let sql_query = debug_query::<Pg, _>(&server_list).to_string();
+        // println!("{}", sql_query);
         .load::<ServerModelWithPlayers>(&mut conn)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
