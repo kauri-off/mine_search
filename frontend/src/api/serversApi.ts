@@ -4,8 +4,8 @@ export const fetchServerInfo = (ip: string) => {
     return apiClient.post("/server/info", {ip});
 }
 
-export const fetchServerList = (limit: number, offset_ip: string | null, license: boolean | null, has_players: boolean | null, white_list: boolean | null) => {
-    return apiClient.post("/servers/list", { limit, offset_ip, license, has_players, white_list });
+export const fetchServerList = (limit: number, offset_ip: string | null, license: boolean | null, has_players: boolean | null, white_list: boolean | null, was_online: boolean | null) => {
+    return apiClient.post("/servers/list", { limit, offset_ip, license, has_players, white_list, was_online });
 };
 
 export const fetchServerPlayers = (server_ip: string) => {

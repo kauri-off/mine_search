@@ -59,6 +59,15 @@ function Filters({ filters, setFilters }: FiltersProps) {
         null: "btn-secondary",
       },
     },
+    {
+      key: "was_online" as keyof FiltersList,
+      label: "WAS ONLINE",
+      colors: {
+        true: "btn-success",
+        false: "btn-danger",
+        null: "btn-secondary",
+      },
+    },
   ];
 
   return (

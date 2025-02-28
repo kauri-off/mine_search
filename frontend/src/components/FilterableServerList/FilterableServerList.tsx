@@ -45,7 +45,8 @@ function FilterableServerList() {
         lastServerIp,
         filters.licensed,
         filters.has_players,
-        filters.white_list
+        filters.white_list,
+        filters.was_online
       );
 
       setServers((prev) => (reset ? res.data : [...prev, ...res.data]));

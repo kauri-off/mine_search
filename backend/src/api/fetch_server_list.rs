@@ -18,6 +18,7 @@ pub struct ServerRequest {
     pub license: Option<bool>,
     pub has_players: Option<bool>,
     pub white_list: Option<bool>,
+    pub was_online: Option<bool>,
 }
 
 pub async fn fetch_server_list(
@@ -63,10 +64,17 @@ pub async fn fetch_server_list(
         None => "TRUE",
     };
 
+    let was_online_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.was_online
+    {
+        Some(was_online) => Box::new(servers::was_online.eq(was_online)),
+        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+    };
+
     let server_list = servers::table
         .filter(servers::id.lt(server_id))
         .filter(license_filter)
         .filter(white_list_filter)
+        .filter(was_online_filter)
         .order(servers::id.desc())
         .left_join(players::table.on(players::server_id.eq(servers::id.nullable())))
         .limit(body.limit)
