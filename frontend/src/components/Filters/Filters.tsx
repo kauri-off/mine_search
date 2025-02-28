@@ -62,7 +62,7 @@ function Filters({ filters, setFilters }: FiltersProps) {
   ];
 
   return (
-    <div className="row mb-3">
+    <div className="row mb-3 g-3">
       {filterConfigs.map(({ key, label, colors }) => (
         <div className="col-auto" key={key}>
           <FilterButton

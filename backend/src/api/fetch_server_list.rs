@@ -4,7 +4,9 @@ use crate::database::ServerModelWithPlayers;
 use axum::{extract::State, http::StatusCode, Json};
 use db_schema::schema::*;
 use diesel::dsl::*;
+use diesel::pg::Pg;
 use diesel::prelude::*;
+use diesel::sql_types::Bool;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -44,35 +46,32 @@ pub async fn fetch_server_list(
             .unwrap_or_default()
     };
 
-    let mut filter: Box<
-        dyn BoxableExpression<
-            _,
-            diesel::pg::Pg,
-            SqlType = diesel::sql_types::Nullable<diesel::sql_types::Bool>,
-        >,
-    > = Box::new(servers::id.lt(server_id).nullable());
+    let license_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.license {
+        Some(license) => Box::new(servers::license.eq(license)),
+        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+    };
 
-    if let Some(license) = body.license {
-        filter = Box::new(filter.and(servers::license.eq(license)));
-    }
+    let white_list_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.white_list
+    {
+        Some(white_list) => Box::new(servers::white_list.assume_not_null().eq(white_list)),
+        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+    };
 
-    if let Some(white_list) = body.white_list {
-        filter = Box::new(filter.and(servers::white_list.eq(white_list)));
-    }
-
-    let players_count_filter_value = match body.has_players {
-        Some(true) => 0,
-        Some(false) => -1,
-        None => -1,
+    let players_count_filter = match body.has_players {
+        Some(true) => "COUNT(players.id) > 1",
+        Some(false) => "COUNT(players.id) = 0",
+        None => "1 = 1", // Всегда истинное условие, фактически убирает фильтр
     };
 
     let server_list = servers::table
-        .filter(filter)
+        .filter(servers::id.lt(server_id))
+        .filter(license_filter)
+        .filter(white_list_filter)
         .order(servers::id.desc())
         .left_join(players::table.on(players::server_id.eq(servers::id.nullable())))
         .limit(body.limit)
         .group_by(servers::id)
-        .having(count(players::id).gt(players_count_filter_value))
+        .having(diesel::dsl::sql::<Bool>(players_count_filter))
         .select((
             servers::id,
             servers::ip,
