@@ -46,7 +46,7 @@ function ServerTable({ server }: ServerTableProps) {
         <li className="list-group-item d-flex">
           <strong style={{ width: 150 }}>White List</strong>
           <span>
-            {server.white_list
+            {server.white_list !== null
               ? server.white_list!
                 ? "Enabled"
                 : "Disabled"
