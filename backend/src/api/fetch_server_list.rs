@@ -58,7 +58,7 @@ pub async fn fetch_server_list(
     };
 
     let players_count_filter = match body.has_players {
-        Some(true) => "COUNT(players.id) > 1",
+        Some(true) => "COUNT(players.id) > 0",
         Some(false) => "COUNT(players.id) = 0",
         None => "1 = 1", // Всегда истинное условие, фактически убирает фильтр
     };
