@@ -1,11 +1,19 @@
 # MineSearch Setup Guide
 
-**MineSearch** is a Minecraft server search engine that uses a PostgreSQL database. Below is a step-by-step guide to setting it up.
+**MineSearch** is a powerful search engine for Minecraft servers. It scans and indexes active servers and nicknames so you can easily find a server and crash it.
+
+**WARNING: RUNNING THE WORKER MAY RESULT IN YOUR SERVER BEING BLOCKED DUE TO ABUSIVE SCANNING ACTIVITIES. MAKE SURE YOU UNDERSTAND THE RISKS INVOLVED.**
 
 ## Prerequisites
 
 - [Docker](https://www.docker.com/) installed
 - [Docker Compose](https://docs.docker.com/compose/) installed
+
+---
+
+**WARNING**: If you want to run the worker on a different server, please refer to the separate documentation here: [Worker Setup Guide](separate_deploy.md).
+
+---
 
 ## Environment Variables
 
