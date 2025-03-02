@@ -10,5 +10,8 @@ export interface ServerModel {
     description_html: string,
     last_seen: string,
     player_count: number,
-    was_online: boolean
+    was_online: boolean,
+    checked: boolean,
+    auth_me: boolean | null,
+    crashed: boolean
 }

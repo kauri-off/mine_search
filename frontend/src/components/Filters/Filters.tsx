@@ -68,6 +68,33 @@ function Filters({ filters, setFilters }: FiltersProps) {
         null: "btn-secondary",
       },
     },
+    {
+      key: "checked" as keyof FiltersList,
+      label: "CHECKED",
+      colors: {
+        true: "btn-danger",
+        false: "btn-success",
+        null: "btn-secondary",
+      },
+    },
+    {
+      key: "auth_me" as keyof FiltersList,
+      label: "AUTH ME",
+      colors: {
+        true: "btn-danger",
+        false: "btn-success",
+        null: "btn-secondary",
+      },
+    },
+    {
+      key: "crashed" as keyof FiltersList,
+      label: "CRASHED",
+      colors: {
+        true: "btn-danger",
+        false: "btn-success",
+        null: "btn-secondary",
+      },
+    },
   ];
 
   return (

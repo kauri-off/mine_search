@@ -39,4 +39,7 @@ pub struct ServerModelWithPlayers {
     pub description: Value,
     pub was_online: bool,
     pub player_count: Option<i64>,
+    pub checked: bool,
+    pub auth_me: Option<bool>,
+    pub crashed: bool,
 }

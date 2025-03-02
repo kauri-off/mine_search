@@ -7,6 +7,7 @@ use api::{
     fetch_server_list::fetch_server_list,
     fetch_stats::fetch_stats,
     set_cookie::set_cookie,
+    update_server::update_server,
 };
 use axum::{
     http::{
@@ -45,6 +46,7 @@ async fn main() {
 
     let protected_routes = Router::new()
         .route("/server/info", post(fetch_server_info))
+        .route("/server/update", post(update_server))
         .route("/servers/list", post(fetch_server_list))
         .route("/players/list", post(fetch_player_list))
         .route("/auth/validate", post(validate_credentials))

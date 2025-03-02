@@ -15,10 +15,13 @@ use std::sync::Arc;
 pub struct ServerRequest {
     pub limit: i64,
     pub offset_ip: Option<String>,
-    pub license: Option<bool>,
+    pub licensed: Option<bool>,
     pub has_players: Option<bool>,
     pub white_list: Option<bool>,
     pub was_online: Option<bool>,
+    pub checked: Option<bool>,
+    pub auth_me: Option<bool>,
+    pub crashed: Option<bool>,
 }
 
 pub async fn fetch_server_list(
@@ -47,7 +50,7 @@ pub async fn fetch_server_list(
             .unwrap_or_default()
     };
 
-    let license_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.license {
+    let license_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.licensed {
         Some(license) => Box::new(servers::license.eq(license)),
         None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
     };
@@ -70,11 +73,29 @@ pub async fn fetch_server_list(
         None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
     };
 
+    let checked_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.checked {
+        Some(checked) => Box::new(servers::checked.eq(checked)),
+        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+    };
+
+    let auth_me_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.auth_me {
+        Some(auth_me) => Box::new(servers::auth_me.assume_not_null().eq(auth_me)),
+        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+    };
+
+    let crashed_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.crashed {
+        Some(crashed) => Box::new(servers::crashed.eq(crashed)),
+        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+    };
+
     let server_list = servers::table
         .filter(servers::id.lt(server_id))
         .filter(license_filter)
         .filter(white_list_filter)
         .filter(was_online_filter)
+        .filter(checked_filter)
+        .filter(auth_me_filter)
+        .filter(crashed_filter)
         .order(servers::id.desc())
         .left_join(players::table.on(players::server_id.eq(servers::id.nullable())))
         .limit(body.limit)
@@ -93,6 +114,9 @@ pub async fn fetch_server_list(
             servers::description,
             servers::was_online,
             count(players::id).nullable(),
+            servers::checked,
+            servers::auth_me,
+            servers::crashed,
         ))
         // let sql_query = debug_query::<Pg, _>(&server_list).to_string();
         // println!("{}", sql_query);

@@ -23,6 +23,9 @@ diesel::table! {
         last_seen -> Timestamp,
         description -> Jsonb,
         was_online -> Bool,
+        checked -> Bool,
+        auth_me -> Nullable<Bool>,
+        crashed -> Bool,
     }
 }
 

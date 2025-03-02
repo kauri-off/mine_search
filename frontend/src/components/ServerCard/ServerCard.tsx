@@ -51,6 +51,16 @@ function ServerCard({ server }: ServerProps) {
               ? "Whitelist: No"
               : "Whitelist: Unknown"}
           </span>
+          {server.checked ? (
+            <span className="badge bg-success w-auto">Checked</span>
+          ) : (
+            <></>
+          )}
+          {server.crashed ? (
+            <span className="badge bg-success w-auto">Crashed</span>
+          ) : (
+            <></>
+          )}
           <span className="badge bg-secondary w-auto">
             Last seen: {formattedDate}
           </span>

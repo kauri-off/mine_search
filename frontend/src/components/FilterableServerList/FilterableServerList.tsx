@@ -11,6 +11,7 @@ const LOCAL_STORAGE_KEY = "server_filters";
 
 function FilterableServerList() {
   const [servers, setServers] = useState<ServerModel[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [ref, inView] = useInView();
@@ -18,15 +19,23 @@ function FilterableServerList() {
   const [filters, setFilters] = useState<FiltersList>(() => {
     try {
       const savedFilters = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (savedFilters) {
-        return JSON.parse(savedFilters);
-      } else {
-        return { licensed: null, has_players: null, white_list: null };
-      }
+      return savedFilters ? JSON.parse(savedFilters) : getDefaultFilters();
     } catch (_) {
-      return { licensed: null, has_players: null, white_list: null };
+      return getDefaultFilters();
     }
   });
+
+  function getDefaultFilters(): FiltersList {
+    return {
+      licensed: null,
+      has_players: null,
+      white_list: null,
+      was_online: null,
+      checked: null,
+      auth_me: null,
+      crashed: null,
+    };
+  }
 
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filters));
@@ -40,14 +49,7 @@ function FilterableServerList() {
 
     try {
       const lastServerIp = reset ? null : servers[servers.length - 1]?.ip;
-      const res = await fetchServerList(
-        18,
-        lastServerIp,
-        filters.licensed,
-        filters.has_players,
-        filters.white_list,
-        filters.was_online
-      );
+      const res = await fetchServerList(18, lastServerIp, filters);
 
       setServers((prev) => (reset ? res.data : [...prev, ...res.data]));
       setHasMore(res.data.length > 0);
@@ -79,7 +81,7 @@ function FilterableServerList() {
 
       {loading && <Loading />}
       {!hasMore && <p>No servers left.</p>}
-      <div ref={ref} style={{ height: "1px" }}></div>
+      {!loading && <div ref={ref} style={{ height: "1px" }}></div>}
     </>
   );
 }

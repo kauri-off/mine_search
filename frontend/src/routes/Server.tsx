@@ -8,6 +8,7 @@ import NavBar from "../components/NavBar";
 import { Page } from "../components/NavBar/NavBar.types";
 import PlayersTable from "../components/PlayersTable";
 import ServerTable from "../components/ServerTable";
+import ServerOptions from "../components/ServerOptions";
 
 function Server() {
   const { ip } = useParams();
@@ -62,6 +63,7 @@ function Server() {
           <div className="row">
             <ServerTable server={server!} />
           </div>
+          <ServerOptions server={server!} setServer={setServer} />
           <div className="row">
             <PlayersTable players={players} />
           </div>

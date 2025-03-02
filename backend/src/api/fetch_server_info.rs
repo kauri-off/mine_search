@@ -31,6 +31,9 @@ pub struct ServerResponse {
     pub description_html: String,
     pub player_count: i64,
     pub was_online: bool,
+    pub checked: bool,
+    pub auth_me: Option<bool>,
+    pub crashed: bool,
 }
 
 impl From<ServerModelWithPlayers> for ServerResponse {
@@ -48,6 +51,9 @@ impl From<ServerModelWithPlayers> for ServerResponse {
             description_html: parse_html(value.description),
             player_count: value.player_count.unwrap_or_default(),
             was_online: value.was_online,
+            checked: value.checked,
+            auth_me: value.auth_me,
+            crashed: value.crashed,
         }
     }
 }
@@ -73,6 +79,9 @@ pub async fn fetch_server_info(
             servers::description,
             servers::was_online,
             count(players::id).nullable(),
+            servers::checked,
+            servers::auth_me,
+            servers::crashed,
         ))
         .first::<ServerModelWithPlayers>(&mut db.pool.get().await.unwrap())
         .await
