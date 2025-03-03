@@ -2,18 +2,11 @@
 
 **MineSearch** is a powerful search engine for Minecraft servers. It scans and indexes active servers and nicknames so you can easily find a server and crash it.
 
-**WARNING: RUNNING THE WORKER MAY RESULT IN YOUR SERVER BEING BLOCKED DUE TO ABUSIVE SCANNING ACTIVITIES. MAKE SURE YOU UNDERSTAND THE RISKS INVOLVED.**
+> [!WARNING]
+> RUNNING THE WORKER MAY RESULT IN YOUR SERVER BEING BLOCKED DUE TO ABUSIVE SCANNING ACTIVITIES. MAKE SURE YOU UNDERSTAND THE RISKS INVOLVED.
 
-## Prerequisites
-
-- [Docker](https://www.docker.com/) installed
-- [Docker Compose](https://docs.docker.com/compose/) installed
-
----
-
-**WARNING**: If you want to run the worker on a different server, please refer to the separate documentation here: [Worker Setup Guide](separate_deploy.md).
-
----
+> [!IMPORTANT]
+> If you want to run the worker on a different server, please refer to the separate documentation here: [Worker Setup Guide](separate_deploy.md).
 
 ## Environment Variables
 
@@ -31,6 +24,11 @@ ONLY_UPDATE=false
 ```
 
 ## Installation
+
+### Prerequisites
+
+- [Docker](https://www.docker.com/) installed
+- [Docker Compose](https://docs.docker.com/compose/) installed
 
 ### 1. Clone the repository
 
@@ -124,12 +122,3 @@ This will update the domain name in Nginx and Caddy configuration files.
 
 This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
 
-## Contributing
-
-Contributions are welcome! Open issues or submit pull requests to improve the project.
-
-## Acknowledgements
-
-- [PostgreSQL](https://www.postgresql.org/)
-- [Diesel](https://diesel.rs/)
-- [Docker](https://www.docker.com/)
