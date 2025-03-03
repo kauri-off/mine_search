@@ -16,26 +16,31 @@ function FilterableServerList() {
   const [hasMore, setHasMore] = useState(true);
   const [ref, inView] = useInView();
 
-  const [filters, setFilters] = useState<FiltersList>(() => {
+  const defaultFilters: FiltersList = {
+    licensed: null,
+    has_players: null,
+    white_list: null,
+    was_online: null,
+    checked: null,
+    auth_me: null,
+    crashed: null,
+  };
+
+  const getSavedFilters = () => {
     try {
       const savedFilters = localStorage.getItem(LOCAL_STORAGE_KEY);
-      return savedFilters ? JSON.parse(savedFilters) : getDefaultFilters();
-    } catch (_) {
-      return getDefaultFilters();
-    }
-  });
+      const parsedFilters = savedFilters ? JSON.parse(savedFilters) : {};
 
-  function getDefaultFilters(): FiltersList {
-    return {
-      licensed: null,
-      has_players: null,
-      white_list: null,
-      was_online: null,
-      checked: null,
-      auth_me: null,
-      crashed: null,
-    };
-  }
+      return Object.keys(defaultFilters).reduce((acc, key) => {
+        acc[key as keyof FiltersList] = parsedFilters[key] ?? null;
+        return acc;
+      }, {} as FiltersList);
+    } catch (_) {
+      return defaultFilters;
+    }
+  };
+
+  const [filters, setFilters] = useState<FiltersList>(getSavedFilters);
 
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filters));
