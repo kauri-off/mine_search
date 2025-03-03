@@ -33,7 +33,7 @@ function Server() {
       .catch((res) => {
         setLoading(false);
         setError(true);
-        
+
         if (res.status == 401) {
           navigate("/auth?back_url=" + location.pathname);
         }
@@ -60,7 +60,7 @@ function Server() {
             <ServerTable server={server!} />
           </div>
           <ServerOptions server={server!} setServer={setServer} />
-          <div className="row">
+          <div className="row mb-3">
             <PlayersTable players={players} />
           </div>
         </div>
