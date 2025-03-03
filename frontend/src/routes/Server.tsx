@@ -24,25 +24,21 @@ function Server() {
     fetchServerInfo(ip!)
       .then((res) => {
         setServer(res.data);
+        return fetchServerPlayers(res.data.ip);
+      })
+      .then((res) => {
+        setPlayers(res.data);
+        setLoading(false);
       })
       .catch((res) => {
         setLoading(false);
         setError(true);
-
+        
         if (res.status == 401) {
           navigate("/auth?back_url=" + location.pathname);
         }
       });
   }, [navigate]);
-
-  useEffect(() => {
-    if (!server) return;
-
-    fetchServerPlayers(server.ip).then((res) => {
-      setPlayers(res.data);
-      setLoading(false);
-    });
-  }, [server]);
 
   if (error) {
     return (
