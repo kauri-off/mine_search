@@ -42,29 +42,11 @@ function Filters({ filters, setFilters }: FiltersProps) {
       },
     },
     {
-      key: "has_players" as keyof FiltersList,
-      label: "HAS PLAYERS",
-      colors: {
-        true: "btn-success",
-        false: "btn-danger",
-        null: "btn-secondary",
-      },
-    },
-    {
       key: "white_list" as keyof FiltersList,
       label: "WHITE LIST",
       colors: {
         true: "btn-danger",
         false: "btn-success",
-        null: "btn-secondary",
-      },
-    },
-    {
-      key: "was_online" as keyof FiltersList,
-      label: "WAS ONLINE",
-      colors: {
-        true: "btn-success",
-        false: "btn-danger",
         null: "btn-secondary",
       },
     },

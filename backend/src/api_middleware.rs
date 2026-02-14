@@ -14,7 +14,9 @@ pub async fn middleware_check(req: Request, next: Next) -> Result<Response, Stat
         {
             if let Ok(c) = cookie {
                 let token = c.value();
-                let _claims = jwt_decode(token).map_err(|_| StatusCode::UNAUTHORIZED)?;
+                let _claims = jwt_decode(token)
+                    .await
+                    .map_err(|_| StatusCode::UNAUTHORIZED)?;
                 return Ok(next.run(req).await);
             }
         }

@@ -1,14 +1,9 @@
-use std::io::{self, ErrorKind};
-
-use minecraft_protocol::types::var_int::VarInt;
-use serde::Deserialize;
+use minecraft_protocol::{packet::RawPacket, varint::VarInt};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::net::TcpStream;
 
-use crate::{
-    conn_wrapper::ConnectionWrapper,
-    packets::{Handshake, StatusRequest, StatusResponse},
-};
+use crate::packets::*;
 
 #[derive(Deserialize, Debug)]
 pub struct Status {
@@ -17,6 +12,7 @@ pub struct Status {
     pub description: Value,
 }
 
+#[allow(unused)]
 #[derive(Deserialize, Debug)]
 pub struct Players {
     pub online: i64,
@@ -24,7 +20,8 @@ pub struct Players {
     pub sample: Option<Vec<Player>>,
 }
 
-#[derive(Deserialize, Debug)]
+#[allow(unused)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Player {
     pub id: String,
     pub name: String,
@@ -36,22 +33,31 @@ pub struct Version {
     pub protocol: i64,
 }
 
-pub async fn get_status(ip: &str, port: u16) -> io::Result<Status> {
+pub async fn get_status(ip: &str, port: u16) -> anyhow::Result<Status> {
     let mut conn = TcpStream::connect(&format!("{}:{}", ip, port)).await?;
 
-    conn.write_packet(Handshake {
-        protocol: VarInt(765),
+    c2s::Handshake {
+        protocol_version: VarInt(765),
         server_address: ip.to_string(),
         server_port: port,
-        next_state: VarInt(1),
-    })
+        intent: VarInt(1),
+    }
+    .as_uncompressed()?
+    .to_raw_packet()?
+    .write(&mut conn)
     .await?;
 
-    conn.write_packet(StatusRequest {}).await?;
+    c2s::StatusRequest {}
+        .as_uncompressed()?
+        .to_raw_packet()?
+        .write(&mut conn)
+        .await?;
 
-    let response: StatusResponse = conn.read_packet().await?;
+    let response: s2c::StatusResponse = RawPacket::read(&mut conn)
+        .await?
+        .as_uncompressed()?
+        .convert()?;
 
-    let value: Status =
-        serde_json::from_str(&response.response).map_err(|_| ErrorKind::InvalidData)?;
+    let value: Status = serde_json::from_str(&response.response)?;
     Ok(value)
 }

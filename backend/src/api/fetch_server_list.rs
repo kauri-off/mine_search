@@ -1,8 +1,10 @@
 use super::fetch_server_info::ServerResponse;
 use crate::database::DatabaseWrapper;
-use crate::database::ServerModelWithPlayers;
-use axum::{extract::State, http::StatusCode, Json};
-use db_schema::schema::*;
+use axum::{Json, extract::State, http::StatusCode};
+use db_schema::{
+    models::{data::DataModel, servers::ServerModel},
+    schema::*,
+};
 use diesel::dsl::*;
 use diesel::pg::Pg;
 use diesel::prelude::*;
@@ -16,9 +18,7 @@ pub struct ServerRequest {
     pub limit: i64,
     pub offset_ip: Option<String>,
     pub licensed: Option<bool>,
-    pub has_players: Option<bool>,
     pub white_list: Option<bool>,
-    pub was_online: Option<bool>,
     pub checked: Option<bool>,
     pub auth_me: Option<bool>,
     pub crashed: Option<bool>,
@@ -61,20 +61,8 @@ pub async fn fetch_server_list(
         None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
     };
 
-    let players_count_filter = match body.has_players {
-        Some(true) => "COUNT(players.id) > 0",
-        Some(false) => "COUNT(players.id) = 0",
-        None => "TRUE",
-    };
-
-    let was_online_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.was_online
-    {
-        Some(was_online) => Box::new(servers::was_online.eq(was_online)),
-        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
-    };
-
     let checked_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.checked {
-        Some(checked) => Box::new(servers::checked.eq(checked)),
+        Some(checked) => Box::new(servers::checked.assume_not_null().eq(checked)),
         None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
     };
 
@@ -84,45 +72,25 @@ pub async fn fetch_server_list(
     };
 
     let crashed_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.crashed {
-        Some(crashed) => Box::new(servers::crashed.eq(crashed)),
+        Some(crashed) => Box::new(servers::crashed.assume_not_null().eq(crashed)),
         None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
     };
 
-    let server_list = servers::table
+    let results = servers::table
+        .inner_join(data::table.on(data::server_id.eq(servers::id)))
         .filter(servers::id.lt(server_id))
         .filter(license_filter)
         .filter(white_list_filter)
-        .filter(was_online_filter)
         .filter(checked_filter)
         .filter(auth_me_filter)
         .filter(crashed_filter)
-        .order(servers::id.desc())
-        .left_join(players::table.on(players::server_id.eq(servers::id.nullable())))
+        .order((servers::id.desc(), data::id.desc()))
+        .distinct_on(servers::id)
+        .select((ServerModel::as_select(), DataModel::as_select()))
         .limit(body.limit)
-        .group_by(servers::id)
-        .having(diesel::dsl::sql::<Bool>(players_count_filter))
-        .select((
-            servers::id,
-            servers::ip,
-            servers::online,
-            servers::max,
-            servers::version_name,
-            servers::protocol,
-            servers::license,
-            servers::white_list,
-            servers::last_seen,
-            servers::description,
-            servers::was_online,
-            count(players::id).nullable(),
-            servers::checked,
-            servers::auth_me,
-            servers::crashed,
-        ))
-        // let sql_query = debug_query::<Pg, _>(&server_list).to_string();
-        // println!("{}", sql_query);
-        .load::<ServerModelWithPlayers>(&mut conn)
+        .load::<(ServerModel, DataModel)>(&mut conn)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(server_list.into_iter().map(Into::into).collect()))
+    Ok(Json(results.into_iter().map(Into::into).collect()))
 }

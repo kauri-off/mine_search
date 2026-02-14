@@ -1,37 +1,35 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    players (id) {
-        id -> Int4,
-        uuid -> Text,
-        name -> Text,
-        last_seen -> Timestamp,
-        server_id -> Nullable<Int4>,
+    data (id) {
+        id -> Int8,
+        server_id -> Int4,
+        online -> Int4,
+        max -> Int4,
+        players -> Jsonb,
+        timestamp -> Timestamptz,
     }
 }
 
 diesel::table! {
     servers (id) {
         id -> Int4,
-        ip -> Text,
-        online -> Int4,
-        max -> Int4,
-        version_name -> Text,
+        ip -> Varchar,
+        port -> Int4,
+        version_name -> Varchar,
         protocol -> Int4,
+        description -> Jsonb,
         license -> Bool,
         white_list -> Nullable<Bool>,
-        last_seen -> Timestamp,
-        description -> Jsonb,
-        was_online -> Bool,
-        checked -> Bool,
+        checked -> Nullable<Bool>,
         auth_me -> Nullable<Bool>,
-        crashed -> Bool,
+        crashed -> Nullable<Bool>,
+        was_online -> Bool,
+        created -> Timestamptz,
+        updated -> Timestamptz,
     }
 }
 
-diesel::joinable!(players -> servers (server_id));
+diesel::joinable!(data -> servers (server_id));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    players,
-    servers,
-);
+diesel::allow_tables_to_appear_in_same_query!(data, servers,);

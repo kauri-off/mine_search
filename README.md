@@ -5,9 +5,6 @@
 > [!WARNING]
 > RUNNING THE WORKER MAY RESULT IN YOUR SERVER BEING BLOCKED DUE TO ABUSIVE SCANNING ACTIVITIES. MAKE SURE YOU UNDERSTAND THE RISKS INVOLVED.
 
-> [!IMPORTANT]
-> If you want to run the worker on a different server, please refer to the separate documentation here: [Worker Setup Guide](separate_deploy.md).
-
 ## Environment Variables
 
 Create a `.env` file in the root directory and add the following values:
@@ -108,17 +105,6 @@ Run the application:
 docker compose up -d
 ```
 
-## Configure a Domain and Proxy
-
-If you have a domain and want to configure it for reverse proxy, run:
-
-```bash
-./setup.sh
-```
-
-This will update the domain name in Nginx and Caddy configuration files.
-
 ## License
 
 This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
-

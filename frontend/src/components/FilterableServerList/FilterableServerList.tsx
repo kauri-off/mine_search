@@ -18,9 +18,7 @@ function FilterableServerList() {
 
   const defaultFilters: FiltersList = {
     licensed: null,
-    has_players: null,
     white_list: null,
-    was_online: null,
     checked: null,
     auth_me: null,
     crashed: null,

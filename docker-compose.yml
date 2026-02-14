@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: worker.Dockerfile
-    # image: ghcr.io/kauri-off/mine_search/worker:latest
     environment:
       THREADS: ${THREADS}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
@@ -18,7 +17,6 @@ services:
     build:
       context: .
       dockerfile: backend.Dockerfile
-    # image: ghcr.io/kauri-off/mine_search/backend:latest
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
       BACKEND_PASSWORD: ${BACKEND_PASSWORD}
@@ -38,8 +36,8 @@ services:
       - postgres
     networks:
       - app-network
-    ports:
-      - "127.0.0.1:8080:3000"
+    # ports:
+    #   - "127.0.0.1:8080:3000"
     restart: unless-stopped
 
   postgres:
@@ -52,9 +50,23 @@ services:
     networks:
       - app-network
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
     ports:
       - "127.0.0.1:5432:5432/tcp"
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - app-network
     restart: unless-stopped
 
 networks:

@@ -1,145 +1,134 @@
-use std::io;
+use minecraft_protocol::{Packet, varint::VarInt};
 
-use minecraft_protocol::{
-    packet_builder::PacketBuilder, packet_reader::PacketReader, types::var_int::VarInt,
-    UncompressedPacket,
-};
+#[allow(unused)]
+pub mod c2s {
+    use minecraft_protocol::packet::RawPacket;
 
-pub trait PacketActions {
-    fn serialize(&self) -> UncompressedPacket;
-    fn deserialize(packet: UncompressedPacket) -> io::Result<Self>
-    where
-        Self: Sized;
-}
-
-#[derive(Debug)]
-pub struct Handshake {
-    pub protocol: VarInt,
-    pub server_address: String,
-    pub server_port: u16,
-    pub next_state: VarInt,
-}
-
-impl PacketActions for Handshake {
-    fn serialize(&self) -> UncompressedPacket {
-        PacketBuilder::new(VarInt(0x00))
-            .write(self.protocol.clone())
-            .write(self.server_address.clone())
-            .write(self.server_port)
-            .write(self.next_state.clone())
-            .build()
+    use super::*;
+    // ----------- HANDSHAKING -----------
+    #[derive(Packet, Debug)]
+    #[packet(0x00)]
+    pub struct Handshake {
+        pub protocol_version: VarInt,
+        pub server_address: String,
+        pub server_port: u16,
+        pub intent: VarInt,
     }
 
-    fn deserialize(packet: UncompressedPacket) -> io::Result<Self> {
-        let mut reader = PacketReader::new(&packet);
+    // ----------- STATUS -----------
 
-        let protocol = reader.read()?;
-        let server_address = reader.read()?;
-        let server_port = reader.read()?;
-        let next_state = reader.read()?;
+    #[derive(Packet)]
+    #[packet(0x00)]
+    pub struct StatusRequest {}
 
-        Ok(Handshake {
-            protocol,
-            server_address,
-            server_port,
-            next_state,
-        })
-    }
-}
-
-pub struct StatusRequest {}
-
-impl PacketActions for StatusRequest {
-    fn serialize(&self) -> UncompressedPacket {
-        PacketBuilder::new(VarInt(0x00)).build()
+    // ----------- LOGIN -----------
+    #[derive(Packet, Debug)]
+    #[packet(0x00)]
+    pub struct LoginStart {
+        pub name: String,
+        pub uuid: u128,
     }
 
-    fn deserialize(_packet: UncompressedPacket) -> io::Result<Self> {
-        Ok(StatusRequest {})
-    }
-}
+    impl LoginStart {
+        pub fn raw_by_protocol(&self, protocol: i32) -> RawPacket {
+            if protocol > 763 {
+                self.as_uncompressed().unwrap().to_raw_packet().unwrap()
+            } else if protocol > 761 {
+                let mut payload = Vec::new();
+                minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload);
+                minecraft_protocol::ser::Serialize::serialize(&true, &mut payload);
+                minecraft_protocol::ser::Serialize::serialize(&self.uuid, &mut payload);
 
-pub struct StatusResponse {
-    pub response: String,
-}
+                minecraft_protocol::packet::UncompressedPacket {
+                    packet_id: Self::PACKET_ID.clone(),
+                    payload,
+                }
+                .to_raw_packet()
+                .unwrap()
+            } else if protocol > 758 {
+                let mut payload = Vec::new();
+                minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload);
+                minecraft_protocol::ser::Serialize::serialize(&false, &mut payload);
+                minecraft_protocol::ser::Serialize::serialize(&true, &mut payload);
+                minecraft_protocol::ser::Serialize::serialize(&self.uuid, &mut payload);
 
-impl PacketActions for StatusResponse {
-    fn serialize(&self) -> UncompressedPacket {
-        PacketBuilder::new(VarInt(0x00))
-            .write(self.response.clone())
-            .build()
-    }
+                minecraft_protocol::packet::UncompressedPacket {
+                    packet_id: Self::PACKET_ID.clone(),
+                    payload,
+                }
+                .to_raw_packet()
+                .unwrap()
+            } else {
+                let mut payload = Vec::new();
+                minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload);
 
-    fn deserialize(packet: UncompressedPacket) -> io::Result<Self> {
-        let mut reader = PacketReader::new(&packet);
-
-        let response = reader.read()?;
-
-        Ok(StatusResponse { response })
-    }
-}
-
-#[derive(Debug)]
-pub struct LoginStart {
-    pub name: String,
-    pub uuid: u128,
-}
-
-impl PacketActions for LoginStart {
-    fn serialize(&self) -> UncompressedPacket {
-        PacketBuilder::new(VarInt(0x00))
-            .write(self.name.clone())
-            .write(self.uuid)
-            .build()
-    }
-
-    fn deserialize(packet: UncompressedPacket) -> io::Result<Self> {
-        let mut reader = PacketReader::new(&packet);
-
-        let name = reader.read()?;
-        let uuid = reader.read()?;
-
-        Ok(LoginStart { name, uuid })
-    }
-}
-
-impl LoginStart {
-    pub fn get_by_protocol(&self, protocol: i32) -> UncompressedPacket {
-        if protocol > 763 {
-            self.serialize()
-        } else if protocol > 761 {
-            PacketBuilder::new(VarInt(0x00))
-                .write(self.name.clone())
-                .write_option(Some(self.uuid))
-                .build()
-        } else if protocol > 758 {
-            PacketBuilder::new(VarInt(0x00))
-                .write(self.name.clone())
-                .write_option::<bool>(None)
-                .write_option(Some(self.uuid))
-                .build()
-        } else {
-            PacketBuilder::new(VarInt(0x00))
-                .write(self.name.clone())
-                .build()
+                minecraft_protocol::packet::UncompressedPacket {
+                    packet_id: Self::PACKET_ID.clone(),
+                    payload,
+                }
+                .to_raw_packet()
+                .unwrap()
+            }
         }
     }
-}
 
-pub struct SetCompression {
-    pub threshold: VarInt,
-}
-
-impl PacketActions for SetCompression {
-    fn serialize(&self) -> UncompressedPacket {
-        todo!()
+    #[derive(Packet, Debug)]
+    #[packet(0x14)]
+    pub struct Look {
+        pub yaw: f32,
+        pub pitch: f32,
+        pub on_ground: bool,
     }
 
-    fn deserialize(packet: UncompressedPacket) -> io::Result<Self> {
-        let mut reader = PacketReader::new(&packet);
+    #[derive(Packet, Debug)]
+    #[packet(0x13)]
+    pub struct PositionLook {
+        pub x: f64,
+        pub y: f64,
+        pub z: f64,
+        pub yaw: f32,
+        pub pitch: f32,
+        pub on_ground: bool,
+    }
 
-        let threshold = reader.read()?;
+    #[derive(Packet, Debug)]
+    #[packet(0x12)]
+    pub struct Position {
+        pub x: f64,
+        pub y: f64,
+        pub z: f64,
+        pub on_ground: bool,
+    }
 
-        Ok(SetCompression { threshold })
+    #[derive(Packet, Debug, Clone)]
+    #[packet(0x07)]
+    pub struct Transaction {
+        pub window_id: i8,
+        pub action: i16,
+        pub accepted: bool,
+    }
+}
+
+pub mod s2c {
+    use super::*;
+
+    // ----------- STATUS -----------
+    #[derive(Packet)]
+    #[packet(0x00)]
+    pub struct StatusResponse {
+        pub response: String,
+    }
+
+    // ----------- LOGIN -----------
+    #[derive(Packet, Debug)]
+    #[packet(0x00)]
+    pub struct LoginDisconnect {
+        pub reason: String,
+    }
+
+    #[derive(Packet, Debug)]
+    #[packet(0x03)]
+    pub struct SetCompression {
+        pub threshold: VarInt,
     }
 }

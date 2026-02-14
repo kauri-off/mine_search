@@ -1,25 +1,22 @@
 [package]
-name = "mine_search"
-version = "0.1.0"
-edition = "2021"
-
-[[bin]]
-name = "mine_search"
-path = "src/main.rs"
+name = "worker"
+version = "1.0.0"
+edition = "2024"
 
 [dependencies]
 minecraft_protocol = { git = "https://github.com/kauri-off/minecraft_protocol.git" }
 db_schema = { path = "../db_schema" }
-tokio = { version = "1.42.0", features = ["full"] }
+tokio = { version = "1.49.0", features = ["full"] }
 
-rand = "0.8.5"
-serde = { version = "1.0.216", features = ["derive"] }
-serde_json = "1.0.133"
+rand = "0.10.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
 
-diesel = { version = "2.2.0", features = ["postgres", "chrono", "serde_json"] }
-diesel-async = { version = "0.5.2", features = ["postgres", "deadpool"] }
-pq-sys = { version = "0.6", features = ["bundled"] }
-openssl-sys = { version = "0.9.100", features = ["vendored"] } 
+diesel = { version = "2.3.6", features = ["postgres", "chrono", "serde_json"] }
+diesel-async = { version = "0.7.4", features = ["postgres", "deadpool"] }
+pq-sys = { version = "0.7.5", features = ["bundled"] }
+openssl-sys = { version = "0.9.111", features = ["vendored"] } 
 
-chrono = "0.4.39"
-colored = "2.2.0"
+chrono = "0.4.43"
+colored = "3.1.1"
+anyhow = "1.0.101"

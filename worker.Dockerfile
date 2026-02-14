@@ -1,18 +1,38 @@
-FROM rust AS builder
-
+FROM rust:latest AS chef
+RUN cargo install cargo-chef
 WORKDIR /app
 
-RUN apt-get update -y && apt-get install cmake -y
+FROM chef AS planner
 
-COPY worker worker
-COPY db_schema db_schema
+COPY db_schema/src db_schema/src
+COPY db_schema/Cargo.toml db_schema/
+COPY worker/src worker/src
+COPY worker/Cargo.toml worker/
+
+WORKDIR /app/worker
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+RUN apt-get update && apt-get install -y cmake
+
+WORKDIR /app/worker
+COPY --from=planner /app/worker/recipe.json recipe.json
+
+COPY db_schema/src /app/db_schema/src
+COPY db_schema/Cargo.toml /app/db_schema/
+
+RUN cargo chef cook --release --recipe-path recipe.json
+
+WORKDIR /app
+COPY worker/src worker/src
+COPY worker/Cargo.toml worker/
 
 WORKDIR /app/worker
 RUN cargo build --release
 
 FROM debian:bookworm-slim
-
 WORKDIR /app
-COPY --from=builder /app/worker/target/release/mine_search .
 
-CMD ["./mine_search"]
+COPY --from=builder /app/worker/target/release/worker .
+
+CMD ["./worker"]

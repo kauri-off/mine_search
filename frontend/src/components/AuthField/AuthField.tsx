@@ -1,10 +1,10 @@
-import { useState, ChangeEvent, FormEvent } from "react";
+import { useState, ChangeEvent } from "react";
 import { AuthFieldProps } from "./AuthField.types";
 
 const AuthField = ({ callback }: AuthFieldProps) => {
   const [password, setPassword] = useState<string>("");
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: ChangeEvent) => {
     e.preventDefault();
     callback(password);
   };

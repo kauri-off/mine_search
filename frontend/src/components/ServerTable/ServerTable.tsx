@@ -2,7 +2,7 @@ import ServerStatus from "../ServerStatus";
 import ServerTableProps from "./ServerTable.types";
 
 function ServerTable({ server }: ServerTableProps) {
-  let date = new Date(server.last_seen + "Z");
+  let date = new Date(server.updated);
   const formattedDate = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "2-digit",

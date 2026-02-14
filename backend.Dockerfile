@@ -1,18 +1,38 @@
-FROM rust AS builder
-
+FROM rust:latest AS chef
+RUN cargo install cargo-chef
 WORKDIR /app
 
-RUN apt-get update -y && apt-get install cmake -y
+FROM chef AS planner
 
-COPY backend backend
-COPY db_schema db_schema
+COPY db_schema/src db_schema/src
+COPY db_schema/Cargo.toml db_schema/
+COPY backend/src backend/src
+COPY backend/Cargo.toml backend/
+
+WORKDIR /app/backend
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+RUN apt-get update && apt-get install -y cmake
+
+WORKDIR /app/backend
+COPY --from=planner /app/backend/recipe.json recipe.json
+
+COPY db_schema/src /app/db_schema/src
+COPY db_schema/Cargo.toml /app/db_schema/
+
+RUN cargo chef cook --release --recipe-path recipe.json
+
+WORKDIR /app
+COPY backend/src backend/src
+COPY backend/Cargo.toml backend/Cargo.toml
 
 WORKDIR /app/backend
 RUN cargo build --release
 
 FROM debian:bookworm-slim
-
 WORKDIR /app
+
 COPY --from=builder /app/backend/target/release/backend .
 
 EXPOSE 3000

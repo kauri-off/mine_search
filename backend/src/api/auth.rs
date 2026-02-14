@@ -1,15 +1,16 @@
-use std::env;
-
 use axum::{
-    http::{header::SET_COOKIE, HeaderMap, HeaderValue, StatusCode},
-    response::IntoResponse,
     Json,
+    http::{HeaderMap, HeaderValue, StatusCode, header::SET_COOKIE},
+    response::IntoResponse,
 };
 use chrono::{Duration, Utc};
-use cookie::{time, Cookie, SameSite};
+use cookie::{Cookie, SameSite, time};
 use serde::{Deserialize, Serialize};
 
-use crate::jwt_wrapper::{jwt_encode, Claims};
+use crate::{
+    BACKEND_PASSWORD,
+    jwt_wrapper::{Claims, jwt_encode},
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct AuthBody {
@@ -25,9 +26,7 @@ pub async fn authenticate_user(
     headers: HeaderMap,
     Json(body): Json<AuthBody>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let password = env::var("BACKEND_PASSWORD").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    if body.password != password {
+    if body.password != *BACKEND_PASSWORD.lock().await {
         return Err(StatusCode::UNAUTHORIZED);
     }
 
@@ -45,7 +44,9 @@ pub async fn authenticate_user(
 
     let my_claims = Claims { exp, iat, ip };
 
-    let jwt = jwt_encode(my_claims).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let jwt = jwt_encode(my_claims)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let cookie = Cookie::build(("token", &jwt))
         .path("/api")

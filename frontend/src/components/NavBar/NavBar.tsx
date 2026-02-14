@@ -39,12 +39,6 @@ function NavBar({ page }: NavBarProps) {
               Home
             </a>
             <a
-              className={"nav-link" + (page == Page.PLAYERS ? " active" : "")}
-              href="/players"
-            >
-              Players
-            </a>
-            <a
               className={"nav-link" + (page == Page.STATS ? " active" : "")}
               href="/stats"
             >

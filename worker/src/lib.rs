@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use rand::Rng;
+use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::{net::TcpStream, time::timeout};
@@ -18,14 +18,14 @@ pub async fn check_server(ip: &IpAddr, port: u16) -> bool {
 }
 
 pub fn generate_random_ip() -> Ipv4Addr {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     loop {
         // Генерируем случайный адрес
-        let first_byte: u8 = rng.gen_range(1..=223); // от 1 до 223, чтобы не попасть в частные диапазоны
-        let second_byte: u8 = rng.gen_range(0..=255);
-        let third_byte: u8 = rng.gen_range(0..=255);
-        let fourth_byte: u8 = rng.gen_range(0..=255);
+        let first_byte: u8 = rng.random_range(1..=223); // от 1 до 223, чтобы не попасть в частные диапазоны
+        let second_byte: u8 = rng.random_range(0..=255);
+        let third_byte: u8 = rng.random_range(0..=255);
+        let fourth_byte: u8 = rng.random_range(0..=255);
 
         let ip = Ipv4Addr::new(first_byte, second_byte, third_byte, fourth_byte);
 

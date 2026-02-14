@@ -1,35 +1,32 @@
-use std::{
-    env,
-    io::{self, ErrorKind},
-    net::IpAddr,
-    sync::Arc,
-    time::Duration,
-};
+use std::{env, net::IpAddr, sync::Arc, time::Duration};
 
-use chrono::{Local, Timelike};
+use chrono::{Local, Utc};
 use colored::Colorize;
 use database::DatabaseWrapper;
-use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{dsl::insert_into, prelude::*};
 use diesel_async::RunQueryDsl;
-use mine_search::{check_server, description_to_str, generate_random_ip};
 use serde_json::json;
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
 use tokio::{sync::Semaphore, time::timeout};
+use worker::{check_server, description_to_str, generate_random_ip};
 
 use db_schema::{
     models::{
-        players::PlayerInsert,
+        data::DataInsert,
         servers::{ServerInsert, ServerModel, ServerModelMini, ServerUpdate},
     },
     schema,
 };
 
-mod conn_wrapper;
 mod database;
 mod packets;
 mod server_actions;
 
-pub async fn handle_valid_ip(ip: &IpAddr, port: u16, db: Arc<DatabaseWrapper>) -> io::Result<()> {
+pub async fn handle_valid_ip(
+    ip: &IpAddr,
+    port: u16,
+    db: Arc<DatabaseWrapper>,
+) -> anyhow::Result<()> {
     let status = get_status(&format!("{}", ip), port).await?;
 
     let extra_data =
@@ -37,17 +34,14 @@ pub async fn handle_valid_ip(ip: &IpAddr, port: u16, db: Arc<DatabaseWrapper>) -
 
     let server_insert = ServerInsert {
         ip: &format!("{}", ip),
-        online: status.players.online as i32,
-        max: status.players.max as i32,
+        port: port as i32,
         version_name: &status.version.name,
         protocol: status.version.protocol as i32,
+        description: &status.description,
         license: extra_data.license,
         white_list: extra_data.white_list,
-        description: &json!({
-            "payload": status.description
-        }),
-        was_online: true,
     };
+
     let mut conn = db.pool.get().await.unwrap();
 
     let server: ServerModel = insert_into(schema::servers::table)
@@ -56,23 +50,19 @@ pub async fn handle_valid_ip(ip: &IpAddr, port: u16, db: Arc<DatabaseWrapper>) -
         .do_nothing()
         .returning(ServerModel::as_returning())
         .get_result(&mut conn)
-        .await
-        .map_err(|_| ErrorKind::InvalidInput)?;
+        .await?;
 
-    for player in status.players.sample.unwrap_or_default() {
-        let player_model = PlayerInsert {
-            uuid: &player.id,
-            name: &player.name,
-            server_id: server.id,
-        };
+    let data_insert = DataInsert {
+        server_id: server.id,
+        online: status.players.online as i32,
+        max: status.players.max as i32,
+        players: &json!(status.players.sample.unwrap_or_default()),
+    };
 
-        insert_into(schema::players::table)
-            .values(&player_model)
-            .on_conflict_do_nothing()
-            .execute(&mut conn)
-            .await
-            .unwrap();
-    }
+    insert_into(schema::data::table)
+        .values(data_insert)
+        .execute(&mut conn)
+        .await?;
 
     let timestamp = Local::now().format("%H:%M:%S").to_string();
 
@@ -146,11 +136,16 @@ async fn updater(db: Arc<DatabaseWrapper>) {
 }
 
 async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
-    let status = match timeout(Duration::from_secs(2), get_status(&server.ip, 25565)).await {
+    let status = match timeout(
+        Duration::from_secs(2),
+        get_status(&server.ip, server.port as u16),
+    )
+    .await
+    {
         Ok(Ok(b)) => b,
         _ => {
             diesel::update(schema::servers::table)
-                .filter(schema::servers::ip.eq(&server.ip))
+                .filter(schema::servers::id.eq(&server.id))
                 .set(schema::servers::was_online.eq(false))
                 .execute(&mut db.pool.get().await.unwrap())
                 .await
@@ -159,45 +154,31 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
         }
     };
 
-    let server_update = ServerUpdate {
+    let data_insert = DataInsert {
+        server_id: server.id,
         online: status.players.online as i32,
         max: status.players.max as i32,
-        version_name: &status.version.name,
-        protocol: status.version.protocol as i32,
-        description: &json!({
-            "payload": status.description,
-        }),
-        was_online: true,
-        last_seen: Local::now().naive_local().with_nanosecond(0).unwrap(),
+        players: &json!(status.players.sample.unwrap_or_default()),
     };
     let mut conn = db.pool.get().await.unwrap();
 
-    diesel::update(schema::servers::table)
-        .filter(schema::servers::ip.eq(&server.ip))
-        .set(server_update)
+    insert_into(schema::data::table)
+        .values(data_insert)
         .execute(&mut conn)
         .await
         .unwrap();
 
-    for player in status.players.sample.unwrap_or_default() {
-        let player_model = PlayerInsert {
-            uuid: &player.id,
-            name: &player.name,
-            server_id: server.id,
-        };
+    let server_change = ServerUpdate {
+        description: &status.description,
+        updated: Utc::now(),
+        was_online: true,
+    };
 
-        insert_into(schema::players::table)
-            .values(&player_model)
-            .on_conflict((schema::players::name, schema::players::server_id))
-            .do_update()
-            .set(
-                schema::players::last_seen
-                    .eq(Local::now().naive_local().with_nanosecond(0).unwrap()),
-            )
-            .execute(&mut conn)
-            .await
-            .unwrap();
-    }
+    diesel::update(schema::servers::table)
+        .set(server_change)
+        .execute(&mut conn)
+        .await
+        .unwrap();
 }
 
 #[tokio::main]

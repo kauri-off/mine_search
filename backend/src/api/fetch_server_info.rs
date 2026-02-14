@@ -1,16 +1,15 @@
 use std::sync::Arc;
 
-use axum::{extract::State, http::StatusCode, Json};
-use chrono::NaiveDateTime;
+use axum::{Json, extract::State, http::StatusCode};
+use chrono::{DateTime, Utc};
+use db_schema::models::{data::DataModel, servers::ServerModel};
 use db_schema::schema::*;
-use diesel::dsl::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::database::DatabaseWrapper;
-use crate::database::ServerModelWithPlayers;
 
 #[derive(Serialize, Deserialize)]
 pub struct ServerRequest {
@@ -26,34 +25,34 @@ pub struct ServerResponse {
     pub protocol: i32,
     pub license: bool,
     pub white_list: Option<bool>,
-    pub last_seen: NaiveDateTime,
+    pub updated: DateTime<Utc>,
     pub description: Value,
     pub description_html: String,
-    pub player_count: i64,
     pub was_online: bool,
-    pub checked: bool,
+    pub checked: Option<bool>,
     pub auth_me: Option<bool>,
-    pub crashed: bool,
+    pub crashed: Option<bool>,
 }
 
-impl From<ServerModelWithPlayers> for ServerResponse {
-    fn from(value: ServerModelWithPlayers) -> ServerResponse {
-        ServerResponse {
-            ip: value.ip,
-            online: value.online,
-            max: value.max,
-            version_name: value.version_name,
-            protocol: value.protocol,
-            license: value.license,
-            white_list: value.white_list,
-            last_seen: value.last_seen,
-            description: value.description.clone(),
-            description_html: parse_html(value.description),
-            player_count: value.player_count.unwrap_or_default(),
-            was_online: value.was_online,
-            checked: value.checked,
-            auth_me: value.auth_me,
-            crashed: value.crashed,
+impl From<(ServerModel, DataModel)> for ServerResponse {
+    fn from((server, data): (ServerModel, DataModel)) -> Self {
+        let description_html = parse_html(server.description.clone());
+
+        Self {
+            ip: server.ip,
+            online: data.online,
+            max: data.max,
+            version_name: server.version_name,
+            protocol: server.protocol,
+            license: server.license,
+            white_list: server.white_list,
+            updated: server.updated,
+            description: server.description,
+            description_html,
+            was_online: server.was_online,
+            checked: server.checked,
+            auth_me: server.auth_me,
+            crashed: server.crashed,
         }
     }
 }
@@ -62,40 +61,24 @@ pub async fn fetch_server_info(
     State(db): State<Arc<DatabaseWrapper>>,
     Json(body): Json<ServerRequest>,
 ) -> Result<Json<ServerResponse>, StatusCode> {
-    let server = servers::table
-        .left_join(players::table.on(players::server_id.eq(servers::id.nullable())))
-        .filter(servers::ip.eq(body.ip))
-        .group_by(servers::id)
-        .select((
-            servers::id,
-            servers::ip,
-            servers::online,
-            servers::max,
-            servers::version_name,
-            servers::protocol,
-            servers::license,
-            servers::white_list,
-            servers::last_seen,
-            servers::description,
-            servers::was_online,
-            count(players::id).nullable(),
-            servers::checked,
-            servers::auth_me,
-            servers::crashed,
-        ))
-        .first::<ServerModelWithPlayers>(&mut db.pool.get().await.unwrap())
+    let mut conn = db.pool.get().await.unwrap();
+
+    let (server, data) = servers::table
+        .inner_join(data::table.on(data::server_id.eq(servers::id)))
+        .filter(servers::ip.eq(&body.ip))
+        .order_by(data::id.desc())
+        .select((ServerModel::as_select(), DataModel::as_select()))
+        .first::<(ServerModel, DataModel)>(&mut conn)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(server.into()))
+    Ok(Json((server, data).into()))
 }
 
 fn parse_html(value: Value) -> String {
-    let payload: Description = serde_json::from_value(value).unwrap();
-
-    match payload.payload {
-        Some(t) => chat_object_to_html(&t),
-        None => "<span></span>".to_string(),
+    match serde_json::from_value::<ChatObject>(value) {
+        Ok(t) => chat_object_to_html(&t),
+        Err(_) => "<span></span>".to_string(),
     }
 }
 
@@ -168,11 +151,6 @@ fn chat_component_object_to_html(component: &ChatComponentObject) -> String {
     }
 
     html
-}
-
-#[derive(Serialize, Deserialize)]
-struct Description {
-    payload: Option<ChatObject>,
 }
 
 /// Represents a chat object (the MOTD is sent as a chat object).

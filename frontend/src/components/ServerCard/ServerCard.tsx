@@ -2,7 +2,7 @@ import { ServerProps } from "./ServerCard.types";
 import ServerStatus from "../ServerStatus";
 
 function ServerCard({ server }: ServerProps) {
-  let date = new Date(server.last_seen + "Z");
+  let date = new Date(server.updated);
   const formattedDate = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "2-digit",
@@ -16,7 +16,7 @@ function ServerCard({ server }: ServerProps) {
     <div className="card mb-3">
       <div className="card-header d-flex align-items-center">
         <span className="me-3">
-          <strong>{server.player_count}</strong> / {server.max}
+          <strong>{server.online}</strong> / {server.max}
         </span>
         <ServerStatus server={server} />
         <small className="text-muted ms-auto">{server.ip}</small>

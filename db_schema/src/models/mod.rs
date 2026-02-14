@@ -1,2 +1,2 @@
-pub mod players;
+pub mod data;
 pub mod servers;

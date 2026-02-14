@@ -1,12 +1,7 @@
-use std::io::{self, Error, ErrorKind};
-
-use minecraft_protocol::{packet_reader::PacketReader, types::var_int::VarInt, Packet};
+use minecraft_protocol::{packet::RawPacket, varint::VarInt};
 use tokio::net::TcpStream;
 
-use crate::{
-    conn_wrapper::ConnectionWrapper,
-    packets::{Handshake, LoginStart, PacketActions, SetCompression},
-};
+use crate::packets::*;
 
 #[derive(Debug)]
 pub struct ExtraData {
@@ -14,61 +9,68 @@ pub struct ExtraData {
     pub white_list: Option<bool>,
 }
 
-pub async fn get_extra_data(ip: String, port: u16, protocol: i32) -> io::Result<ExtraData> {
+pub async fn get_extra_data(ip: String, port: u16, protocol: i32) -> anyhow::Result<ExtraData> {
     let mut conn = TcpStream::connect(&format!("{}:{}", ip, port)).await?;
 
-    conn.write_packet(Handshake {
-        protocol: VarInt(protocol),
+    c2s::Handshake {
+        protocol_version: VarInt(protocol),
         server_address: ip,
         server_port: port,
-        next_state: VarInt(2),
-    })
+        intent: VarInt(2),
+    }
+    .as_uncompressed()?
+    .to_raw_packet()?
+    .write(&mut conn)
     .await?;
 
-    LoginStart {
-        name: "LookupPlayer".to_string(),
-        uuid: 0x1f6969963dace4643bfa0c99a4db549,
+    c2s::LoginStart {
+        name: "Notch".to_string(),
+        uuid: 0x069a79f444e94726a5befca90e38aaf5,
     }
-    .get_by_protocol(protocol)
+    .raw_by_protocol(protocol)
     .write(&mut conn)
-    .await
-    .unwrap();
+    .await?;
 
-    // let mut threshold = None;
-    let packet = Packet::read_uncompressed(&mut conn).await?;
+    let mut threshold = None;
 
-    let packet = if packet.packet_id.0 == 0x03 {
-        let threshold = Some(SetCompression::deserialize(packet)?.threshold.0);
-        Packet::read(&mut conn, threshold).await?
-    } else {
-        Packet::UnCompressed(packet)
-    };
+    loop {
+        let packet = RawPacket::read(&mut conn)
+            .await?
+            .try_uncompress(threshold)?;
 
-    if packet.packet_id().await?.0 == 0x00 {
-        let reason: String = if let Packet::UnCompressed(p) = packet {
-            PacketReader::new(&p).read()?
-        } else {
-            "error".to_string()
-        };
-        if reason == "{\"text\":\"You are not whitelisted on this server!\"}" {
-            return Ok(ExtraData {
-                license: false,
-                white_list: Some(true),
-            });
+        match packet {
+            Some(t) if t.packet_id.0 == 0 => {
+                let reason: String = t.convert::<s2c::LoginDisconnect>()?.reason;
+                if reason == "{\"text\":\"You are not whitelisted on this server!\"}" {
+                    return Ok(ExtraData {
+                        license: false,
+                        white_list: Some(true),
+                    });
+                } else {
+                    return Ok(ExtraData {
+                        license: false,
+                        white_list: None,
+                    });
+                }
+            }
+            Some(t) if t.packet_id.0 == 1 => {
+                return Ok(ExtraData {
+                    license: true,
+                    white_list: None,
+                });
+            }
+            Some(t) if t.packet_id.0 == 2 => {
+                return Ok(ExtraData {
+                    license: false,
+                    white_list: Some(false),
+                });
+            }
+            Some(t) if t.packet_id.0 == 3 => {
+                threshold = Some(t.convert::<s2c::SetCompression>()?.threshold.0);
+            }
+            _ => {
+                return Err(anyhow::anyhow!("error"));
+            }
         }
-
-        return Err(Error::new(ErrorKind::InvalidData, reason));
     }
-
-    if packet.packet_id().await?.0 != 0x02 {
-        return Ok(ExtraData {
-            license: true,
-            white_list: None,
-        });
-    }
-
-    Ok(ExtraData {
-        license: false,
-        white_list: Some(false),
-    })
 }

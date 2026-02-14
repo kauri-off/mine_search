@@ -1,4 +1,0 @@
--- Your SQL goes here
-
-ALTER TABLE players
-ALTER COLUMN last_seen SET DEFAULT CURRENT_TIMESTAMP;

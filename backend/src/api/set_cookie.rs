@@ -1,9 +1,9 @@
 use axum::{
-    http::{header::SET_COOKIE, HeaderMap, HeaderValue, StatusCode},
-    response::IntoResponse,
     Json,
+    http::{HeaderMap, HeaderValue, StatusCode, header::SET_COOKIE},
+    response::IntoResponse,
 };
-use cookie::{time, Cookie, SameSite};
+use cookie::{Cookie, SameSite, time};
 use serde::{Deserialize, Serialize};
 
 use crate::jwt_wrapper::jwt_decode;
@@ -14,7 +14,9 @@ pub struct Token {
 }
 
 pub async fn set_cookie(Json(token): Json<Token>) -> Result<impl IntoResponse, StatusCode> {
-    jwt_decode(&token.token).map_err(|_| StatusCode::UNAUTHORIZED)?;
+    jwt_decode(&token.token)
+        .await
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
     let cookie = Cookie::build(("token", token.token))
         .path("/api")
