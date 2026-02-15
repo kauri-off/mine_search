@@ -61,6 +61,12 @@ export $(grep -v '^#' .env | xargs)
 export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:5432/${POSTGRES_DB}"
 ```
 
+Or if you're on windows
+
+```ps
+$env:DATABASE_URL = "postgresql://$((Get-Content .env | ConvertFrom-StringData).POSTGRES_USER):$((Get-Content .env | ConvertFrom-StringData).POSTGRES_PASSWORD)@localhost:5432/$((Get-Content .env | ConvertFrom-StringData).POSTGRES_DB)"
+```
+
 ### 5. Run database migrations
 
 ```bash
