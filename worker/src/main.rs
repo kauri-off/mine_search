@@ -5,6 +5,8 @@ use colored::Colorize;
 use database::DatabaseWrapper;
 use diesel::{dsl::insert_into, prelude::*};
 use diesel_async::RunQueryDsl;
+use rand::{SeedableRng, rngs::SysRng};
+use rand_chacha::ChaCha8Rng;
 use serde_json::json;
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
 use tokio::{sync::Semaphore, time::timeout};
@@ -96,8 +98,10 @@ pub async fn handle_valid_ip(
 }
 
 async fn worker(db: Arc<DatabaseWrapper>) {
+    let mut rng = ChaCha8Rng::try_from_rng(&mut SysRng).unwrap();
+
     loop {
-        let ip = IpAddr::V4(generate_random_ip());
+        let ip = IpAddr::V4(generate_random_ip(&mut rng));
 
         if check_server(&ip, 25565).await {
             let _ = timeout(
