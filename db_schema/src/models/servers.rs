@@ -43,6 +43,7 @@ pub struct ServerInsert<'a> {
     pub description: &'a serde_json::Value,
     pub license: bool,
     pub white_list: Option<bool>,
+    pub unique_players: i32,
 }
 
 #[derive(Insertable, AsChangeset)]

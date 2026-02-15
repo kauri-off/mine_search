@@ -43,6 +43,7 @@ pub async fn handle_valid_ip(
         description: &status.description,
         license: extra_data.license,
         white_list: extra_data.white_list,
+        unique_players: status.players.online as i32,
     };
 
     let mut conn = db.pool.get().await.unwrap();
@@ -100,7 +101,7 @@ async fn worker(db: Arc<DatabaseWrapper>) {
             debug!("Potential server found at {}:{}", ip, PORT);
 
             let res = timeout(
-                Duration::from_secs(5),
+                Duration::from_secs(10),
                 handle_valid_ip(&ip, PORT, db.clone()),
             )
             .await;
@@ -265,7 +266,7 @@ async fn main() {
             workers.push(tokio::spawn(worker(db.clone())));
         }
 
-        info!("[+] All threads started");
+        info!("All threads started");
 
         for task in workers {
             let _ = task.await;

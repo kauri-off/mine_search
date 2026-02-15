@@ -7,7 +7,7 @@ services:
       THREADS: ${THREADS}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
       ONLY_UPDATE: ${ONLY_UPDATE}
-      # RUST_LOG: debug
+      RUST_LOG: debug
     depends_on:
       - postgres
     networks:
