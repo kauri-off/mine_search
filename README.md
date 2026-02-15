@@ -1,8 +1,10 @@
-# MineSearch Setup Guide
+# <img src="frontend/public/favicon.png" width="32" height="32"> MineSearch
 
-**MineSearch** is a powerful search engine for Minecraft servers. It scans and indexes active servers and nicknames so you can easily find a server and crash it.
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-> [!WARNING]
+**MineSearch** is a powerful search engine for Minecraft servers. It scans and indexes active servers and nicknames so you can easily find a server and analyze its data.
+
+> [!CAUTION]
 > RUNNING THE WORKER MAY RESULT IN YOUR SERVER BEING BLOCKED DUE TO ABUSIVE SCANNING ACTIVITIES. MAKE SURE YOU UNDERSTAND THE RISKS INVOLVED.
 
 ## Environment Variables
@@ -104,6 +106,11 @@ Run the application:
 ```bash
 docker compose up -d
 ```
+
+## Screenshots
+
+![Dashboard](dashboard.png)
+![Server Details](server.png)
 
 ## License
 

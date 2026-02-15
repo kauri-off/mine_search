@@ -5,7 +5,7 @@ import { serverApi } from '../api/client';
 import type { ServerListRequest, ServerResponse } from '../types';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 
 export const Dashboard = () => {
     const [filters, setFilters] = useState<Omit<ServerListRequest, 'offset_id'>>({
@@ -78,7 +78,7 @@ export const Dashboard = () => {
                 }}
                 className={`px-3 py-1 rounded text-sm font-medium transition ${color}`}
             >
-                {label}: {val === null ? 'Все' : val ? 'Да' : 'Нет'}
+                {label}: {val === null ? 'All' : val ? 'Yes' : 'No'}
             </button>
         )
     };
@@ -86,25 +86,25 @@ export const Dashboard = () => {
     return (
         <div className="p-6 max-w-7xl mx-auto text-white">
             <header className="mb-8 flex justify-between items-center">
-                <h1 className="text-3xl font-bold">Мониторинг Серверов</h1>
+                <h1 className="text-3xl font-bold">Server list</h1>
                 {stats && (
                     <div className="flex gap-4 text-sm bg-gray-800 p-3 rounded-lg">
-                        <span>Всего: <b className="text-blue-400">{stats.total_servers}</b></span>
-                        <span>Пиратских: <b className="text-orange-400">{stats.cracked_servers}</b></span>
+                        <span>All: <b className="text-blue-400">{stats.total_servers}</b></span>
+                        <span>Cracked: <b className="text-orange-400">{stats.cracked_servers}</b></span>
                     </div>
                 )}
             </header>
 
             <div className="mb-6 p-4 bg-gray-800 rounded-lg flex flex-wrap gap-4 items-center">
-                <span className="text-gray-400">Фильтры:</span>
-                <FilterButton label="Лицензия" field="licensed" />
+                <span className="text-gray-400">Filters:</span>
+                <FilterButton label="Licensed" field="licensed" />
                 <FilterButton label="WhiteList" field="white_list" />
-                <FilterButton label="Проверен" field="checked" />
+                <FilterButton label="Checked" field="checked" />
                 <FilterButton label="Crashed" field="crashed" />
             </div>
 
             {isLoading ? (
-                <div className="text-center py-20">Загрузка...</div>
+                <div className="text-center py-20">Loading...</div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {data?.pages.map((group, i) => (
@@ -125,14 +125,14 @@ export const Dashboard = () => {
                                         <span className={`w-3 h-3 rounded-full ${server.was_online ? 'bg-green-500' : 'bg-red-500'}`}></span>
                                     </div>
                                     <div className="text-sm text-gray-400 mb-2">
-                                        {server.version_name} | Всего игроков: {server.unique_players}
+                                        {server.version_name} | Total players: {server.unique_players}
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="bg-gray-700 px-2 py-0.5 rounded text-white">
-                                            Онлайн: {server.online}/{server.max}
+                                            Online: {server.online}/{server.max}
                                         </span>
                                         <span className="text-xs text-gray-500">
-                                            {formatDistanceToNow(new Date(server.updated), { addSuffix: true, locale: ru })}
+                                            {formatDistanceToNow(new Date(server.updated), { addSuffix: true, locale: enUS })}
                                         </span>
                                     </div>
                                 </Link>
@@ -141,18 +141,18 @@ export const Dashboard = () => {
                     ))}
                     
                     {data?.pages[0]?.length === 0 && (
-                        <div className="col-span-full text-center text-gray-500">Серверы не найдены</div>
+                        <div className="col-span-full text-center text-gray-500">Server list is empty</div>
                     )}
                 </div>
             )}
 
             {isFetchingNextPage && (
-                <div className="text-center py-4 text-gray-400">Подгрузка данных...</div>
+                <div className="text-center py-4 text-gray-400">Loading...</div>
             )}
 
             {!hasNextPage && !isLoading && (data?.pages?.[0]?.length ?? 0) > 0 && (
                 <div className="mt-8 p-4 text-center border-t border-gray-800 text-gray-500 italic">
-                    🎉 Вы посмотрели все доступные серверы. Это конец!
+                    🎉 This is the end
                 </div>
             )}
         </div>

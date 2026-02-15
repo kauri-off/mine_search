@@ -19,7 +19,7 @@ export const ServerDetail = () => {
 
     const { data: history } = useQuery({
         queryKey: ['serverData', server?.id],
-        queryFn: () => serverApi.fetchData({ server_id: server!.id, limit: 100 }), // 100 последних записей
+        queryFn: () => serverApi.fetchData({ server_id: server!.id, limit: 100 }),
         enabled: !!server?.id,
     });
 
@@ -38,8 +38,8 @@ export const ServerDetail = () => {
         });
     };
 
-    if (isInfoLoading) return <div className="text-white text-center mt-20">Загрузка информации...</div>;
-    if (!server) return <div className="text-white text-center mt-20">Сервер не найден</div>;
+    if (isInfoLoading) return <div className="text-white text-center mt-20">Loading...</div>;
+    if (!server) return <div className="text-white text-center mt-20">Server is not found</div>;
 
     const chartData = history?.map(d => ({
         time: d.timestamp,
@@ -56,7 +56,7 @@ export const ServerDetail = () => {
 
     return (
         <div className="p-6 max-w-7xl mx-auto text-white">
-            <button onClick={() => navigate(-1)} className="mb-4 text-blue-400 hover:underline">← Назад</button>
+            <button onClick={() => navigate(-1)} className="mb-4 text-blue-400 hover:underline">← Back</button>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1 space-y-6">
@@ -66,25 +66,25 @@ export const ServerDetail = () => {
                         
                         <div className="space-y-3">
                             <div className="flex justify-between border-b border-gray-700 pb-2">
-                                <span>Статус:</span>
+                                <span>Status:</span>
                                 <span className={server.was_online ? "text-green-400" : "text-red-400"}>
                                     {server.was_online ? "Online" : "Offline"}
                                 </span>
                             </div>
                             <div className="flex justify-between border-b border-gray-700 pb-2">
-                                <span>Игроки:</span>
+                                <span>Online:</span>
                                 <span>{server.online} / {server.max}</span>
                             </div>
                             <div className="flex justify-between border-b border-gray-700 pb-2">
-                                <span>Лицензия:</span>
-                                <span>{server.license ? "Да" : "Нет"}</span>
+                                <span>Licensed:</span>
+                                <span>{server.license ? "Yes" : "No"}</span>
                             </div>
                         </div>
 
                         <div className="mt-6 space-y-2">
-                            <h3 className="font-semibold mb-2 text-gray-300">Управление:</h3>
+                            <h3 className="font-semibold mb-2 text-gray-300">Management:</h3>
                             <ToggleButton 
-                                label="Проверен (Checked)" 
+                                label="Checked" 
                                 active={!!server.checked} 
                                 onClick={() => handleToggle('checked')} 
                             />
@@ -94,7 +94,7 @@ export const ServerDetail = () => {
                                 onClick={() => handleToggle('auth_me')} 
                             />
                             <ToggleButton 
-                                label="Краш (Crashed)" 
+                                label="Crashed" 
                                 active={!!server.crashed} 
                                 onClick={() => handleToggle('crashed')} 
                                 color="red"
@@ -103,7 +103,7 @@ export const ServerDetail = () => {
                     </div>
 
                     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 overflow-hidden">
-                        <h3 className="font-bold mb-4">Описание (HTML)</h3>
+                        <h3 className="font-bold mb-4">MOTD</h3>
                         <div 
                             className="prose prose-invert prose-sm max-w-none bg-gray-900 p-2 rounded"
                             dangerouslySetInnerHTML={{ __html: server.description_html }} 
@@ -113,7 +113,7 @@ export const ServerDetail = () => {
 
                 <div className="lg:col-span-2 space-y-6">
                     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 h-96">
-                        <h3 className="font-bold mb-4">Онлайн за последнее время</h3>
+                        <h3 className="font-bold mb-4">Online graph</h3>
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={chartData}>
                                 <defs>
@@ -135,7 +135,7 @@ export const ServerDetail = () => {
                     </div>
 
                     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-                        <h3 className="font-bold mb-4">Игроки (История)</h3>
+                        <h3 className="font-bold mb-4">Players (All)</h3>
                         {allPlayers.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                                 {allPlayers.map((player, idx) => (
@@ -145,7 +145,7 @@ export const ServerDetail = () => {
                                 ))}
                             </div>
                         ) : (
-                            <span className="text-gray-500">История игроков пуста</span>
+                            <span className="text-gray-500">Empty</span>
                         )}
                     </div>
                 </div>
