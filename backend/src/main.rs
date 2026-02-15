@@ -69,33 +69,6 @@ async fn main() {
         .nest("/api/v1", public_api)
         .layer(
             CorsLayer::new()
-                //     .allow_origin([
-                //         "http://localhost:8080".parse().unwrap(),
-                //         "http://127.0.0.1:8080".parse().unwrap(),
-                //     ])
-                //     .allow_methods([
-                //         Method::GET,
-                //         Method::POST,
-                //         Method::PUT,
-                //         Method::DELETE,
-                //         Method::PATCH,
-                //         Method::OPTIONS,
-                //         Method::HEAD,
-                //     ])
-                //     .allow_headers([
-                //         "content-type".parse().unwrap(),
-                //         "authorization".parse().unwrap(),
-                //         "cookie".parse().unwrap(),
-                //         "accept".parse().unwrap(),
-                //         "x-requested-with".parse().unwrap(),
-                //     ])
-                //     .expose_headers([
-                //         "content-type".parse().unwrap(),
-                //         "content-length".parse().unwrap(),
-                //         "set-cookie".parse().unwrap(),
-                //         "authorization".parse().unwrap(),
-                //     ])
-                //     .allow_credentials(true)
                 .allow_methods([Method::POST, Method::OPTIONS])
                 .allow_headers([COOKIE, CONTENT_TYPE])
                 .allow_credentials(true),

@@ -1,0 +1,2 @@
+ALTER TABLE servers
+ALTER COLUMN crashed DROP NOT NULL;

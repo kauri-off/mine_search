@@ -21,12 +21,13 @@ diesel::table! {
         description -> Jsonb,
         license -> Bool,
         white_list -> Nullable<Bool>,
-        checked -> Nullable<Bool>,
+        checked -> Bool,
         auth_me -> Nullable<Bool>,
-        crashed -> Nullable<Bool>,
+        crashed -> Bool,
         was_online -> Bool,
         created -> Timestamptz,
         updated -> Timestamptz,
+        unique_players -> Int4,
     }
 }
 

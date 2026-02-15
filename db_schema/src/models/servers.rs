@@ -14,10 +14,11 @@ pub struct ServerModel {
     pub description: serde_json::Value,
     pub license: bool,
     pub white_list: Option<bool>,
-    pub checked: Option<bool>,
+    pub checked: bool,
     pub auth_me: Option<bool>,
-    pub crashed: Option<bool>,
+    pub crashed: bool,
     pub was_online: bool,
+    pub unique_players: i32,
     pub created: chrono::DateTime<Utc>,
     pub updated: chrono::DateTime<Utc>,
 }
@@ -51,4 +52,5 @@ pub struct ServerUpdate<'a> {
     pub description: &'a serde_json::Value,
     pub updated: chrono::DateTime<Utc>,
     pub was_online: bool,
+    pub unique_players: i32,
 }

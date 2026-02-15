@@ -1,0 +1,2 @@
+ALTER TABLE servers
+ALTER COLUMN checked DROP NOT NULL;

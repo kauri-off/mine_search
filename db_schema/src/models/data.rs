@@ -27,3 +27,11 @@ pub struct DataInsert<'a> {
     pub max: i32,
     pub players: &'a serde_json::Value,
 }
+
+#[derive(Queryable, Selectable, Identifiable)]
+#[diesel(table_name = crate::schema::data)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct DataModelMini {
+    pub id: i64,
+    pub players: serde_json::Value,
+}

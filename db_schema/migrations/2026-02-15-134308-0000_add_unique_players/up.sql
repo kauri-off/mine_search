@@ -1,0 +1,2 @@
+ALTER TABLE servers 
+ADD COLUMN unique_players INTEGER NOT NULL DEFAULT 0;

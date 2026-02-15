@@ -1,20 +1,38 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Home from "./routes/Home";
-import Server from "./routes/Server";
-import Stats from "./routes/Stats";
-import Auth from "./routes/Auth";
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Login } from './pages/Login';
+import { Dashboard } from './pages/Dashboard';
+import { ServerDetail } from './pages/ServerDetail';
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            refetchOnWindowFocus: false,
+            retry: 1,
+        },
+    },
+});
 
 function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />}></Route>
-        <Route path="/server/:ip" element={<Server />}></Route>
-        <Route path="/stats" element={<Stats />}></Route>
-        <Route path="/auth" element={<Auth />}></Route>
-      </Routes>
-    </BrowserRouter>
-  );
+    return (
+        <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+                <div className="min-h-screen bg-gray-900 text-gray-100 font-sans">
+                    <Routes>
+                        <Route path="/login" element={<Login />} />
+                        <Route 
+                            path="/" 
+                            element={<Dashboard />} 
+                        />
+                        <Route 
+                            path="/server/:ip" 
+                            element={<ServerDetail />} 
+                        />
+                    </Routes>
+                </div>
+            </BrowserRouter>
+        </QueryClientProvider>
+    );
 }
 
 export default App;

@@ -30,9 +30,10 @@ pub struct ServerResponse {
     pub description: Value,
     pub description_html: String,
     pub was_online: bool,
-    pub checked: Option<bool>,
+    pub unique_players: i32,
+    pub checked: bool,
     pub auth_me: Option<bool>,
-    pub crashed: Option<bool>,
+    pub crashed: bool,
 }
 
 impl From<(ServerModel, DataModel)> for ServerResponse {
@@ -52,6 +53,7 @@ impl From<(ServerModel, DataModel)> for ServerResponse {
             description: server.description,
             description_html,
             was_online: server.was_online,
+            unique_players: server.unique_players,
             checked: server.checked,
             auth_me: server.auth_me,
             crashed: server.crashed,

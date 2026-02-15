@@ -5,7 +5,6 @@ use db_schema::{
     models::{data::DataModel, servers::ServerModel},
     schema::*,
 };
-use diesel::dsl::*;
 use diesel::pg::Pg;
 use diesel::prelude::*;
 use diesel::sql_types::Bool;
@@ -16,7 +15,7 @@ use std::sync::Arc;
 #[derive(Serialize, Deserialize)]
 pub struct ServerRequest {
     pub limit: i64,
-    pub offset_ip: Option<String>,
+    pub offset_id: Option<i32>,
     pub licensed: Option<bool>,
     pub white_list: Option<bool>,
     pub checked: Option<bool>,
@@ -35,22 +34,10 @@ pub async fn fetch_server_list(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let pagination_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
-        if let Some(ref offset_ip) = body.offset_ip {
-            let id = servers::table
-                .filter(servers::ip.eq(offset_ip))
-                .select(servers::id)
-                .first::<i32>(&mut conn)
-                .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        if let Some(id) = body.offset_id {
             Box::new(servers::id.lt(id))
         } else {
-            let id = servers::table
-                .select(max(servers::id))
-                .first::<Option<i32>>(&mut conn)
-                .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-                .unwrap_or(i32::MAX);
-            Box::new(servers::id.le(id))
+            Box::new(diesel::dsl::sql::<Bool>("TRUE"))
         };
 
     let license_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.licensed {

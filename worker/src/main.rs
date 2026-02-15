@@ -1,4 +1,4 @@
-use std::{env, net::IpAddr, sync::Arc, time::Duration};
+use std::{collections::HashSet, env, net::IpAddr, sync::Arc, time::Duration};
 
 use chrono::{Local, Utc};
 use colored::Colorize;
@@ -12,7 +12,7 @@ use worker::{check_server, description_to_str, generate_random_ip};
 
 use db_schema::{
     models::{
-        data::DataInsert,
+        data::{DataInsert, DataModelMini},
         servers::{ServerInsert, ServerModel, ServerModelMini, ServerUpdate},
     },
     schema,
@@ -119,7 +119,7 @@ async fn updater(db: Arc<DatabaseWrapper>) {
             .await
             .unwrap();
 
-        let semaphore = Arc::new(Semaphore::new(50));
+        let semaphore = Arc::new(Semaphore::new(5));
 
         let handles: Vec<_> = servers
             .into_iter()
@@ -145,7 +145,7 @@ async fn updater(db: Arc<DatabaseWrapper>) {
 
 async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
     let status = match timeout(
-        Duration::from_secs(2),
+        Duration::from_secs(10),
         get_status(&server.ip, server.port as u16),
     )
     .await
@@ -184,13 +184,30 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
         .await
         .unwrap();
 
+    let players_list = schema::data::table
+        .filter(schema::data::server_id.eq(server.id))
+        .select(DataModelMini::as_select())
+        .load(&mut conn)
+        .await
+        .unwrap();
+
+    let unique_players = players_list
+        .iter()
+        .filter_map(|t| t.players.as_array())
+        .flatten()
+        .filter_map(|t| t.as_str())
+        .collect::<HashSet<_>>()
+        .len() as i32;
+
     let server_change = ServerUpdate {
         description: &status.description,
         updated: Utc::now(),
         was_online: true,
+        unique_players,
     };
 
     diesel::update(schema::servers::table)
+        .filter(schema::servers::id.eq(server.id))
         .set(server_change)
         .execute(&mut conn)
         .await
@@ -228,6 +245,8 @@ async fn main() {
         .unwrap_or("false".to_string())
         .parse()
         .unwrap_or(false);
+
+    println!("Only update: {:?}", only_update);
 
     if !only_update {
         let mut workers = vec![];
