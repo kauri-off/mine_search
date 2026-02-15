@@ -1,7 +1,6 @@
 use std::{collections::HashSet, env, net::IpAddr, sync::Arc, time::Duration};
 
-use chrono::{Local, Utc};
-use colored::Colorize;
+use chrono::Utc;
 use database::DatabaseWrapper;
 use diesel::{dsl::insert_into, prelude::*};
 use diesel_async::RunQueryDsl;
@@ -10,6 +9,8 @@ use rand_chacha::ChaCha8Rng;
 use serde_json::json;
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
 use tokio::{sync::Semaphore, time::timeout};
+use tracing::{debug, error, info, warn};
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use worker::{check_server, description_to_str, generate_random_ip};
 
 use db_schema::{
@@ -74,25 +75,16 @@ pub async fn handle_valid_ip(
         .execute(&mut conn)
         .await?;
 
-    let timestamp = Local::now().format("%H:%M:%S").to_string();
-
-    println!(
-        "[{}] {} {} | {} {} | {} {}/{} | {} | {} {}",
-        timestamp,
-        "🌐",
-        ip.to_string().blue(),
-        "🛠 ",
-        status.version.name.yellow(),
-        "👥",
-        status.players.online.to_string().green(),
-        status.players.max,
-        if extra_data.license {
-            "yes".red()
-        } else {
-            "no".green()
-        },
-        "🚀",
-        description_to_str(status.description).unwrap_or("".to_string())
+    info!(
+        target: "server_found",
+        ip = %ip,
+        port = port,
+        version = %status.version.name,
+        online = status.players.online,
+        max = status.players.max,
+        license = extra_data.license,
+        desc = %description_to_str(status.description).unwrap_or_default(),
+        "New server detected"
     );
     Ok(())
 }
@@ -102,20 +94,29 @@ async fn worker(db: Arc<DatabaseWrapper>) {
 
     loop {
         let ip = IpAddr::V4(generate_random_ip(&mut rng));
+        const PORT: u16 = 25565;
 
-        if check_server(&ip, 25565).await {
-            let _ = timeout(
+        if check_server(&ip, PORT).await {
+            debug!("Potential server found at {}:{}", ip, PORT);
+
+            let res = timeout(
                 Duration::from_secs(5),
-                handle_valid_ip(&ip, 25565, db.clone()),
+                handle_valid_ip(&ip, PORT, db.clone()),
             )
             .await;
+
+            match res {
+                Ok(Ok(_)) => info!("Successfully processed server {}:{}", ip, PORT),
+                Ok(Err(e)) => error!("Failed to process server {}:{} | Error: {}", ip, PORT, e),
+                Err(_) => warn!("Timeout processing server {}:{}", ip, PORT),
+            }
         }
     }
 }
 
 async fn updater(db: Arc<DatabaseWrapper>) {
     loop {
-        println!("Updating...");
+        info!("Starting update cycle...");
 
         let servers: Vec<ServerModelMini> = schema::servers::table
             .select(ServerModelMini::as_select())
@@ -142,7 +143,7 @@ async fn updater(db: Arc<DatabaseWrapper>) {
             let _ = handle.await;
         }
 
-        println!("Updating: {}", "DONE".red());
+        info!("Update cycle finished: DONE");
         tokio::time::sleep(Duration::from_secs(600)).await;
     }
 }
@@ -220,29 +221,34 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
 
 #[tokio::main]
 async fn main() {
-    colored::control::set_override(true);
+    tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(
+            EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| EnvFilter::new("info"))
+                .add_directive("tokio_postgres=warn".parse().unwrap())
+                .add_directive("diesel=warn".parse().unwrap()),
+        )
+        .init();
 
-    let now = Local::now();
-    let time_string = now.format("%Y-%m-%d %H:%M:%S").to_string();
-
-    println!("[{}] Minecarft Lookup | Started", time_string);
+    info!("Minecraft Lookup started");
 
     let threads: i32 = env::var("THREADS")
         .unwrap_or("150".to_string())
         .parse()
         .unwrap();
 
-    println!("Threads: {}", threads);
+    info!("Threads: {}", threads);
 
     let db = Arc::new(DatabaseWrapper::establish());
-    println!("[+] Connection to database established");
+    debug!("Connection to database established");
 
     let count: i64 = schema::servers::table
         .select(diesel::dsl::count(schema::servers::id))
         .first(&mut db.pool.get().await.unwrap())
         .await
         .unwrap();
-    println!("Servers in db: {}", count);
+    debug!("Servers in db: {}", count);
 
     let updater_thread = tokio::spawn(updater(db.clone()));
     let only_update: bool = env::var("ONLY_UPDATE")
@@ -250,7 +256,7 @@ async fn main() {
         .parse()
         .unwrap_or(false);
 
-    println!("Only update: {:?}", only_update);
+    info!("Only update: {:?}", only_update);
 
     if !only_update {
         let mut workers = vec![];
@@ -259,7 +265,7 @@ async fn main() {
             workers.push(tokio::spawn(worker(db.clone())));
         }
 
-        println!("[+] All threads started");
+        info!("[+] All threads started");
 
         for task in workers {
             let _ = task.await;
