@@ -1,0 +1,3 @@
+ALTER TABLE servers 
+    ALTER COLUMN checked DROP DEFAULT,
+    ALTER COLUMN crashed DROP DEFAULT;
