@@ -56,7 +56,15 @@ pub async fn handle_valid_ip(
         server_id: server.id,
         online: status.players.online as i32,
         max: status.players.max as i32,
-        players: &json!(status.players.sample.unwrap_or_default()),
+        players: &json!(
+            status
+                .players
+                .sample
+                .unwrap_or_default()
+                .into_iter()
+                .map(|t| t.name)
+                .collect::<Vec<String>>()
+        ),
     };
 
     insert_into(schema::data::table)
@@ -158,7 +166,15 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
         server_id: server.id,
         online: status.players.online as i32,
         max: status.players.max as i32,
-        players: &json!(status.players.sample.unwrap_or_default()),
+        players: &json!(
+            status
+                .players
+                .sample
+                .unwrap_or_default()
+                .into_iter()
+                .map(|t| t.name)
+                .collect::<Vec<String>>()
+        ),
     };
     let mut conn = db.pool.get().await.unwrap();
 

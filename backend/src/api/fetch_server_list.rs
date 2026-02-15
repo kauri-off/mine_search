@@ -34,21 +34,24 @@ pub async fn fetch_server_list(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let server_id: i32 = if let Some(ref offset_ip) = body.offset_ip {
-        servers::table
-            .filter(servers::ip.eq(offset_ip))
-            .select(servers::id)
-            .first::<i32>(&mut conn)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-    } else {
-        servers::table
-            .select(max(servers::id))
-            .first::<Option<i32>>(&mut conn)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-            .unwrap_or_default()
-    };
+    let pagination_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
+        if let Some(ref offset_ip) = body.offset_ip {
+            let id = servers::table
+                .filter(servers::ip.eq(offset_ip))
+                .select(servers::id)
+                .first::<i32>(&mut conn)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            Box::new(servers::id.lt(id))
+        } else {
+            let id = servers::table
+                .select(max(servers::id))
+                .first::<Option<i32>>(&mut conn)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+                .unwrap_or(i32::MAX);
+            Box::new(servers::id.le(id))
+        };
 
     let license_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.licensed {
         Some(license) => Box::new(servers::license.eq(license)),
@@ -78,7 +81,7 @@ pub async fn fetch_server_list(
 
     let results = servers::table
         .inner_join(data::table.on(data::server_id.eq(servers::id)))
-        .filter(servers::id.lt(server_id))
+        .filter(pagination_filter)
         .filter(license_filter)
         .filter(white_list_filter)
         .filter(checked_filter)
