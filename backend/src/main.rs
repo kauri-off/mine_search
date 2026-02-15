@@ -2,6 +2,7 @@ use std::{env, sync::Arc};
 
 use api::{
     auth::{authenticate_user, validate_credentials},
+    fetch_server_data::fetch_server_data,
     fetch_server_info::fetch_server_info,
     fetch_server_list::fetch_server_list,
     fetch_stats::fetch_stats,
@@ -53,6 +54,7 @@ async fn main() {
     let protected_routes = Router::new()
         .route("/server/info", post(fetch_server_info))
         .route("/server/update", post(update_server))
+        .route("/server/data", post(fetch_server_data))
         .route("/servers/list", post(fetch_server_list))
         .route("/auth/validate", post(validate_credentials))
         .route("/stats", post(fetch_stats))

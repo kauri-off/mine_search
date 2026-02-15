@@ -18,6 +18,7 @@ pub struct ServerRequest {
 
 #[derive(Serialize, Deserialize)]
 pub struct ServerResponse {
+    pub id: i32,
     pub ip: String,
     pub online: i32,
     pub max: i32,
@@ -39,6 +40,7 @@ impl From<(ServerModel, DataModel)> for ServerResponse {
         let description_html = parse_html(server.description.clone());
 
         Self {
+            id: server.id,
             ip: server.ip,
             online: data.online,
             max: data.max,
