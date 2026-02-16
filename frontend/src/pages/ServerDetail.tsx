@@ -79,6 +79,10 @@ export const ServerDetail = () => {
                                 <span>Licensed:</span>
                                 <span>{server.license ? "Yes" : "No"}</span>
                             </div>
+                            <div className="flex justify-between border-b border-gray-700 pb-2">
+                                <span>White list:</span>
+                                <span>{server.white_list === null ? 'None' : server.white_list ? 'Yes' : 'No'}</span>
+                            </div>
                         </div>
 
                         <div className="mt-6 space-y-2">

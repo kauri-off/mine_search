@@ -15,6 +15,7 @@ export const Dashboard = () => {
         checked: null,
         auth_me: null,
         crashed: null,
+        has_players: null,
     });
 
     const { data: stats } = useQuery({
@@ -98,9 +99,10 @@ export const Dashboard = () => {
             <div className="mb-6 p-4 bg-gray-800 rounded-lg flex flex-wrap gap-4 items-center">
                 <span className="text-gray-400">Filters:</span>
                 <FilterButton label="Licensed" field="licensed" />
-                <FilterButton label="WhiteList" field="white_list" />
+                <FilterButton label="White List" field="white_list" />
                 <FilterButton label="Checked" field="checked" />
                 <FilterButton label="Crashed" field="crashed" />
+                <FilterButton label="Has Players" field="has_players" />
             </div>
 
             {isLoading ? (
@@ -124,17 +126,24 @@ export const Dashboard = () => {
                                         <h3 className="font-bold text-lg truncate">{server.ip}</h3>
                                         <span className={`w-3 h-3 rounded-full ${server.was_online ? 'bg-green-500' : 'bg-red-500'}`}></span>
                                     </div>
-                                    <div className="text-sm text-gray-400 mb-2">
-                                        {server.version_name} | Total players: {server.unique_players}
-                                    </div>
-                                    <div className="flex justify-between items-center text-sm">
+                                    <div 
+                                        className="prose prose-invert prose-sm max-w-none bg-gray-900 p-2 rounded mb-2"
+                                        dangerouslySetInnerHTML={{ __html: server.description_html }} 
+                                    />
+                                <div className="flex justify-between items-center text-sm">
+                                    <div className="flex gap-2"> 
                                         <span className="bg-gray-700 px-2 py-0.5 rounded text-white">
-                                            Online: {server.online}/{server.max}
+                                            {server.version_name}
                                         </span>
-                                        <span className="text-xs text-gray-500">
-                                            {formatDistanceToNow(new Date(server.updated), { addSuffix: true, locale: enUS })}
+                                        <span className="bg-gray-700 px-2 py-0.5 rounded text-white">
+                                            Online: {server.online}/{server.unique_players}
                                         </span>
                                     </div>
+
+                                    <span className="text-xs text-gray-500">
+                                        {formatDistanceToNow(new Date(server.updated), { addSuffix: true, locale: enUS })}
+                                    </span>
+                                </div>
                                 </Link>
                             );
                         })

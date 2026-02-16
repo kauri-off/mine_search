@@ -21,6 +21,7 @@ pub struct ServerRequest {
     pub checked: Option<bool>,
     pub auth_me: Option<bool>,
     pub crashed: Option<bool>,
+    pub has_players: Option<bool>,
 }
 
 pub async fn fetch_server_list(
@@ -66,6 +67,13 @@ pub async fn fetch_server_list(
         None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
     };
 
+    let has_players_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
+        match body.has_players {
+            Some(true) => Box::new(servers::unique_players.gt(0)),
+            Some(false) => Box::new(servers::unique_players.eq(0)),
+            None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+        };
+
     let results = servers::table
         .inner_join(data::table.on(data::server_id.eq(servers::id)))
         .filter(pagination_filter)
@@ -74,6 +82,7 @@ pub async fn fetch_server_list(
         .filter(checked_filter)
         .filter(auth_me_filter)
         .filter(crashed_filter)
+        .filter(has_players_filter)
         .order((servers::id.desc(), data::id.desc()))
         .distinct_on(servers::id)
         .select((ServerModel::as_select(), DataModel::as_select()))
