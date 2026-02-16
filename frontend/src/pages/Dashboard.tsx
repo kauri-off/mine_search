@@ -87,7 +87,7 @@ export const Dashboard = () => {
     return (
         <div className="p-6 max-w-7xl mx-auto text-white">
             <header className="mb-8 flex justify-between items-center">
-                <h1 className="text-3xl font-bold">Server list</h1>
+                <h1 className="text-3xl font-bold">Dashboard</h1>
                 {stats && (
                     <div className="flex gap-4 text-sm bg-gray-800 p-3 rounded-lg">
                         <span>All: <b className="text-blue-400">{stats.total_servers}</b></span>

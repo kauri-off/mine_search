@@ -45,7 +45,7 @@ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/diesel-rs/diesel/releas
 To verify the installation, run:
 
 ```bash
-diesel --version
+~/.cargo/bin/diesel --version
 ```
 
 ### 3. Start PostgreSQL
