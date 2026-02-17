@@ -24,55 +24,12 @@ ONLY_UPDATE=false
 
 ## Installation
 
-### Prerequisites
+Choose the installation guide for your operating system:
 
-- [Docker](https://www.docker.com/) installed
-- [Docker Compose](https://docs.docker.com/compose/) installed
+- [Linux Installation Guide](LINUX_INSTALL.md)
+- [Windows Installation Guide](WINDOWS_INSTALL.md)
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/kauri-off/mine_search
-cd mine_search
-```
-
-### 2. Install Diesel CLI
-
-```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/diesel-rs/diesel/releases/latest/download/diesel_cli-installer.sh | sh
-```
-
-To verify the installation, run:
-
-```bash
-~/.cargo/bin/diesel --version
-```
-
-### 3. Start PostgreSQL
-
-```bash
-docker compose up postgres -d
-```
-
-### 4. Set up environment variables
-
-```bash
-export $(grep -v '^#' .env | xargs)
-export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:5432/${POSTGRES_DB}"
-```
-
-Or if you're on windows
-
-```ps
-$env:DATABASE_URL = "postgresql://$((Get-Content .env | ConvertFrom-StringData).POSTGRES_USER):$((Get-Content .env | ConvertFrom-StringData).POSTGRES_PASSWORD)@localhost:5432/$((Get-Content .env | ConvertFrom-StringData).POSTGRES_DB)"
-```
-
-### 5. Run database migrations
-
-```bash
-cd db_schema
-~/.cargo/bin/diesel migration run
-```
+After completing the installation steps, come back here to run the application.
 
 ## Running the Application
 
