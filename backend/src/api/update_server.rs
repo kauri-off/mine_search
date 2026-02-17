@@ -14,7 +14,7 @@ use crate::database::DatabaseWrapper;
 pub struct Body {
     pub server_ip: String,
     pub checked: Option<bool>,
-    pub auth_me: Option<bool>,
+    pub spoofable: Option<bool>,
     pub crashed: Option<bool>,
 }
 
@@ -22,7 +22,7 @@ pub struct Body {
 #[diesel(table_name = servers)]
 pub struct Options {
     pub checked: Option<bool>,
-    pub auth_me: Option<bool>,
+    pub spoofable: Option<bool>,
     pub crashed: Option<bool>,
 }
 
@@ -30,7 +30,7 @@ impl From<Body> for Options {
     fn from(value: Body) -> Self {
         Options {
             checked: value.checked,
-            auth_me: value.auth_me,
+            spoofable: value.spoofable,
             crashed: value.crashed,
         }
     }

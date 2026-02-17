@@ -25,21 +25,18 @@ pub struct ServerResponse {
     pub version_name: String,
     pub protocol: i32,
     pub license: bool,
-    pub white_list: Option<bool>,
+    pub disconnect_reason_html: Option<String>,
     pub updated: DateTime<Utc>,
-    pub description: Value,
     pub description_html: String,
     pub was_online: bool,
     pub unique_players: i32,
     pub checked: bool,
-    pub auth_me: Option<bool>,
+    pub spoofable: Option<bool>,
     pub crashed: bool,
 }
 
 impl From<(ServerModel, DataModel)> for ServerResponse {
     fn from((server, data): (ServerModel, DataModel)) -> Self {
-        let description_html = parse_html(server.description.clone());
-
         Self {
             id: server.id,
             ip: server.ip,
@@ -48,14 +45,13 @@ impl From<(ServerModel, DataModel)> for ServerResponse {
             version_name: server.version_name,
             protocol: server.protocol,
             license: server.license,
-            white_list: server.white_list,
+            disconnect_reason_html: server.disconnect_reason.map(|t| parse_html(t)),
             updated: server.updated,
-            description: server.description,
-            description_html,
+            description_html: parse_html(server.description),
             was_online: server.was_online,
             unique_players: server.unique_players,
             checked: server.checked,
-            auth_me: server.auth_me,
+            spoofable: server.spoofable,
             crashed: server.crashed,
         }
     }

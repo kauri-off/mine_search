@@ -1,13 +1,9 @@
 use std::{env, sync::Arc};
 
 use api::{
-    auth::{authenticate_user, validate_credentials},
-    fetch_server_data::fetch_server_data,
-    fetch_server_info::fetch_server_info,
-    fetch_server_list::fetch_server_list,
-    fetch_stats::fetch_stats,
-    set_cookie::set_cookie,
-    update_server::update_server,
+    auth::authenticate_user, fetch_server_data::fetch_server_data,
+    fetch_server_info::fetch_server_info, fetch_server_list::fetch_server_list,
+    fetch_stats::fetch_stats, set_cookie::set_cookie, update_server::update_server,
 };
 use axum::{
     Router,
@@ -56,7 +52,6 @@ async fn main() {
         .route("/server/update", post(update_server))
         .route("/server/data", post(fetch_server_data))
         .route("/servers/list", post(fetch_server_list))
-        .route("/auth/validate", post(validate_credentials))
         .route("/stats", post(fetch_stats))
         .layer(middleware::from_fn(api_middleware::middleware_check));
 

@@ -1,4 +1,5 @@
 use minecraft_protocol::{packet::RawPacket, varint::VarInt};
+use serde_json::Value;
 use tokio::net::TcpStream;
 
 use crate::packets::*;
@@ -6,7 +7,7 @@ use crate::packets::*;
 #[derive(Debug)]
 pub struct ExtraData {
     pub license: bool,
-    pub white_list: Option<bool>,
+    pub disconnect_reason: Option<Value>,
 }
 
 pub async fn get_extra_data(ip: String, port: u16, protocol: i32) -> anyhow::Result<ExtraData> {
@@ -41,28 +42,21 @@ pub async fn get_extra_data(ip: String, port: u16, protocol: i32) -> anyhow::Res
         match packet {
             Some(t) if t.packet_id.0 == 0 => {
                 let reason: String = t.convert::<s2c::LoginDisconnect>()?.reason;
-                if reason == "{\"text\":\"You are not whitelisted on this server!\"}" {
-                    return Ok(ExtraData {
-                        license: false,
-                        white_list: Some(true),
-                    });
-                } else {
-                    return Ok(ExtraData {
-                        license: false,
-                        white_list: None,
-                    });
-                }
+                return Ok(ExtraData {
+                    license: false,
+                    disconnect_reason: Some(serde_json::from_str::<Value>(&reason)?),
+                });
             }
             Some(t) if t.packet_id.0 == 1 => {
                 return Ok(ExtraData {
                     license: true,
-                    white_list: None,
+                    disconnect_reason: None,
                 });
             }
             Some(t) if t.packet_id.0 == 2 => {
                 return Ok(ExtraData {
                     license: false,
-                    white_list: Some(false),
+                    disconnect_reason: None,
                 });
             }
             Some(t) if t.packet_id.0 == 3 => {

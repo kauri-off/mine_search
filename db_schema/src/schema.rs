@@ -20,14 +20,14 @@ diesel::table! {
         protocol -> Int4,
         description -> Jsonb,
         license -> Bool,
-        white_list -> Nullable<Bool>,
         checked -> Bool,
-        auth_me -> Nullable<Bool>,
+        spoofable -> Nullable<Bool>,
         crashed -> Bool,
         was_online -> Bool,
         created -> Timestamptz,
         updated -> Timestamptz,
         unique_players -> Int4,
+        disconnect_reason -> Nullable<Jsonb>,
     }
 }
 

@@ -6,14 +6,13 @@ export interface ServerResponse {
     version_name: string;
     protocol: number;
     license: boolean;
-    white_list?: boolean | null;
+    disconnect_reason_html?: string | null;
     updated: string; // ISO String from DateTime<Utc>
-    description: unknown; // Value
     description_html: string;
     was_online: boolean;
     unique_players: number;
     checked: boolean;
-    auth_me?: boolean | null;
+    spoofable?: boolean | null;
     crashed: boolean;
 }
 
@@ -21,9 +20,8 @@ export interface ServerListRequest {
     limit: number;
     offset_id?: number | null;
     licensed?: boolean | null;
-    white_list?: boolean | null;
     checked?: boolean | null;
-    auth_me?: boolean | null;
+    spoofable?: boolean | null;
     crashed?: boolean | null;
     has_players?: boolean | null;
     online?: boolean | null;
@@ -50,7 +48,7 @@ export interface StatsReturn {
 export interface UpdateServerBody {
     server_ip: string;
     checked?: boolean;
-    auth_me?: boolean | null;
+    spoofable?: boolean | null;
     crashed?: boolean;
 }
 

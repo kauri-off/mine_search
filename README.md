@@ -13,13 +13,14 @@ Create a `.env` file in the root directory and add the following values:
 
 ```env
 POSTGRES_USER=user
-POSTGRES_PASSWORD=password
+POSTGRES_PASSWORD=CHANGE_THIS
 POSTGRES_DB=mine_search_db
 
-BACKEND_PASSWORD=password
+BACKEND_PASSWORD=CHANGE_THIS
 
-THREADS=900
+THREADS=500
 ONLY_UPDATE=false
+UPDATE_WITH_CONNECTION=false
 ```
 
 ## Installation

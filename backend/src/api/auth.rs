@@ -63,5 +63,3 @@ pub async fn authenticate_user(
 
     Ok((headers, Json(AuthReturn { token: jwt })))
 }
-
-pub async fn validate_credentials() {}

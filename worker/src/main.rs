@@ -8,7 +8,11 @@ use rand::{SeedableRng, rngs::SysRng};
 use rand_chacha::ChaCha8Rng;
 use serde_json::json;
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
-use tokio::{net::TcpStream, sync::Semaphore, time::timeout};
+use tokio::{
+    net::TcpStream,
+    sync::{Semaphore, watch},
+    time::timeout,
+};
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use worker::{check_server, description_to_str, generate_random_ip};
@@ -16,7 +20,7 @@ use worker::{check_server, description_to_str, generate_random_ip};
 use db_schema::{
     models::{
         data::{DataInsert, DataModelMini},
-        servers::{ServerInsert, ServerModel, ServerModelMini, ServerUpdate},
+        servers::{ServerExtraUpdate, ServerInsert, ServerModel, ServerModelMini, ServerUpdate},
     },
     schema,
 };
@@ -43,7 +47,7 @@ pub async fn handle_valid_ip(
         protocol: status.version.protocol as i32,
         description: &status.description,
         license: extra_data.license,
-        white_list: extra_data.white_list,
+        disconnect_reason: extra_data.disconnect_reason,
         unique_players: status.players.online as i32,
     };
 
@@ -91,10 +95,15 @@ pub async fn handle_valid_ip(
     Ok(())
 }
 
-async fn worker(db: Arc<DatabaseWrapper>) {
+async fn worker(db: Arc<DatabaseWrapper>, mut pause_watcher: watch::Receiver<bool>) {
     let mut rng = ChaCha8Rng::try_from_rng(&mut SysRng).unwrap();
 
     loop {
+        if !*pause_watcher.borrow() {
+            let _ = pause_watcher.changed().await;
+            continue;
+        }
+
         let ip = IpAddr::V4(generate_random_ip(&mut rng));
         const PORT: u16 = 25565;
 
@@ -116,9 +125,12 @@ async fn worker(db: Arc<DatabaseWrapper>) {
     }
 }
 
-async fn updater(db: Arc<DatabaseWrapper>) {
+async fn updater(db: Arc<DatabaseWrapper>, with_connection: bool, pause_tx: watch::Sender<bool>) {
     loop {
-        info!("Starting update cycle...");
+        info!(target: "updater", "Stopping workers...");
+        let _ = pause_tx.send(false);
+        tokio::time::sleep(Duration::from_secs(20)).await;
+        info!(target: "updater", "Starting update cycle...");
 
         let servers: Vec<ServerModelMini> = schema::servers::table
             .select(ServerModelMini::as_select())
@@ -136,7 +148,7 @@ async fn updater(db: Arc<DatabaseWrapper>) {
 
                 tokio::spawn(async move {
                     let _permit = permit.await;
-                    update_server(value, th_db).await;
+                    update_server(value, th_db, with_connection).await;
                 })
             })
             .collect();
@@ -145,12 +157,13 @@ async fn updater(db: Arc<DatabaseWrapper>) {
             let _ = handle.await;
         }
 
-        info!("Update cycle finished: DONE");
+        info!(target: "updater", "Update cycle finished. Resuming workers.");
+        let _ = pause_tx.send(true);
         tokio::time::sleep(Duration::from_secs(600)).await;
     }
 }
 
-async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
+async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_connection: bool) {
     let status = match timeout(
         Duration::from_secs(10),
         get_status(&server.ip, server.port as u16, None),
@@ -219,6 +232,28 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
         .execute(&mut conn)
         .await
         .unwrap();
+
+    if with_connection {
+        if let Ok(extra_data) = get_extra_data(
+            format!("{}", server.ip),
+            server.port as u16,
+            status.version.protocol as i32,
+        )
+        .await
+        {
+            let server_extra_change = ServerExtraUpdate {
+                license: extra_data.license,
+                disconnect_reason: extra_data.disconnect_reason,
+            };
+
+            diesel::update(schema::servers::table)
+                .filter(schema::servers::id.eq(server.id))
+                .set(server_extra_change)
+                .execute(&mut conn)
+                .await
+                .unwrap();
+        }
+    }
 }
 
 #[tokio::main]
@@ -252,7 +287,13 @@ async fn main() {
         .unwrap();
     debug!("Servers in db: {}", count);
 
-    let updater_thread = tokio::spawn(updater(db.clone()));
+    let (tx, rx) = watch::channel(true);
+    let update_with_connection: bool = env::var("UPDATE_WITH_CONNECTION")
+        .unwrap_or("false".to_string())
+        .parse()
+        .unwrap_or(false);
+    let updater_thread = tokio::spawn(updater(db.clone(), update_with_connection, tx));
+
     let only_update: bool = env::var("ONLY_UPDATE")
         .unwrap_or("false".to_string())
         .parse()
@@ -264,7 +305,7 @@ async fn main() {
         let mut workers = vec![];
 
         for _ in 0..threads {
-            workers.push(tokio::spawn(worker(db.clone())));
+            workers.push(tokio::spawn(worker(db.clone(), rx.clone())));
         }
 
         info!("All threads started");

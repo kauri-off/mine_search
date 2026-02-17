@@ -17,9 +17,8 @@ pub struct ServerRequest {
     pub limit: i64,
     pub offset_id: Option<i32>,
     pub licensed: Option<bool>,
-    pub white_list: Option<bool>,
     pub checked: Option<bool>,
-    pub auth_me: Option<bool>,
+    pub spoofable: Option<bool>,
     pub crashed: Option<bool>,
     pub has_players: Option<bool>,
     pub online: Option<bool>,
@@ -47,19 +46,13 @@ pub async fn fetch_server_list(
         None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
     };
 
-    let white_list_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.white_list
-    {
-        Some(white_list) => Box::new(servers::white_list.assume_not_null().eq(white_list)),
-        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
-    };
-
     let checked_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.checked {
         Some(checked) => Box::new(servers::checked.assume_not_null().eq(checked)),
         None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
     };
 
-    let auth_me_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.auth_me {
-        Some(auth_me) => Box::new(servers::auth_me.assume_not_null().eq(auth_me)),
+    let spoofable_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.spoofable {
+        Some(spoofable) => Box::new(servers::spoofable.assume_not_null().eq(spoofable)),
         None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
     };
 
@@ -84,9 +77,8 @@ pub async fn fetch_server_list(
         .inner_join(data::table.on(data::server_id.eq(servers::id)))
         .filter(pagination_filter)
         .filter(license_filter)
-        .filter(white_list_filter)
         .filter(checked_filter)
-        .filter(auth_me_filter)
+        .filter(spoofable_filter)
         .filter(crashed_filter)
         .filter(has_players_filter)
         .filter(online_filter)
