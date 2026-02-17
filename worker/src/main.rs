@@ -8,7 +8,7 @@ use rand::{SeedableRng, rngs::SysRng};
 use rand_chacha::ChaCha8Rng;
 use serde_json::json;
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
-use tokio::{sync::Semaphore, time::timeout};
+use tokio::{net::TcpStream, sync::Semaphore, time::timeout};
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use worker::{check_server, description_to_str, generate_random_ip};
@@ -29,8 +29,9 @@ pub async fn handle_valid_ip(
     ip: &IpAddr,
     port: u16,
     db: Arc<DatabaseWrapper>,
+    tcp_stream: Option<TcpStream>,
 ) -> anyhow::Result<()> {
-    let status = get_status(&format!("{}", ip), port).await?;
+    let status = get_status(&format!("{}", ip), port, tcp_stream).await?;
 
     let extra_data =
         get_extra_data(format!("{}", ip), port, status.version.protocol as i32).await?;
@@ -97,12 +98,12 @@ async fn worker(db: Arc<DatabaseWrapper>) {
         let ip = IpAddr::V4(generate_random_ip(&mut rng));
         const PORT: u16 = 25565;
 
-        if check_server(&ip, PORT).await {
+        if let Ok(tcp_stream) = check_server(&ip, PORT).await {
             debug!("Potential server found at {}:{}", ip, PORT);
 
             let res = timeout(
                 Duration::from_secs(10),
-                handle_valid_ip(&ip, PORT, db.clone()),
+                handle_valid_ip(&ip, PORT, db.clone(), Some(tcp_stream)),
             )
             .await;
 
@@ -152,7 +153,7 @@ async fn updater(db: Arc<DatabaseWrapper>) {
 async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>) {
     let status = match timeout(
         Duration::from_secs(10),
-        get_status(&server.ip, server.port as u16),
+        get_status(&server.ip, server.port as u16, None),
     )
     .await
     {

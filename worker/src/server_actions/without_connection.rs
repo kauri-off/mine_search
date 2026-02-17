@@ -33,8 +33,15 @@ pub struct Version {
     pub protocol: i64,
 }
 
-pub async fn get_status(ip: &str, port: u16) -> anyhow::Result<Status> {
-    let mut conn = TcpStream::connect(&format!("{}:{}", ip, port)).await?;
+pub async fn get_status(
+    ip: &str,
+    port: u16,
+    tcp_stream: Option<TcpStream>,
+) -> anyhow::Result<Status> {
+    let mut tcp_stream = match tcp_stream {
+        Some(t) => t,
+        None => TcpStream::connect(&format!("{}:{}", ip, port)).await?,
+    };
 
     c2s::Handshake {
         protocol_version: VarInt(765),
@@ -44,16 +51,16 @@ pub async fn get_status(ip: &str, port: u16) -> anyhow::Result<Status> {
     }
     .as_uncompressed()?
     .to_raw_packet()?
-    .write(&mut conn)
+    .write(&mut tcp_stream)
     .await?;
 
     c2s::StatusRequest {}
         .as_uncompressed()?
         .to_raw_packet()?
-        .write(&mut conn)
+        .write(&mut tcp_stream)
         .await?;
 
-    let response: s2c::StatusResponse = RawPacket::read(&mut conn)
+    let response: s2c::StatusResponse = RawPacket::read(&mut tcp_stream)
         .await?
         .as_uncompressed()?
         .convert()?;

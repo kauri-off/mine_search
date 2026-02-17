@@ -9,13 +9,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::{net::TcpStream, time::timeout};
 
-pub async fn check_server(ip: &IpAddr, port: u16) -> bool {
+pub async fn check_server(ip: &IpAddr, port: u16) -> anyhow::Result<TcpStream> {
     let addr = format!("{}:{}", ip, port);
 
-    match timeout(Duration::from_secs(2), TcpStream::connect(&addr)).await {
-        Ok(t) => t.is_ok(),
-        Err(_) => false,
-    }
+    Ok(timeout(Duration::from_secs(2), TcpStream::connect(&addr)).await??)
 }
 
 pub fn generate_random_ip(rng: &mut ChaCha8Rng) -> Ipv4Addr {
