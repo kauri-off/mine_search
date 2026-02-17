@@ -16,6 +16,7 @@ export const Dashboard = () => {
         auth_me: null,
         crashed: null,
         has_players: null,
+        online: null
     });
 
     const { data: stats } = useQuery({
@@ -103,6 +104,7 @@ export const Dashboard = () => {
                 <FilterButton label="Checked" field="checked" />
                 <FilterButton label="Crashed" field="crashed" />
                 <FilterButton label="Has Players" field="has_players" />
+                <FilterButton label="Online" field="online" />
             </div>
 
             {isLoading ? (

@@ -26,6 +26,7 @@ export interface ServerListRequest {
     auth_me?: boolean | null;
     crashed?: boolean | null;
     has_players?: boolean | null;
+    online?: boolean | null;
 }
 
 export interface ServerDataRequest {

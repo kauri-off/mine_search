@@ -125,7 +125,7 @@ async fn updater(db: Arc<DatabaseWrapper>) {
             .await
             .unwrap();
 
-        let semaphore = Arc::new(Semaphore::new(5));
+        let semaphore = Arc::new(Semaphore::new(50));
 
         let handles: Vec<_> = servers
             .into_iter()
