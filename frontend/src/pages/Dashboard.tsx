@@ -2,10 +2,11 @@ import { useState, useRef, useCallback } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
 import { serverApi } from "../api/client";
-import type { ServerListRequest, ServerResponse } from "../types";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { enUS } from "date-fns/locale";
+import type { ServerListRequest } from "../types/ServerListRequest";
+import type { ServerInfoResponse } from "../types/ServerInfoResponse";
 
 export const Dashboard = () => {
   const [filters, setFilters] = useState<Omit<ServerListRequest, "offset_id">>({
@@ -25,9 +26,9 @@ export const Dashboard = () => {
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useInfiniteQuery<
-      ServerResponse[],
+      ServerInfoResponse[],
       Error,
-      InfiniteData<ServerResponse[]>,
+      InfiniteData<ServerInfoResponse[]>,
       [string, Omit<ServerListRequest, "offset_id">],
       number | null
     >({

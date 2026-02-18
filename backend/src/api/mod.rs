@@ -3,5 +3,4 @@ pub mod fetch_server_data;
 pub mod fetch_server_info;
 pub mod fetch_server_list;
 pub mod fetch_stats;
-pub mod set_cookie;
 pub mod update_server;

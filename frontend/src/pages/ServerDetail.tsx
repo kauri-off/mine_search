@@ -1,7 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { serverApi } from "../api/client";
-import type { UpdateServerBody } from "../types";
 import {
   AreaChart,
   Area,
@@ -12,6 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { format } from "date-fns";
+import type { UpdateRequest } from "../types/UpdateRequest";
 
 export const ServerDetail = () => {
   const { ip } = useParams<{ ip: string }>();
@@ -32,7 +32,7 @@ export const ServerDetail = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (body: UpdateServerBody) => serverApi.update(body),
+    mutationFn: (body: UpdateRequest) => serverApi.update(body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["server", ip] });
     },
@@ -40,8 +40,15 @@ export const ServerDetail = () => {
 
   const handleToggle = (field: "checked" | "spoofable" | "crashed") => {
     if (!server) return;
+
+    const allFields = ["checked", "spoofable", "crashed"] as const;
+    const resetFields = Object.fromEntries(
+      allFields.filter((f) => f !== field).map((f) => [f, null]),
+    ) as Record<(typeof allFields)[number], null>;
+
     updateMutation.mutate({
       server_ip: server.ip,
+      ...resetFields,
       [field]: !server[field],
     });
   };

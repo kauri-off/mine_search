@@ -1,8 +1,12 @@
 import axios from 'axios';
-import type { 
-    AuthBody, AuthReturn, ServerListRequest, ServerResponse, 
-    StatsReturn, DataResponse, ServerDataRequest, UpdateServerBody 
-} from '../types';
+import type { AuthBody } from '../types/AuthBody';
+import type { AuthReturn } from '../types/AuthReturn';
+import type { StatsResponse } from '../types/StatsResponse';
+import type { ServerDataRequest } from '../types/ServerDataRequest';
+import type { UpdateRequest } from '../types/UpdateRequest';
+import type { ServerListRequest } from '../types/ServerListRequest';
+import type { ServerInfoResponse } from '../types/ServerInfoResponse';
+import type { ServerDataResponse } from '../types/ServerDataResponse';
 
 const API_URL = '/api/v1';
 
@@ -36,22 +40,22 @@ export const authApi = {
 
 export const serverApi = {
     fetchStats: async () => {
-        const { data } = await api.post<StatsReturn>('/stats', {});
+        const { data } = await api.post<StatsResponse>('/stats', {});
         return data;
     },
     fetchList: async (body: ServerListRequest) => {
-        const { data } = await api.post<ServerResponse[]>('/servers/list', body);
+        const { data } = await api.post<ServerInfoResponse[]>('/servers/list', body);
         return data;
     },
     fetchInfo: async (ip: string) => {
-        const { data } = await api.post<ServerResponse>('/server/info', { ip });
+        const { data } = await api.post<ServerInfoResponse>('/server/info', { ip });
         return data;
     },
     fetchData: async (body: ServerDataRequest) => {
-        const { data } = await api.post<DataResponse[]>('/server/data', body);
+        const { data } = await api.post<ServerDataResponse[]>('/server/data', body);
         return data;
     },
-    update: async (body: UpdateServerBody) => {
+    update: async (body: UpdateRequest) => {
         return api.post('/server/update', body);
     }
 };

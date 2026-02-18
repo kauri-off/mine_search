@@ -8,16 +8,19 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use ts_rs::TS;
 
 use crate::database::DatabaseWrapper;
 
-#[derive(Serialize, Deserialize)]
-pub struct ServerRequest {
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct ServerInfoRequest {
     pub ip: String,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct ServerResponse {
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct ServerInfoResponse {
     pub id: i32,
     pub ip: String,
     pub online: i32,
@@ -35,7 +38,7 @@ pub struct ServerResponse {
     pub crashed: bool,
 }
 
-impl From<(ServerModel, DataModel)> for ServerResponse {
+impl From<(ServerModel, DataModel)> for ServerInfoResponse {
     fn from((server, data): (ServerModel, DataModel)) -> Self {
         Self {
             id: server.id,
@@ -59,8 +62,8 @@ impl From<(ServerModel, DataModel)> for ServerResponse {
 
 pub async fn fetch_server_info(
     State(db): State<Arc<DatabaseWrapper>>,
-    Json(body): Json<ServerRequest>,
-) -> Result<Json<ServerResponse>, StatusCode> {
+    Json(body): Json<ServerInfoRequest>,
+) -> Result<Json<ServerInfoResponse>, StatusCode> {
     let mut conn = db.pool.get().await.unwrap();
 
     let (server, data) = servers::table

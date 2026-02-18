@@ -3,7 +3,7 @@ use std::{env, sync::Arc};
 use api::{
     auth::authenticate_user, fetch_server_data::fetch_server_data,
     fetch_server_info::fetch_server_info, fetch_server_list::fetch_server_list,
-    fetch_stats::fetch_stats, set_cookie::set_cookie, update_server::update_server,
+    fetch_stats::fetch_stats, update_server::update_server,
 };
 use axum::{
     Router,
@@ -57,7 +57,6 @@ async fn main() {
 
     let public_api = Router::new()
         .route("/auth/login", post(authenticate_user))
-        .route("/auth/set_cookie", post(set_cookie))
         .merge(protected_routes);
 
     let app = Router::new()

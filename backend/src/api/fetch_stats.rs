@@ -5,38 +5,40 @@ use db_schema::schema::servers;
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::database::DatabaseWrapper;
 
-#[derive(Serialize, Deserialize)]
-pub struct StatsReturn {
-    pub total_servers: i64,
-    pub cracked_servers: i64,
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct StatsResponse {
+    pub total_servers: i32,
+    pub cracked_servers: i32,
 }
 
 pub async fn fetch_stats(
     State(db): State<Arc<DatabaseWrapper>>,
-) -> Result<Json<StatsReturn>, StatusCode> {
+) -> Result<Json<StatsResponse>, StatusCode> {
     let mut conn = db
         .pool
         .get()
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let total_servers: i64 = servers::dsl::servers
+    let total_servers = servers::dsl::servers
         .count()
-        .get_result(&mut conn)
+        .get_result::<i64>(&mut conn)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? as i32;
 
-    let cracked_servers: i64 = servers::dsl::servers
+    let cracked_servers = servers::dsl::servers
         .filter(servers::dsl::license.eq(false))
         .count()
-        .get_result(&mut conn)
+        .get_result::<i64>(&mut conn)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? as i32;
 
-    Ok(Json(StatsReturn {
+    Ok(Json(StatsResponse {
         total_servers,
         cracked_servers,
     }))

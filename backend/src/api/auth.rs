@@ -6,18 +6,21 @@ use axum::{
 use chrono::{Duration, Utc};
 use cookie::{Cookie, SameSite, time};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::{
     BACKEND_PASSWORD,
     jwt_wrapper::{Claims, jwt_encode},
 };
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct AuthBody {
     pub password: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct AuthReturn {
     pub token: String,
 }

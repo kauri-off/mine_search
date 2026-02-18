@@ -7,11 +7,13 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use serde::Deserialize;
 use serde::Serialize;
+use ts_rs::TS;
 
 use crate::database::DatabaseWrapper;
 
-#[derive(Serialize, Deserialize)]
-pub struct Body {
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct UpdateRequest {
     pub server_ip: String,
     pub checked: Option<bool>,
     pub spoofable: Option<bool>,
@@ -26,8 +28,8 @@ pub struct Options {
     pub crashed: Option<bool>,
 }
 
-impl From<Body> for Options {
-    fn from(value: Body) -> Self {
+impl From<UpdateRequest> for Options {
+    fn from(value: UpdateRequest) -> Self {
         Options {
             checked: value.checked,
             spoofable: value.spoofable,
@@ -38,7 +40,7 @@ impl From<Body> for Options {
 
 pub async fn update_server(
     State(db): State<Arc<DatabaseWrapper>>,
-    Json(body): Json<Body>,
+    Json(body): Json<UpdateRequest>,
 ) -> Result<StatusCode, StatusCode> {
     update(servers::table)
         .filter(servers::ip.eq(body.server_ip.clone()))

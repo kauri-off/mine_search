@@ -1,4 +1,4 @@
-use super::fetch_server_info::ServerResponse;
+use super::fetch_server_info::ServerInfoResponse;
 use crate::database::DatabaseWrapper;
 use axum::{Json, extract::State, http::StatusCode};
 use db_schema::{
@@ -11,10 +11,12 @@ use diesel::sql_types::Bool;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use ts_rs::TS;
 
-#[derive(Serialize, Deserialize)]
-pub struct ServerRequest {
-    pub limit: i64,
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct ServerListRequest {
+    pub limit: i32,
     pub offset_id: Option<i32>,
     pub licensed: Option<bool>,
     pub checked: Option<bool>,
@@ -26,8 +28,8 @@ pub struct ServerRequest {
 
 pub async fn fetch_server_list(
     State(db): State<Arc<DatabaseWrapper>>,
-    Json(body): Json<ServerRequest>,
-) -> Result<Json<Vec<ServerResponse>>, StatusCode> {
+    Json(body): Json<ServerListRequest>,
+) -> Result<Json<Vec<ServerInfoResponse>>, StatusCode> {
     let mut conn = db
         .pool
         .get()
@@ -85,7 +87,7 @@ pub async fn fetch_server_list(
         .order((servers::id.desc(), data::id.desc()))
         .distinct_on(servers::id)
         .select((ServerModel::as_select(), DataModel::as_select()))
-        .limit(body.limit)
+        .limit(body.limit as i64)
         .load::<(ServerModel, DataModel)>(&mut conn)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
