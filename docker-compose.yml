@@ -10,7 +10,8 @@ services:
       UPDATE_WITH_CONNECTION: ${UPDATE_WITH_CONNECTION}
       RUST_LOG: debug
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - app-network
     restart: unless-stopped
