@@ -14,6 +14,7 @@ use crate::database::DatabaseWrapper;
 #[ts(export)]
 pub struct ServerDataRequest {
     pub server_id: i32,
+    #[ts(type = "number")]
     pub limit: i64,
 }
 

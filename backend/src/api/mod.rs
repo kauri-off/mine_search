@@ -1,3 +1,4 @@
+pub mod add_ip;
 pub mod auth;
 pub mod fetch_server_data;
 pub mod fetch_server_info;

@@ -12,7 +12,9 @@ use crate::database::DatabaseWrapper;
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct StatsResponse {
+    #[ts(type = "number")]
     pub total_servers: i64,
+    #[ts(type = "number")]
     pub cracked_servers: i64,
 }
 

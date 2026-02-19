@@ -7,6 +7,7 @@ import type { UpdateRequest } from '../types/UpdateRequest';
 import type { ServerListRequest } from '../types/ServerListRequest';
 import type { ServerInfoResponse } from '../types/ServerInfoResponse';
 import type { ServerDataResponse } from '../types/ServerDataResponse';
+import type { AddIpRequest } from '../types/AddIpRequest';
 
 const API_URL = '/api/v1';
 
@@ -57,5 +58,8 @@ export const serverApi = {
     },
     update: async (body: UpdateRequest) => {
         return api.post('/server/update', body);
+    },
+    addIp: async (body: AddIpRequest) => {
+        return api.post('/ip/add', body);
     }
 };

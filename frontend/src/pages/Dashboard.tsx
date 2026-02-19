@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
 import { serverApi } from "../api/client";
 import { Link } from "react-router-dom";
@@ -9,8 +9,15 @@ import type { ServerListRequest } from "../types/ServerListRequest";
 import type { ServerInfoResponse } from "../types/ServerInfoResponse";
 
 export const Dashboard = () => {
+  const [ip, setIp] = useState("");
+  const addIpMutation = useMutation({
+    mutationFn: (ip: string) => serverApi.addIp({ ip }),
+    onSuccess: () => setIp(""),
+    onError: (err) => console.error(err),
+  });
+
   const [filters, setFilters] = useState<Omit<ServerListRequest, "offset_id">>({
-    limit: 50n,
+    limit: 50,
     licensed: null,
     checked: null,
     spoofable: null,
@@ -114,6 +121,25 @@ export const Dashboard = () => {
         <FilterButton label="Crashed" field="crashed" />
         <FilterButton label="Has Players" field="has_players" />
         <FilterButton label="Online" field="online" />
+      </div>
+
+      <div className="mb-6 p-4 bg-gray-800 rounded-lg flex gap-3 items-center">
+        <span className="text-gray-400">Add IP:</span>
+        <input
+          type="text"
+          value={ip}
+          onChange={(e) => setIp(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addIpMutation.mutate(ip)}
+          placeholder="e.g. 192.168.1.1"
+          className="flex-1 bg-gray-700 text-white placeholder-gray-500 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          onClick={() => addIpMutation.mutate(ip)}
+          disabled={addIpMutation.isPending || !ip.trim()}
+          className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+        >
+          {addIpMutation.isPending ? "Adding..." : "Add"}
+        </button>
       </div>
 
       {isLoading ? (

@@ -16,6 +16,7 @@ use ts_rs::TS;
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ServerListRequest {
+    #[ts(type = "number")]
     pub limit: i64,
     pub offset_id: Option<i32>,
     pub licensed: Option<bool>,
