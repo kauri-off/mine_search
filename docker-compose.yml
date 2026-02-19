@@ -1,8 +1,9 @@
 services:
   worker:
-    build:
-      context: .
-      dockerfile: worker.Dockerfile
+    #build:
+    #  context: .
+    #  dockerfile: worker.Dockerfile
+    image: ghcr.io/kauri-off/mine_search/worker:latest
     environment:
       THREADS: ${THREADS}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
@@ -17,9 +18,10 @@ services:
     restart: unless-stopped
 
   backend:
-    build:
-      context: .
-      dockerfile: backend.Dockerfile
+    #build:
+    #  context: .
+    #  dockerfile: backend.Dockerfile
+    image: ghcr.io/kauri-off/mine_search/backend:latest
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
       BACKEND_PASSWORD: ${BACKEND_PASSWORD}

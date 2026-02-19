@@ -7,22 +7,6 @@
 > [!CAUTION]
 > RUNNING THE WORKER MAY RESULT IN YOUR SERVER BEING BLOCKED DUE TO ABUSIVE SCANNING ACTIVITIES. MAKE SURE YOU UNDERSTAND THE RISKS INVOLVED.
 
-## Environment Variables
-
-Create a `.env` file in the root directory and add the following values:
-
-```env
-POSTGRES_USER=user
-POSTGRES_PASSWORD=CHANGE_THIS
-POSTGRES_DB=mine_search_db
-
-BACKEND_PASSWORD=CHANGE_THIS
-
-THREADS=500
-ONLY_UPDATE=false
-UPDATE_WITH_CONNECTION=false
-```
-
 ## Installation
 
 Choose the installation guide for your operating system:
@@ -38,7 +22,24 @@ You can run the application in two ways: by building the code locally or by usin
 
 ### **Option 1: Build Locally**
 
-You don't have to modify anything; Docker Compose is already configured to build locally.
+To build all services locally, modify the `docker-compose.yml` file by uncommenting the `build` sections and commenting out the `image` lines for the `worker` and `backend` services:
+
+```yaml
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: worker.Dockerfile
+    # image: ghcr.io/kauri-off/mine_search/worker:latest
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    # image: ghcr.io/kauri-off/mine_search/backend:latest
+```
+
+> **Note:** The `frontend` service is always built locally regardless of which option you choose.
 
 Run the application:
 
@@ -46,22 +47,24 @@ Run the application:
 docker compose up -d --build
 ```
 
-### **Option 2: Use Prebuilt Images**
+### **Option 2: Use Prebuilt Images (Default)**
 
-Modify the `docker-compose.yml` file to use GHCR images:
+The `docker-compose.yml` file is configured by default to use prebuilt images from GitHub Container Registry (GHCR) for the `worker` and `backend` services. No modifications are needed.
+
+To verify, check that the `worker` and `backend` services in `docker-compose.yml` have the `image` lines uncommented and the `build` sections commented out (this is the default state):
 
 ```yaml
 services:
   worker:
-    #    build:
-    #      context: .
-    #      dockerfile: worker.Dockerfile
+    #build:
+    #  context: .
+    #  dockerfile: worker.Dockerfile
     image: ghcr.io/kauri-off/mine_search/worker:latest
 
   backend:
-    #    build:
-    #      context: .
-    #      dockerfile: backend.Dockerfile
+    #build:
+    #  context: .
+    #  dockerfile: backend.Dockerfile
     image: ghcr.io/kauri-off/mine_search/backend:latest
 ```
 
@@ -70,6 +73,8 @@ Run the application:
 ```bash
 docker compose up -d
 ```
+
+> **Note:** If you previously used Option 1 (build locally) and want to switch back to prebuilt images, make sure the `build` sections are commented out and the `image` lines are uncommented in `docker-compose.yml`.
 
 ## Screenshots
 
