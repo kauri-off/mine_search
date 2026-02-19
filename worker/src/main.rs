@@ -13,7 +13,7 @@ use tokio::{
     sync::{Semaphore, watch},
     time::timeout,
 };
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use worker::{check_server, description_to_str, generate_random_ip};
 
@@ -118,9 +118,9 @@ async fn worker(db: Arc<DatabaseWrapper>, mut pause_watcher: watch::Receiver<boo
             .await;
 
             match res {
-                Ok(Ok(_)) => info!("Successfully processed server {}:{}", ip, PORT),
-                Ok(Err(e)) => error!("Failed to process server {}:{} | Error: {}", ip, PORT, e),
-                Err(_) => warn!("Timeout processing server {}:{}", ip, PORT),
+                Ok(Ok(_)) => {}
+                Ok(Err(e)) => debug!("Failed to process server {}:{} | Error: {}", ip, PORT, e),
+                Err(_) => debug!("Timeout processing server {}:{}", ip, PORT),
             }
         }
     }
