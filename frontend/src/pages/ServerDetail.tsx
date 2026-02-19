@@ -27,7 +27,7 @@ export const ServerDetail = () => {
 
   const { data: history } = useQuery({
     queryKey: ["serverData", server?.id],
-    queryFn: () => serverApi.fetchData({ server_id: server!.id, limit: 100 }),
+    queryFn: () => serverApi.fetchData({ server_id: server!.id, limit: 100n }),
     enabled: !!server?.id,
   });
 

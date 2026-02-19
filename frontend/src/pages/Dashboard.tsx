@@ -10,7 +10,7 @@ import type { ServerInfoResponse } from "../types/ServerInfoResponse";
 
 export const Dashboard = () => {
   const [filters, setFilters] = useState<Omit<ServerListRequest, "offset_id">>({
-    limit: 50,
+    limit: 50n,
     licensed: null,
     checked: null,
     spoofable: null,

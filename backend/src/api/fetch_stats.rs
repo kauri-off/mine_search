@@ -12,8 +12,8 @@ use crate::database::DatabaseWrapper;
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct StatsResponse {
-    pub total_servers: i32,
-    pub cracked_servers: i32,
+    pub total_servers: i64,
+    pub cracked_servers: i64,
 }
 
 pub async fn fetch_stats(
@@ -29,14 +29,14 @@ pub async fn fetch_stats(
         .count()
         .get_result::<i64>(&mut conn)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? as i32;
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let cracked_servers = servers::dsl::servers
         .filter(servers::dsl::license.eq(false))
         .count()
         .get_result::<i64>(&mut conn)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? as i32;
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(StatsResponse {
         total_servers,

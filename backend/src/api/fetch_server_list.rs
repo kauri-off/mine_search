@@ -16,7 +16,7 @@ use ts_rs::TS;
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ServerListRequest {
-    pub limit: i32,
+    pub limit: i64,
     pub offset_id: Option<i32>,
     pub licensed: Option<bool>,
     pub checked: Option<bool>,
@@ -87,7 +87,7 @@ pub async fn fetch_server_list(
         .order((servers::id.desc(), data::id.desc()))
         .distinct_on(servers::id)
         .select((ServerModel::as_select(), DataModel::as_select()))
-        .limit(body.limit as i64)
+        .limit(body.limit)
         .load::<(ServerModel, DataModel)>(&mut conn)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

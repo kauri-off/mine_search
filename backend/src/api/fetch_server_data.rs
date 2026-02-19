@@ -14,7 +14,7 @@ use crate::database::DatabaseWrapper;
 #[ts(export)]
 pub struct ServerDataRequest {
     pub server_id: i32,
-    pub limit: i32,
+    pub limit: i64,
 }
 
 #[derive(Serialize, TS)]
@@ -23,7 +23,7 @@ pub struct ServerDataResponse {
     pub server_id: i32,
     pub online: i32,
     pub max: i32,
-    pub players: serde_json::Value, // Vec<String>
+    pub players: Vec<String>,
     pub timestamp: chrono::DateTime<Utc>,
 }
 
@@ -33,7 +33,13 @@ impl From<DataModel> for ServerDataResponse {
             server_id: value.server_id,
             online: value.online,
             max: value.max,
-            players: value.players,
+            players: value
+                .players
+                .as_array()
+                .unwrap()
+                .into_iter()
+                .map(|t| t.as_str().unwrap().to_string())
+                .collect(),
             timestamp: value.timestamp,
         }
     }
@@ -48,7 +54,7 @@ pub async fn fetch_server_data(
     let results: Vec<DataModel> = data::table
         .filter(data::server_id.eq(body.server_id))
         .order(data::id.desc())
-        .limit(body.limit as i64)
+        .limit(body.limit)
         .load(&mut conn)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

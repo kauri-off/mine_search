@@ -12,6 +12,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    ips (id) {
+        id -> Int4,
+        ip -> Text,
+        port -> Int4,
+    }
+}
+
+diesel::table! {
     servers (id) {
         id -> Int4,
         ip -> Varchar,
@@ -33,4 +41,4 @@ diesel::table! {
 
 diesel::joinable!(data -> servers (server_id));
 
-diesel::allow_tables_to_appear_in_same_query!(data, servers,);
+diesel::allow_tables_to_appear_in_same_query!(data, ips, servers,);
