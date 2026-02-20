@@ -7,6 +7,14 @@
 > [!CAUTION]
 > RUNNING THE WORKER MAY RESULT IN YOUR SERVER BEING BLOCKED DUE TO ABUSIVE SCANNING ACTIVITIES. MAKE SURE YOU UNDERSTAND THE RISKS INVOLVED.
 
+## Tech Stack
+
+| Layer    | Technology                                                         |
+| -------- | ------------------------------------------------------------------ |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS, TanStack Query, Recharts |
+| Backend  | Rust, Axum, Diesel, PostgreSQL                                     |
+| Worker   | Rust, Tokio, Diesel, PostgreSQL                                    |
+
 ## Installation
 
 Choose the installation guide for your operating system:
@@ -20,34 +28,7 @@ After completing the installation steps, come back here to run the application.
 
 You can run the application in two ways: by building the code locally or by using prebuilt images from GitHub Container Registry (GHCR).
 
-### **Option 1: Build Locally**
-
-To build all services locally, modify the `docker-compose.yml` file by uncommenting the `build` sections and commenting out the `image` lines for the `worker` and `backend` services:
-
-```yaml
-services:
-  worker:
-    build:
-      context: .
-      dockerfile: worker.Dockerfile
-    # image: ghcr.io/kauri-off/mine_search/worker:latest
-
-  backend:
-    build:
-      context: .
-      dockerfile: backend.Dockerfile
-    # image: ghcr.io/kauri-off/mine_search/backend:latest
-```
-
-> **Note:** The `frontend` service is always built locally regardless of which option you choose.
-
-Run the application:
-
-```bash
-docker compose up -d --build
-```
-
-### **Option 2: Use Prebuilt Images (Default)**
+### **Option 1: Use Prebuilt Images (Default)**
 
 The `docker-compose.yml` file is configured by default to use prebuilt images from GitHub Container Registry (GHCR) for the `worker` and `backend` services. No modifications are needed.
 
@@ -74,7 +55,32 @@ Run the application:
 docker compose up -d
 ```
 
-> **Note:** If you previously used Option 1 (build locally) and want to switch back to prebuilt images, make sure the `build` sections are commented out and the `image` lines are uncommented in `docker-compose.yml`.
+### **Option 2: Build Locally**
+
+To build all services locally, modify the `docker-compose.yml` file by uncommenting the `build` sections and commenting out the `image` lines for the `worker` and `backend` services:
+
+```yaml
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: worker.Dockerfile
+    # image: ghcr.io/kauri-off/mine_search/worker:latest
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    # image: ghcr.io/kauri-off/mine_search/backend:latest
+```
+
+> **Note:** The `frontend` service is always built locally regardless of which option you choose.
+
+Run the application:
+
+```bash
+docker compose up -d --build
+```
 
 ## Screenshots
 
