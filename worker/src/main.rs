@@ -131,11 +131,46 @@ async fn updater(db: Arc<DatabaseWrapper>, with_connection: bool, pause_tx: watc
         info!(target: "updater", "Stopping workers...");
         let _ = pause_tx.send(false);
         tokio::time::sleep(Duration::from_secs(20)).await;
+        let mut conn = db.pool.get().await.unwrap();
+
+        let ips: Vec<IpModel> = crate::schema::ips::table
+            .select(IpModel::as_select())
+            .load(&mut conn)
+            .await
+            .unwrap();
+
+        diesel::delete(crate::schema::ips::table)
+            .execute(&mut conn)
+            .await
+            .unwrap();
+
+        let semaphore = Arc::new(Semaphore::new(10));
+
+        let handles = ips.into_iter().map(|value| {
+            let permit = semaphore.clone().acquire_owned();
+            let th_db = db.clone();
+
+            tokio::spawn(async move {
+                let _permit = permit.await;
+                if let Ok(ip) = value.ip.parse() {
+                    let port = value.port as u16;
+
+                    if let Err(e) = handle_valid_ip(&ip, port, th_db, None).await {
+                        error!("Failed to handle IP {ip}:{port}: {e}");
+                    }
+                };
+            })
+        });
+
+        for handle in handles {
+            let _ = handle.await;
+        }
+
         info!(target: "updater", "Starting update cycle...");
 
         let servers: Vec<ServerModelMini> = schema::servers::table
             .select(ServerModelMini::as_select())
-            .load(&mut db.pool.get().await.unwrap())
+            .load(&mut conn)
             .await
             .unwrap();
 
@@ -257,50 +292,6 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
     }
 }
 
-async fn handle_db_ips(db: Arc<DatabaseWrapper>) {
-    loop {
-        let mut conn = db.pool.get().await.unwrap();
-
-        let ips: Vec<IpModel> = crate::schema::ips::table
-            .select(IpModel::as_select())
-            .load(&mut conn)
-            .await
-            .unwrap();
-
-        diesel::delete(crate::schema::ips::table)
-            .execute(&mut conn)
-            .await
-            .unwrap();
-
-        let tasks: Vec<_> = ips
-            .into_iter()
-            .map(|ip_model| {
-                let db = db.clone();
-                tokio::spawn(async move {
-                    let ip: IpAddr = match ip_model.ip.parse() {
-                        Ok(ip) => ip,
-                        Err(e) => {
-                            error!("Failed to parse IP '{}': {e}", ip_model.ip);
-                            return;
-                        }
-                    };
-                    let port = ip_model.port as u16;
-
-                    if let Err(e) = handle_valid_ip(&ip, port, db, None).await {
-                        error!("Failed to handle IP {ip}:{port}: {e}");
-                    }
-                })
-            })
-            .collect();
-
-        for task in tasks {
-            let _ = task.await;
-        }
-
-        tokio::time::sleep(Duration::from_secs(60)).await;
-    }
-}
-
 #[tokio::main]
 async fn main() {
     tracing_subscriber::registry()
@@ -339,8 +330,6 @@ async fn main() {
         .unwrap_or(false);
     let updater_thread = tokio::spawn(updater(db.clone(), update_with_connection, tx));
 
-    let db_updater_thread = tokio::spawn(handle_db_ips(db.clone()));
-
     let only_update: bool = env::var("ONLY_UPDATE")
         .unwrap_or("false".to_string())
         .parse()
@@ -363,5 +352,4 @@ async fn main() {
     }
 
     updater_thread.await.unwrap();
-    db_updater_thread.await.unwrap()
 }
