@@ -130,40 +130,30 @@ async fn worker(db: Arc<DatabaseWrapper>, mut pause_watcher: watch::Receiver<boo
     }
 }
 
-async fn updater(db: Arc<DatabaseWrapper>, with_connection: bool, pause_tx: watch::Sender<bool>) {
+async fn updater(
+    db: Arc<DatabaseWrapper>,
+    with_connection: bool,
+    pause_tx: watch::Sender<bool>,
+    search_module: bool,
+) {
     loop {
-        tokio::time::sleep(Duration::from_secs(600)).await;
-        info!(target: "updater", "Stopping workers...");
-        let _ = pause_tx.send(false);
-        tokio::time::sleep(Duration::from_secs(20)).await;
+        if search_module {
+            info!(target: "updater", "Stopping workers");
+            let _ = pause_tx.send(false);
+            tokio::time::sleep(Duration::from_secs(20)).await;
+        }
 
         if let Err(e) = process_external_ips(db.clone()).await {
             error!(target: "updater", "Error processing external IPs: {}", e);
         }
 
-        info!(target: "updater", "Starting update cycle...");
+        info!(target: "updater", "Starting update cycle");
 
-        let servers: Vec<ServerModelMini> = match db.pool.get().await {
-            Ok(mut conn) => {
-                match schema::servers::table
-                    .select(ServerModelMini::as_select())
-                    .load(&mut conn)
-                    .await
-                {
-                    Ok(s) => s,
-                    Err(e) => {
-                        error!(target: "updater", "Failed to load servers: {}", e);
-                        let _ = pause_tx.send(true);
-                        continue;
-                    }
-                }
-            }
-            Err(e) => {
-                error!(target: "updater", "Failed to get DB connection: {}", e);
-                let _ = pause_tx.send(true);
-                continue;
-            }
-        };
+        let servers: Vec<ServerModelMini> = schema::servers::table
+            .select(ServerModelMini::as_select())
+            .load(&mut db.pool.get().await.unwrap())
+            .await
+            .unwrap();
 
         let semaphore = Arc::new(Semaphore::new(50));
 
@@ -184,8 +174,14 @@ async fn updater(db: Arc<DatabaseWrapper>, with_connection: bool, pause_tx: watc
             let _ = handle.await;
         }
 
-        info!(target: "updater", "Update cycle finished. Resuming workers.");
-        let _ = pause_tx.send(true);
+        info!(target: "updater", "Update cycle finished");
+
+        if search_module {
+            let _ = pause_tx.send(true);
+            info!(target: "updater", "Resuming workers");
+        }
+
+        tokio::time::sleep(Duration::from_secs(600)).await;
     }
 }
 
@@ -402,6 +398,7 @@ async fn main() {
             db.clone(),
             update_with_connection,
             tx,
+            search_module,
         )));
     }
 
