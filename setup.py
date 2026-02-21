@@ -125,6 +125,42 @@ def save_env(env):
     ENV_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
     success(".env saved.")
 
+# ── DB URL helpers ────────────────────────────────────────────────────────────
+
+def is_remote_db(env):
+    """Return True when DB_IP is set, meaning postgres lives on a remote host."""
+    return bool(env.get("DB_IP", "").strip())
+
+def database_url(env):
+    """
+    Build the DATABASE_URL used inside docker-compose services.
+    - Remote DB  → uses DB_IP / DB_PORT from .env
+    - Local DB   → uses the postgres container hostname
+    """
+    user = env["POSTGRES_USER"]
+    pw   = env["POSTGRES_PASSWORD"]
+    db   = env["POSTGRES_DB"]
+    if is_remote_db(env):
+        host = env["DB_IP"]
+        port = env.get("DB_PORT", "5432")
+        return f"postgres://{user}:{pw}@{host}:{port}/{db}"
+    return f"postgres://{user}:{pw}@{POSTGRES_CONTAINER}/{db}"
+
+def migration_url(env):
+    """
+    Build the DATABASE_URL used by the diesel CLI running on the host machine.
+    - Remote DB  → same as database_url (the remote host is already reachable)
+    - Local DB   → 127.0.0.1:5432 (the container port mapped to the host)
+    """
+    user = env["POSTGRES_USER"]
+    pw   = env["POSTGRES_PASSWORD"]
+    db   = env["POSTGRES_DB"]
+    if is_remote_db(env):
+        host = env["DB_IP"]
+        port = env.get("DB_PORT", "5432")
+        return f"postgres://{user}:{pw}@{host}:{port}/{db}"
+    return f"postgres://{user}:{pw}@127.0.0.1:5432/{db}"
+
 # ── docker-compose builder ────────────────────────────────────────────────────
 
 def _postgres_svc(env):
@@ -148,16 +184,16 @@ def _postgres_svc(env):
         "restart":  "unless-stopped",
     }
 
-def _worker_svc(database_url, env, local_postgres):
+def _worker_svc(env, local_postgres):
     svc = {
         "image": "ghcr.io/kauri-off/mine_search/worker:latest",
         "environment": {
             "THREADS":                env["THREADS"],
-            "DATABASE_URL":           database_url,
+            "DATABASE_URL":           database_url(env),
             "SEARCH_MODULE":          env["SEARCH_MODULE"],
             "UPDATE_MODULE":          env["UPDATE_MODULE"],
             "UPDATE_WITH_CONNECTION": env["UPDATE_WITH_CONNECTION"],
-            "RUST_LOG":               "debug",
+            "RUST_LOG":               env["RUST_LOG"],
         },
         "networks": [APP_NETWORK],
         "restart":  "unless-stopped",
@@ -166,11 +202,11 @@ def _worker_svc(database_url, env, local_postgres):
         svc["depends_on"] = {"postgres": {"condition": "service_healthy"}}
     return svc
 
-def _backend_svc(database_url, env, local_postgres):
+def _backend_svc(env, local_postgres):
     svc = {
         "image": "ghcr.io/kauri-off/mine_search/backend:latest",
         "environment": {
-            "DATABASE_URL":     database_url,
+            "DATABASE_URL":     database_url(env),
             "BACKEND_PASSWORD": env["BACKEND_PASSWORD"],
         },
         "networks": [APP_NETWORK],
@@ -199,14 +235,8 @@ def _nginx_svc():
         "restart":        "unless-stopped",
     }
 
-def build_compose(services, database_url, env):
-    """
-    Build a docker-compose structure from scratch.
-
-    services     – list of service names to include
-    database_url – fully resolved postgres connection string
-    env          – settings dict
-    """
+def build_compose(services, env):
+    """Build a docker-compose structure from scratch using env for all values."""
     local_postgres = "postgres" in services
 
     compose = {
@@ -220,10 +250,10 @@ def build_compose(services, database_url, env):
         compose["volumes"]["postgres-data"] = {}
 
     if "worker" in services:
-        compose["services"]["worker"] = _worker_svc(database_url, env, local_postgres)
+        compose["services"]["worker"] = _worker_svc(env, local_postgres)
 
     if "backend" in services:
-        compose["services"]["backend"] = _backend_svc(database_url, env, local_postgres)
+        compose["services"]["backend"] = _backend_svc(env, local_postgres)
 
     if "frontend" in services:
         if "backend" not in services:
@@ -272,37 +302,6 @@ def pick_services():
     print(   f"  Services: {', '.join(svcs)}")
     return svcs
 
-# ── DB configuration ──────────────────────────────────────────────────────────
-
-def collect_local_db_env(env):
-    env["POSTGRES_USER"]     = ask("POSTGRES_USER",     env.get("POSTGRES_USER",     "user"))
-    env["POSTGRES_PASSWORD"] = ask("POSTGRES_PASSWORD", env.get("POSTGRES_PASSWORD", "CHANGE_THIS"))
-    env["POSTGRES_DB"]       = ask("POSTGRES_DB",       env.get("POSTGRES_DB",       "mine_search_db"))
-    # URL used inside docker-compose (container-to-container)
-    container_url = (
-        f"postgres://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
-        f"@{POSTGRES_CONTAINER}/{env['POSTGRES_DB']}"
-    )
-    # URL used from the host machine (diesel CLI connects via mapped port)
-    localhost_url = (
-        f"postgres://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
-        f"@127.0.0.1:5432/{env['POSTGRES_DB']}"
-    )
-    return env, container_url, localhost_url
-
-def collect_remote_db_env(env):
-    print("\n  Enter remote PostgreSQL connection details:")
-    env["POSTGRES_USER"]     = ask("DB user",     env.get("POSTGRES_USER",     "user"))
-    env["POSTGRES_PASSWORD"] = ask("DB password", env.get("POSTGRES_PASSWORD", "CHANGE_THIS"))
-    env["POSTGRES_DB"]       = ask("DB name",     env.get("POSTGRES_DB",       "mine_search_db"))
-    host                     = ask("DB host",     "db.example.com")
-    port                     = ask("DB port",     "5432")
-    url = (
-        f"postgres://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
-        f"@{host}:{port}/{env['POSTGRES_DB']}"
-    )
-    return env, url
-
 # ── Diesel migrations ─────────────────────────────────────────────────────────
 
 def wait_for_postgres(pg_user, retries=20, delay=3):
@@ -310,8 +309,7 @@ def wait_for_postgres(pg_user, retries=20, delay=3):
     print(f"\n  Waiting for postgres", end="", flush=True)
     for _ in range(retries):
         r = subprocess.run(
-            ["docker", "compose", "exec", "postgres",
-             "pg_isready", "-U", pg_user],
+            ["docker", "compose", "exec", "postgres", "pg_isready", "-U", pg_user],
             capture_output=True,
         )
         if r.returncode == 0:
@@ -322,8 +320,8 @@ def wait_for_postgres(pg_user, retries=20, delay=3):
     print()
     return False
 
-def run_diesel_migrations(url):
-    """Run diesel migrations from the db_schema/ directory using the given URL."""
+def run_diesel_migrations(env):
+    """Run diesel migrations from db_schema/ using migration_url derived from env."""
     header("DIESEL MIGRATIONS")
 
     if not DB_SCHEMA.is_dir():
@@ -332,6 +330,7 @@ def run_diesel_migrations(url):
 
     check_diesel()
 
+    url = migration_url(env)
     run(
         ["diesel", "migration", "run"],
         extra_env={"DATABASE_URL": url},
@@ -353,16 +352,20 @@ def mode_install():
     env = load_env()
     print("\n  Configure environment variables:")
 
-    # DB connection
-    if local_postgres:
-        env, database_url, localhost_url = collect_local_db_env(env)
-    elif needs_db:
-        warn("No local postgres selected but worker/backend need a database.")
-        env, database_url = collect_remote_db_env(env)
-        localhost_url = None
+    # Core DB credentials
+    env["POSTGRES_USER"]     = ask("POSTGRES_USER",     env.get("POSTGRES_USER",     "user"))
+    env["POSTGRES_PASSWORD"] = ask("POSTGRES_PASSWORD", env.get("POSTGRES_PASSWORD", "CHANGE_THIS"))
+    env["POSTGRES_DB"]       = ask("POSTGRES_DB",       env.get("POSTGRES_DB",       "mine_search_db"))
+
+    # Remote DB overrides (optional — leave blank for local)
+    if not local_postgres and needs_db:
+        warn("No local postgres selected. Enter remote DB connection details.")
+        env["DB_IP"]   = ask("DB_IP   (remote host)",  env.get("DB_IP",   ""))
+        env["DB_PORT"] = ask("DB_PORT (remote port)",  env.get("DB_PORT", "5432"))
     else:
-        database_url = ""
-        localhost_url = None
+        # Clear remote keys if switching back to local
+        env.pop("DB_IP",   None)
+        env.pop("DB_PORT", None)
 
     # App secrets
     if needs_backend:
@@ -374,29 +377,28 @@ def mode_install():
         env["SEARCH_MODULE"]          = ask("SEARCH_MODULE",          env.get("SEARCH_MODULE",          "true"))
         env["UPDATE_MODULE"]          = ask("UPDATE_MODULE",          env.get("UPDATE_MODULE",          "true"))
         env["UPDATE_WITH_CONNECTION"] = ask("UPDATE_WITH_CONNECTION", env.get("UPDATE_WITH_CONNECTION", "false"))
+        env["RUST_LOG"]               = ask("RUST_LOG (info/debug)",  env.get("RUST_LOG",               "info"))
 
-    # Persist settings
+    # Persist settings and generate compose
     save_env(env)
-    compose_data = build_compose(services, database_url, env)
-    save_compose(compose_data)
+    save_compose(build_compose(services, env))
 
     # Pull images
     if ask_yes("\nPull latest Docker images?", default=True):
         run(["docker", "compose", "pull"])
 
-    # Start postgres first, migrate, then bring up everything else
+    # Start postgres first (if local), migrate, then bring up everything
     if needs_db:
         if local_postgres:
             run(["docker", "compose", "up", "postgres", "-d"])
-            pg_user = env.get("POSTGRES_USER", "user")
-            if wait_for_postgres(pg_user):
-                run_diesel_migrations(localhost_url)
+            if wait_for_postgres(env["POSTGRES_USER"]):
+                run_diesel_migrations(env)
             else:
                 warn("Postgres did not become ready in time.")
-                warn(f"Run manually: cd {DB_SCHEMA} && DATABASE_URL='{localhost_url}' diesel migration run")
+                warn(f"Run manually: cd {DB_SCHEMA} && DATABASE_URL='{migration_url(env)}' diesel migration run")
         else:
             if ask_yes("\nRun diesel migrations against the remote DB now?", default=True):
-                run_diesel_migrations(database_url)
+                run_diesel_migrations(env)
 
     run(["docker", "compose", "up", "-d"])
     success("Installation complete.")
@@ -427,27 +429,7 @@ def mode_update():
         success(f"'{svc}' updated.")
 
     if choice in (2, 4):
-        env = load_env()
-        pg_user = env.get("POSTGRES_USER", "user")
-        pg_pass = env.get("POSTGRES_PASSWORD", "")
-        pg_db   = env.get("POSTGRES_DB", "mine_search_db")
-        # Detect whether postgres is running locally (in compose) or remotely.
-        # Read the actual DATABASE_URL from the generated compose to check the host.
-        local_postgres = False
-        if COMPOSE_FILE.exists():
-            with open(COMPOSE_FILE, encoding="utf-8") as f:
-                existing = yaml.safe_load(f) or {}
-            local_postgres = "postgres" in existing.get("services", {})
-        if local_postgres:
-            migration_url = f"postgres://{pg_user}:{pg_pass}@127.0.0.1:5432/{pg_db}"
-        else:
-            # Remote: read the full URL directly from the compose backend env
-            backend_env = existing.get("services", {}).get("backend", {}).get("environment", {})
-            migration_url = backend_env.get(
-                "DATABASE_URL",
-                f"postgres://{pg_user}:{pg_pass}@127.0.0.1:5432/{pg_db}",
-            )
-        run_diesel_migrations(migration_url)
+        run_diesel_migrations(load_env())
 
     if choice in (3, 4):
         run(["docker", "compose", "build", "frontend"])
@@ -469,11 +451,14 @@ def mode_settings():
         ("POSTGRES_USER",          "PostgreSQL user"),
         ("POSTGRES_PASSWORD",      "PostgreSQL password"),
         ("POSTGRES_DB",            "PostgreSQL database name"),
+        ("DB_IP",                  "Remote DB host (leave blank for local Docker)"),
+        ("DB_PORT",                "Remote DB port"),
         ("BACKEND_PASSWORD",       "Backend API password"),
         ("THREADS",                "Worker threads"),
         ("SEARCH_MODULE",          "Search module enabled (true/false)"),
         ("UPDATE_MODULE",          "Update module enabled (true/false)"),
         ("UPDATE_WITH_CONNECTION", "Update with connection (true/false)"),
+        ("RUST_LOG",               "Worker log level (info/debug)"),
     ]
 
     changed = False
@@ -481,7 +466,10 @@ def mode_settings():
         current = env.get(key, "")
         new_val = ask(label, current)
         if new_val != current:
-            env[key] = new_val
+            if new_val == "":
+                env.pop(key, None)  # remove key entirely when cleared
+            else:
+                env[key] = new_val
             changed = True
 
     if not changed:
@@ -490,24 +478,13 @@ def mode_settings():
 
     save_env(env)
 
-    # Regenerate docker-compose with updated values
+    # Regenerate docker-compose so embedded URLs reflect the new values
     if COMPOSE_FILE.exists():
         with open(COMPOSE_FILE, encoding="utf-8") as f:
             existing = yaml.safe_load(f) or {}
         services = list(existing.get("services", {}).keys())
         if services:
-            local_postgres = "postgres" in services
-            pg_user = env.get("POSTGRES_USER", "user")
-            pg_pass = env.get("POSTGRES_PASSWORD", "")
-            pg_db   = env.get("POSTGRES_DB", "mine_search_db")
-            if local_postgres:
-                database_url = f"postgres://{pg_user}:{pg_pass}@{POSTGRES_CONTAINER}/{pg_db}"
-            else:
-                # Try to reconstruct from existing compose backend env
-                backend_env = existing.get("services", {}).get("backend", {}).get("environment", {})
-                database_url = backend_env.get("DATABASE_URL", "")
-            compose_data = build_compose(services, database_url, env)
-            save_compose(compose_data)
+            save_compose(build_compose(services, env))
 
     if ask_yes("\nRestart services to apply new settings?", default=True):
         check_docker()
