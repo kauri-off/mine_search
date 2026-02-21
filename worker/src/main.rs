@@ -294,6 +294,26 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
 
 #[tokio::main]
 async fn main() {
+    let threads: i32 = env::var("THREADS")
+        .unwrap_or("150".to_string())
+        .parse()
+        .unwrap();
+
+    let search_module: bool = env::var("SEARCH_MODULE")
+        .unwrap_or("true".to_string())
+        .parse()
+        .unwrap_or(true);
+
+    let update_module: bool = env::var("UPDATE_MODULE")
+        .unwrap_or("true".to_string())
+        .parse()
+        .unwrap_or(true);
+
+    let update_with_connection: bool = env::var("UPDATE_WITH_CONNECTION")
+        .unwrap_or("false".to_string())
+        .parse()
+        .unwrap_or(false);
+
     tracing_subscriber::registry()
         .with(fmt::layer())
         .with(
@@ -304,13 +324,7 @@ async fn main() {
         )
         .init();
 
-    info!("Minecraft Lookup started");
-
-    let threads: i32 = env::var("THREADS")
-        .unwrap_or("150".to_string())
-        .parse()
-        .unwrap();
-
+    info!("mine_search starting");
     info!("Threads: {}", threads);
 
     let db = Arc::new(DatabaseWrapper::establish());
@@ -321,35 +335,32 @@ async fn main() {
         .first(&mut db.pool.get().await.unwrap())
         .await
         .unwrap();
+
     debug!("Servers in db: {}", count);
 
+    info!("Search module: {:?}", search_module);
+    info!("Update module: {:?}", update_module);
+
     let (tx, rx) = watch::channel(true);
-    let update_with_connection: bool = env::var("UPDATE_WITH_CONNECTION")
-        .unwrap_or("false".to_string())
-        .parse()
-        .unwrap_or(false);
-    let updater_thread = tokio::spawn(updater(db.clone(), update_with_connection, tx));
 
-    let only_update: bool = env::var("ONLY_UPDATE")
-        .unwrap_or("false".to_string())
-        .parse()
-        .unwrap_or(false);
+    let mut tasks = vec![];
 
-    info!("Only update: {:?}", only_update);
-
-    if !only_update {
-        let mut workers = vec![];
-
+    if search_module {
         for _ in 0..threads {
-            workers.push(tokio::spawn(worker(db.clone(), rx.clone())));
+            tasks.push(tokio::spawn(worker(db.clone(), rx.clone())));
         }
-
-        info!("All threads started");
-
-        for task in workers {
-            let _ = task.await;
-        }
+        info!("All worker threads started");
     }
 
-    updater_thread.await.unwrap();
+    if update_module {
+        tasks.push(tokio::spawn(updater(
+            db.clone(),
+            update_with_connection,
+            tx,
+        )));
+    }
+
+    for task in tasks {
+        let _ = task.await;
+    }
 }

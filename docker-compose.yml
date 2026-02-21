@@ -7,7 +7,8 @@ services:
     environment:
       THREADS: ${THREADS}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
-      ONLY_UPDATE: ${ONLY_UPDATE}
+      SEARCH_MODULE: ${SEARCH_MODULE}
+      UPDATE_MODULE: ${UPDATE_MODULE}
       UPDATE_WITH_CONNECTION: ${UPDATE_WITH_CONNECTION}
       RUST_LOG: debug
     depends_on:
@@ -30,8 +31,8 @@ services:
         condition: service_healthy
     networks:
       - app-network
-    ports:
-      - "127.0.0.1:3000:3000"
+    # ports:
+    #  - "127.0.0.1:3000:3000"
     restart: unless-stopped
 
   frontend:
