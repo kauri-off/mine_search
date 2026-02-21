@@ -4,7 +4,11 @@ use serde_json::json;
 use std::{process::Command, sync::Arc};
 
 #[derive(Parser, Debug)]
-#[command(author, version, about = "Run masscan on port 25565 and post IPs to API")]
+#[command(
+    author,
+    version,
+    about = "Run masscan on port 25565 and post IPs to API"
+)]
 struct Args {
     /// API base endpoint (e.g. https://example.com)
     #[arg(short, long)]
@@ -29,9 +33,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Build client with cookie store
     let jar = Arc::new(Jar::default());
-    let client = Client::builder()
-        .cookie_provider(jar.clone())
-        .build()?;
+    let client = Client::builder().cookie_provider(jar.clone()).build()?;
 
     // Login
     println!("[*] Logging in to {}...", args.endpoint);
@@ -104,14 +106,20 @@ async fn main() -> anyhow::Result<()> {
 }
 
 /// Parse masscan grepable output lines like:
-/// Host: 1.2.3.4 ()	Ports: 25565/open/tcp//minecraft///
+/// Timestamp: 1771711220	Host: 192.168.1.3 ()	Ports: 25565/open/tcp//unknown//
 fn parse_masscan_output(output: &str) -> Vec<String> {
     let mut ips = Vec::new();
     for line in output.lines() {
-        if line.starts_with("Host:") {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() >= 2 {
-                ips.push(parts[1].to_string());
+        // Skip comment lines
+        if line.starts_with('#') {
+            continue;
+        }
+        // Find "Host: <ip>" anywhere in the line
+        if let Some(host_pos) = line.find("Host: ") {
+            let after_host = &line[host_pos + 6..];
+            // IP is the next whitespace-delimited token
+            if let Some(ip) = after_host.split_whitespace().next() {
+                ips.push(ip.to_string());
             }
         }
     }
