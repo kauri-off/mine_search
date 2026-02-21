@@ -13,7 +13,7 @@ pub struct Status {
 }
 
 #[allow(unused)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Players {
     pub online: i64,
     pub max: i64,
@@ -21,7 +21,7 @@ pub struct Players {
 }
 
 #[allow(unused)]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Player {
     pub id: String,
     pub name: String,

@@ -11,8 +11,7 @@ use tokio::{net::TcpStream, time::timeout};
 
 pub async fn check_server(ip: &IpAddr, port: u16) -> anyhow::Result<TcpStream> {
     let addr = format!("{}:{}", ip, port);
-
-    Ok(timeout(Duration::from_secs(2), TcpStream::connect(&addr)).await??)
+    Ok(timeout(Duration::from_millis(750), TcpStream::connect(&addr)).await??)
 }
 
 pub fn generate_random_ip(rng: &mut ChaCha8Rng) -> Ipv4Addr {
@@ -25,20 +24,26 @@ pub fn generate_random_ip(rng: &mut ChaCha8Rng) -> Ipv4Addr {
             continue;
         }
 
-        if !is_private_ip(octets) {
+        if !is_reserved_ip(octets) {
             return ip;
         }
     }
 }
 
 #[inline(always)]
-fn is_private_ip(octets: [u8; 4]) -> bool {
+fn is_reserved_ip(octets: [u8; 4]) -> bool {
     match octets[0] {
-        10 => true,                                // 10.0.0.0/8
-        127 => true,                               // 127.0.0.0/8 (Loopback)
-        172 => octets[1] >= 16 && octets[1] <= 31, // 172.16.0.0/12
-        192 => octets[1] == 168,                   // 192.168.0.0/16
-        169 => octets[1] == 254,                   // 169.254.0.0/16 (Link-local)
+        10 => true,                                                    // 10.0.0.0/8
+        127 => true,                                                   // 127.0.0.0/8 (loopback)
+        172 => octets[1] >= 16 && octets[1] <= 31,                     // 172.16.0.0/12
+        192 => octets[1] == 168 || (octets[1] == 0 && octets[2] == 2), // 192.168.0.0/16 + 192.0.2.0/24
+        169 => octets[1] == 254, // 169.254.0.0/16 (link-local)
+        100 => octets[1] >= 64 && octets[1] <= 127, // 100.64.0.0/10 (CGNAT)
+        198 => {
+            (octets[1] == 18 || octets[1] == 19)            // 198.18.0.0/15 (benchmarking)
+            || (octets[1] == 51 && octets[2] == 100) // 198.51.100.0/24 (documentation)
+        }
+        203 => octets[1] == 0 && octets[2] == 113, // 203.0.113.0/24 (documentation)
         _ => false,
     }
 }

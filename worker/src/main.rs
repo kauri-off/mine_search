@@ -1,4 +1,4 @@
-use std::{collections::HashSet, env, net::IpAddr, sync::Arc, time::Duration};
+use std::{env, net::IpAddr, sync::Arc, time::Duration};
 
 use chrono::Utc;
 use database::DatabaseWrapper;
@@ -13,13 +13,13 @@ use tokio::{
     sync::{Semaphore, watch},
     time::timeout,
 };
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use worker::{check_server, description_to_str, generate_random_ip};
 
 use db_schema::{
     models::{
-        data::{DataInsert, DataModelMini},
+        data::DataInsert,
         ip::IpModel,
         servers::{ServerExtraUpdate, ServerInsert, ServerModel, ServerModelMini, ServerUpdate},
     },
@@ -52,12 +52,16 @@ pub async fn handle_valid_ip(
         unique_players: status.players.online as i32,
     };
 
-    let mut conn = db.pool.get().await.unwrap();
+    let mut conn = db.pool.get().await?;
 
     let server: ServerModel = insert_into(schema::servers::table)
-        .values(server_insert)
+        .values(&server_insert)
         .on_conflict(schema::servers::ip)
-        .do_nothing()
+        .do_update()
+        .set((
+            schema::servers::updated.eq(Utc::now()),
+            schema::servers::was_online.eq(true),
+        ))
         .returning(ServerModel::as_returning())
         .get_result(&mut conn)
         .await?;
@@ -128,51 +132,38 @@ async fn worker(db: Arc<DatabaseWrapper>, mut pause_watcher: watch::Receiver<boo
 
 async fn updater(db: Arc<DatabaseWrapper>, with_connection: bool, pause_tx: watch::Sender<bool>) {
     loop {
+        tokio::time::sleep(Duration::from_secs(600)).await;
         info!(target: "updater", "Stopping workers...");
         let _ = pause_tx.send(false);
         tokio::time::sleep(Duration::from_secs(20)).await;
-        let mut conn = db.pool.get().await.unwrap();
 
-        let ips: Vec<IpModel> = crate::schema::ips::table
-            .select(IpModel::as_select())
-            .load(&mut conn)
-            .await
-            .unwrap();
-
-        diesel::delete(crate::schema::ips::table)
-            .execute(&mut conn)
-            .await
-            .unwrap();
-
-        let semaphore = Arc::new(Semaphore::new(10));
-
-        let handles = ips.into_iter().map(|value| {
-            let permit = semaphore.clone().acquire_owned();
-            let th_db = db.clone();
-
-            tokio::spawn(async move {
-                let _permit = permit.await;
-                if let Ok(ip) = value.ip.parse() {
-                    let port = value.port as u16;
-
-                    if let Err(e) = handle_valid_ip(&ip, port, th_db, None).await {
-                        error!("Failed to handle IP {ip}:{port}: {e}");
-                    }
-                };
-            })
-        });
-
-        for handle in handles {
-            let _ = handle.await;
+        if let Err(e) = process_external_ips(db.clone()).await {
+            error!(target: "updater", "Error processing external IPs: {}", e);
         }
 
         info!(target: "updater", "Starting update cycle...");
 
-        let servers: Vec<ServerModelMini> = schema::servers::table
-            .select(ServerModelMini::as_select())
-            .load(&mut conn)
-            .await
-            .unwrap();
+        let servers: Vec<ServerModelMini> = match db.pool.get().await {
+            Ok(mut conn) => {
+                match schema::servers::table
+                    .select(ServerModelMini::as_select())
+                    .load(&mut conn)
+                    .await
+                {
+                    Ok(s) => s,
+                    Err(e) => {
+                        error!(target: "updater", "Failed to load servers: {}", e);
+                        let _ = pause_tx.send(true);
+                        continue;
+                    }
+                }
+            }
+            Err(e) => {
+                error!(target: "updater", "Failed to get DB connection: {}", e);
+                let _ = pause_tx.send(true);
+                continue;
+            }
+        };
 
         let semaphore = Arc::new(Semaphore::new(50));
 
@@ -195,8 +186,52 @@ async fn updater(db: Arc<DatabaseWrapper>, with_connection: bool, pause_tx: watc
 
         info!(target: "updater", "Update cycle finished. Resuming workers.");
         let _ = pause_tx.send(true);
-        tokio::time::sleep(Duration::from_secs(600)).await;
     }
+}
+
+async fn process_external_ips(db: Arc<DatabaseWrapper>) -> anyhow::Result<()> {
+    let mut conn = db.pool.get().await?;
+
+    let ips: Vec<IpModel> = crate::schema::ips::table
+        .select(IpModel::as_select())
+        .load(&mut conn)
+        .await?;
+
+    if ips.is_empty() {
+        return Ok(());
+    }
+
+    diesel::delete(crate::schema::ips::table)
+        .execute(&mut conn)
+        .await?;
+
+    drop(conn);
+
+    let semaphore = Arc::new(Semaphore::new(10));
+
+    let handles: Vec<_> = ips
+        .into_iter()
+        .map(|value| {
+            let permit = semaphore.clone().acquire_owned();
+            let th_db = db.clone();
+
+            tokio::spawn(async move {
+                let _permit = permit.await;
+                if let Ok(ip) = value.ip.parse() {
+                    let port = value.port as u16;
+                    if let Err(e) = handle_valid_ip(&ip, port, th_db, None).await {
+                        error!("Failed to handle external IP {ip}:{port}: {e}");
+                    }
+                }
+            })
+        })
+        .collect();
+
+    for handle in handles {
+        let _ = handle.await;
+    }
+
+    Ok(())
 }
 
 async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_connection: bool) {
@@ -206,90 +241,133 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
     )
     .await
     {
-        Ok(Ok(b)) => b,
-        _ => {
-            diesel::update(schema::servers::table)
-                .filter(schema::servers::id.eq(&server.id))
-                .set(schema::servers::was_online.eq(false))
-                .execute(&mut db.pool.get().await.unwrap())
-                .await
-                .unwrap();
+        Ok(Ok(s)) => s,
+        Ok(Err(e)) => {
+            debug!("Server {}:{} offline: {}", server.ip, server.port, e);
+            if let Ok(mut conn) = db.pool.get().await {
+                let _ = diesel::update(schema::servers::table)
+                    .filter(schema::servers::id.eq(&server.id))
+                    .set(schema::servers::was_online.eq(false))
+                    .execute(&mut conn)
+                    .await;
+            }
+            return;
+        }
+        Err(_) => {
+            warn!("Timeout updating {}:{}", server.ip, server.port);
+            if let Ok(mut conn) = db.pool.get().await {
+                let _ = diesel::update(schema::servers::table)
+                    .filter(schema::servers::id.eq(&server.id))
+                    .set(schema::servers::was_online.eq(false))
+                    .execute(&mut conn)
+                    .await;
+            }
             return;
         }
     };
+
+    let players_json = json!(
+        status
+            .players
+            .sample
+            .unwrap_or_default()
+            .into_iter()
+            .map(|t| t.name)
+            .collect::<Vec<String>>()
+    );
 
     let data_insert = DataInsert {
         server_id: server.id,
         online: status.players.online as i32,
         max: status.players.max as i32,
-        players: &json!(
-            status
-                .players
-                .sample
-                .unwrap_or_default()
-                .into_iter()
-                .map(|t| t.name)
-                .collect::<Vec<String>>()
-        ),
+        players: &players_json,
     };
-    let mut conn = db.pool.get().await.unwrap();
 
-    insert_into(schema::data::table)
+    let mut conn = match db.pool.get().await {
+        Ok(c) => c,
+        Err(e) => {
+            error!("Failed to get DB connection for {}: {}", server.ip, e);
+            return;
+        }
+    };
+
+    if let Err(e) = insert_into(schema::data::table)
         .values(data_insert)
         .execute(&mut conn)
         .await
-        .unwrap();
+    {
+        error!("Failed to insert data for {}: {}", server.ip, e);
+        return;
+    }
 
-    let players_list = schema::data::table
-        .filter(schema::data::server_id.eq(server.id))
-        .select(DataModelMini::as_select())
-        .load(&mut conn)
-        .await
-        .unwrap();
-
-    let unique_players = players_list
-        .iter()
-        .filter_map(|t| t.players.as_array())
-        .flatten()
-        .filter_map(|t| t.as_str())
-        .collect::<HashSet<_>>()
-        .len() as i32;
+    // Compute unique_players with SQL COUNT DISTINCT rather than pulling all
+    // historical data rows into Rust memory and collecting a HashSet — the old
+    // approach gets very slow as the data table grows.
+    let unique_players: i64 = match diesel::sql_query(
+        "SELECT COUNT(DISTINCT player)::bigint AS count \
+         FROM data, jsonb_array_elements_text(players) AS player \
+         WHERE server_id = $1",
+    )
+    .bind::<diesel::sql_types::Integer, _>(server.id)
+    .get_result::<UniquePlayerCount>(&mut conn)
+    .await
+    {
+        Ok(r) => r.count,
+        Err(e) => {
+            warn!("Could not compute unique_players for {}: {}", server.ip, e);
+            0
+        }
+    };
 
     let server_change = ServerUpdate {
         description: &status.description,
         updated: Utc::now(),
         was_online: true,
-        unique_players,
+        unique_players: unique_players as i32,
     };
 
-    diesel::update(schema::servers::table)
+    if let Err(e) = diesel::update(schema::servers::table)
         .filter(schema::servers::id.eq(server.id))
         .set(server_change)
         .execute(&mut conn)
         .await
-        .unwrap();
+    {
+        error!("Failed to update server {}: {}", server.ip, e);
+    }
 
     if with_connection {
-        if let Ok(extra_data) = get_extra_data(
-            format!("{}", server.ip),
+        match get_extra_data(
+            server.ip.clone(),
             server.port as u16,
             status.version.protocol as i32,
         )
         .await
         {
-            let server_extra_change = ServerExtraUpdate {
-                license: extra_data.license,
-                disconnect_reason: extra_data.disconnect_reason,
-            };
+            Ok(extra_data) => {
+                let server_extra_change = ServerExtraUpdate {
+                    license: extra_data.license,
+                    disconnect_reason: extra_data.disconnect_reason,
+                };
 
-            diesel::update(schema::servers::table)
-                .filter(schema::servers::id.eq(server.id))
-                .set(server_extra_change)
-                .execute(&mut conn)
-                .await
-                .unwrap();
+                if let Err(e) = diesel::update(schema::servers::table)
+                    .filter(schema::servers::id.eq(server.id))
+                    .set(server_extra_change)
+                    .execute(&mut conn)
+                    .await
+                {
+                    error!("Failed to update extra data for {}: {}", server.ip, e);
+                }
+            }
+            Err(e) => debug!("Could not get extra data for {}: {}", server.ip, e),
         }
     }
+}
+
+/// Used for the raw SQL unique_players query result.
+#[derive(diesel::QueryableByName)]
+struct UniquePlayerCount {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    count: i64,
 }
 
 #[tokio::main]
