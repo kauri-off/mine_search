@@ -215,9 +215,11 @@ async fn process_external_ips(db: Arc<DatabaseWrapper>) -> anyhow::Result<()> {
                 let _permit = permit.await;
                 if let Ok(ip) = value.ip.parse() {
                     let port = value.port as u16;
-                    if let Err(e) = handle_valid_ip(&ip, port, th_db, None).await {
-                        error!("Failed to handle external IP {ip}:{port}: {e}");
-                    }
+                    let _ = timeout(
+                        Duration::from_secs(10),
+                        handle_valid_ip(&ip, port, th_db, None),
+                    )
+                    .await;
                 }
             })
         })
