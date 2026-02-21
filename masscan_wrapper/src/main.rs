@@ -18,13 +18,28 @@ struct Args {
     #[arg(short, long)]
     password: String,
 
-    /// Target range to scan (e.g. 0.0.0.0/0)
-    #[arg(short, long, default_value = "0.0.0.0/0")]
-    range: String,
+    #[command(subcommand)]
+    command: SubCommand,
+}
 
-    /// Masscan rate (packets per second)
-    #[arg(short = 'R', long, default_value = "10000")]
-    rate: u32,
+#[derive(clap::Subcommand, Debug)]
+enum SubCommand {
+    /// Run masscan automatically and send results to the API
+    Scan {
+        /// Target range to scan (e.g. 192.168.1.0/24)
+        #[arg(short, long)]
+        range: String,
+
+        /// Masscan rate (packets per second)
+        #[arg(short = 'R', long, default_value = "10000")]
+        rate: u32,
+    },
+    /// Import IPs from a previously saved masscan grepable output file
+    Import {
+        /// Path to masscan -oG output file
+        #[arg(short, long)]
+        file: String,
+    },
 }
 
 #[tokio::main]
@@ -50,28 +65,61 @@ async fn main() -> anyhow::Result<()> {
     }
     println!("[+] Logged in successfully.");
 
-    // Run masscan
-    println!("[*] Running masscan on {} port 25565...", args.range);
-    let output = Command::new("masscan")
-        .args([
-            &args.range,
-            "-p25565",
-            "--rate",
-            &args.rate.to_string(),
-            "-oG", // grepable output
-            "-",
-        ])
-        .output()?;
+    // Get IPs either from file or by running masscan
+    let ips = match &args.command {
+        SubCommand::Import { file } => {
+            println!("[*] Reading masscan output from {}...", file);
+            let contents = std::fs::read_to_string(file)?;
+            parse_masscan_output(&contents)
+        }
+        SubCommand::Scan { range, rate } => {
+            println!("[*] Running masscan on {} port 25565...", range);
+            let output = Command::new("masscan")
+                .args([
+                    range.as_str(),
+                    "-p25565",
+                    "--rate",
+                    &rate.to_string(),
+                    "-oG",
+                    "-",
+                ])
+                .output()?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        eprintln!("[-] masscan failed: {}", stderr);
-        std::process::exit(1);
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                eprintln!("[-] masscan failed: {}", stderr);
+                std::process::exit(1);
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            parse_masscan_output(&stdout)
+        }
+    };
+    println!("[+] Found {} IPs.", ips.len());
+
+    if ips.is_empty() {
+        println!("[*] Nothing to do.");
+        return Ok(());
     }
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let ips = parse_masscan_output(&stdout);
-    println!("[+] Found {} IPs.", ips.len());
+    println!("\nIPs to be added:");
+    for ip in &ips {
+        println!("  {}", ip);
+    }
+
+    print!(
+        "\nAdd these {} IP(s) to {}? [y/N] ",
+        ips.len(),
+        args.endpoint
+    );
+    std::io::Write::flush(&mut std::io::stdout())?;
+
+    let mut input = String::new();
+    std::io::BufRead::read_line(&mut std::io::stdin().lock(), &mut input)?;
+    if input.trim().to_lowercase() != "y" {
+        println!("[-] Aborted.");
+        return Ok(());
+    }
 
     // Post each IP
     let add_url = format!("{}/api/v1/ip/add", args.endpoint);
