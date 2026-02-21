@@ -347,6 +347,7 @@ def mode_install():
 
     services       = pick_services()
     local_postgres = "postgres" in services
+    needs_backend  = "backend" in services
     needs_db       = any(s in services for s in ("worker", "backend"))
 
     env = load_env()
@@ -364,7 +365,7 @@ def mode_install():
         localhost_url = None
 
     # App secrets
-    if needs_db:
+    if needs_backend:
         env["BACKEND_PASSWORD"] = ask("BACKEND_PASSWORD", env.get("BACKEND_PASSWORD", "CHANGE_THIS"))
 
     # Worker tuning
