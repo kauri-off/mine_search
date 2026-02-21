@@ -15,11 +15,49 @@
 | Backend  | Rust, Axum, Diesel, PostgreSQL                                     |
 | Worker   | Rust, Tokio, Diesel, PostgreSQL                                    |
 
-## Installation
+# Installation
 
+## Prerequisites
+
+Ensure you have **Python 3** installed. Download it from [python.org](https://www.python.org/downloads/).
+
+## 1. Create a Virtual Environment
+
+Create a `.venv` in the project root:
+
+```bash
+python -m venv .venv
 ```
-py setup.py
+
+## 2. Activate the Virtual Environment
+
+**Windows:**
+
+```bash
+.venv\Scripts\activate
 ```
+
+**macOS / Linux:**
+
+```bash
+source .venv/bin/activate
+```
+
+## 3. Install Dependencies
+
+Install the required packages:
+
+```bash
+pip install -r requirements.txt
+```
+
+## 4. Run Setup
+
+```bash
+python setup.py
+```
+
+> 💡 To deactivate the virtual environment when you're done, simply run `deactivate`.
 
 ## Screenshots
 

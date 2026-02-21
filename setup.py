@@ -11,14 +11,8 @@ import time
 import shutil
 import subprocess
 from pathlib import Path
+import yaml
 
-# ── Auto-install PyYAML ───────────────────────────────────────────────────────
-try:
-    import yaml
-except ImportError:
-    print("PyYAML not found. Installing...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyyaml"])
-    import yaml
 
 # ── ANSI colours ──────────────────────────────────────────────────────────────
 RESET  = "\033[0m"
