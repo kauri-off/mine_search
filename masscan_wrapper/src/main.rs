@@ -1,6 +1,6 @@
 use clap::Parser;
 use reqwest::{Client, cookie::Jar};
-use serde_json::json;
+use serde_json::{Value, json};
 use std::{process::Command, sync::Arc};
 
 #[derive(Parser, Debug)]
@@ -121,35 +121,12 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    // Post each IP
-    let add_url = format!("{}/api/v1/ip/add", args.endpoint);
-    let mut success = 0;
-    let mut failed = 0;
+    let add_url = format!("{}/api/v1/ip/add_list", args.endpoint);
 
-    for ip in &ips {
-        let res = client
-            .post(&add_url)
-            .json(&json!({ "ip": ip }))
-            .send()
-            .await;
+    let ips: Vec<Value> = ips.into_iter().map(|ip| json!({ "ip": ip })).collect();
+    client.post(&add_url).json(&ips).send().await?;
 
-        match res {
-            Ok(r) if r.status().is_success() => {
-                println!("[+] Added {}", ip);
-                success += 1;
-            }
-            Ok(r) => {
-                eprintln!("[-] Failed to add {} - status: {}", ip, r.status());
-                failed += 1;
-            }
-            Err(e) => {
-                eprintln!("[-] Error adding {}: {}", ip, e);
-                failed += 1;
-            }
-        }
-    }
-
-    println!("\n[*] Done. {} added, {} failed.", success, failed);
+    println!("[*] Done.");
     Ok(())
 }
 
