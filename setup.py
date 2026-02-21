@@ -322,15 +322,8 @@ def wait_for_postgres(pg_user, retries=20, delay=3):
     print()
     return False
 
-def run_diesel_migrations(database_url, localhost_url=None):
-    """
-    Run diesel migrations from the db_schema/ directory.
-
-    database_url  – the URL stored in docker-compose (uses container hostname).
-    localhost_url – URL reachable from the host machine (127.0.0.1:5432).
-                   Diesel runs on the host, so it must use localhost_url when
-                   postgres is a local Docker container.
-    """
+def run_diesel_migrations(url):
+    """Run diesel migrations from the db_schema/ directory using the given URL."""
     header("DIESEL MIGRATIONS")
 
     if not DB_SCHEMA.is_dir():
@@ -339,10 +332,9 @@ def run_diesel_migrations(database_url, localhost_url=None):
 
     check_diesel()
 
-    migration_url = localhost_url if localhost_url else database_url
     run(
         ["diesel", "migration", "run"],
-        extra_env={"DATABASE_URL": migration_url},
+        extra_env={"DATABASE_URL": url},
         cwd=str(DB_SCHEMA),
     )
     success("Diesel migrations applied.")
@@ -435,12 +427,26 @@ def mode_update():
 
     if choice in (2, 4):
         env = load_env()
-        # Build DATABASE_URL from saved .env values
         pg_user = env.get("POSTGRES_USER", "user")
         pg_pass = env.get("POSTGRES_PASSWORD", "")
         pg_db   = env.get("POSTGRES_DB", "mine_search_db")
-        database_url = f"postgres://{pg_user}:{pg_pass}@{POSTGRES_CONTAINER}/{pg_db}"
-        run_diesel_migrations(database_url)
+        # Detect whether postgres is running locally (in compose) or remotely.
+        # Read the actual DATABASE_URL from the generated compose to check the host.
+        local_postgres = False
+        if COMPOSE_FILE.exists():
+            with open(COMPOSE_FILE, encoding="utf-8") as f:
+                existing = yaml.safe_load(f) or {}
+            local_postgres = "postgres" in existing.get("services", {})
+        if local_postgres:
+            migration_url = f"postgres://{pg_user}:{pg_pass}@127.0.0.1:5432/{pg_db}"
+        else:
+            # Remote: read the full URL directly from the compose backend env
+            backend_env = existing.get("services", {}).get("backend", {}).get("environment", {})
+            migration_url = backend_env.get(
+                "DATABASE_URL",
+                f"postgres://{pg_user}:{pg_pass}@127.0.0.1:5432/{pg_db}",
+            )
+        run_diesel_migrations(migration_url)
 
     if choice in (3, 4):
         run(["docker", "compose", "build", "frontend"])
