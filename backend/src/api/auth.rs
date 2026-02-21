@@ -54,7 +54,6 @@ pub async fn authenticate_user(
     let cookie = Cookie::build(("token", &jwt))
         .path("/api")
         .http_only(true)
-        .secure(true)
         .same_site(SameSite::Strict)
         .max_age(time::Duration::days(30));
 
