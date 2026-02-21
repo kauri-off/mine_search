@@ -1,4 +1,4 @@
-use std::{env, net::IpAddr, sync::Arc, time::Duration};
+use std::{collections::HashSet, env, net::IpAddr, sync::Arc, time::Duration};
 
 use chrono::Utc;
 use database::DatabaseWrapper;
@@ -13,13 +13,13 @@ use tokio::{
     sync::{Semaphore, watch},
     time::timeout,
 };
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use worker::{check_server, description_to_str, generate_random_ip};
 
 use db_schema::{
     models::{
-        data::DataInsert,
+        data::{DataInsert, DataModelMini},
         ip::IpModel,
         servers::{ServerExtraUpdate, ServerInsert, ServerModel, ServerModelMini, ServerUpdate},
     },
@@ -242,19 +242,8 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
     .await
     {
         Ok(Ok(s)) => s,
-        Ok(Err(e)) => {
-            debug!("Server {}:{} offline: {}", server.ip, server.port, e);
-            if let Ok(mut conn) = db.pool.get().await {
-                let _ = diesel::update(schema::servers::table)
-                    .filter(schema::servers::id.eq(&server.id))
-                    .set(schema::servers::was_online.eq(false))
-                    .execute(&mut conn)
-                    .await;
-            }
-            return;
-        }
-        Err(_) => {
-            warn!("Timeout updating {}:{}", server.ip, server.port);
+        Err(_) | Ok(_) => {
+            debug!("Timeout updating {}:{}", server.ip, server.port);
             if let Ok(mut conn) = db.pool.get().await {
                 let _ = diesel::update(schema::servers::table)
                     .filter(schema::servers::id.eq(&server.id))
@@ -283,57 +272,42 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
         players: &players_json,
     };
 
-    let mut conn = match db.pool.get().await {
-        Ok(c) => c,
-        Err(e) => {
-            error!("Failed to get DB connection for {}: {}", server.ip, e);
-            return;
-        }
-    };
+    let mut conn = db.pool.get().await.unwrap();
 
-    if let Err(e) = insert_into(schema::data::table)
+    insert_into(schema::data::table)
         .values(data_insert)
         .execute(&mut conn)
         .await
-    {
-        error!("Failed to insert data for {}: {}", server.ip, e);
-        return;
-    }
+        .unwrap();
 
-    // Compute unique_players with SQL COUNT DISTINCT rather than pulling all
-    // historical data rows into Rust memory and collecting a HashSet — the old
-    // approach gets very slow as the data table grows.
-    let unique_players: i64 = match diesel::sql_query(
-        "SELECT COUNT(DISTINCT player)::bigint AS count \
-         FROM data, jsonb_array_elements_text(players) AS player \
-         WHERE server_id = $1",
-    )
-    .bind::<diesel::sql_types::Integer, _>(server.id)
-    .get_result::<UniquePlayerCount>(&mut conn)
-    .await
-    {
-        Ok(r) => r.count,
-        Err(e) => {
-            warn!("Could not compute unique_players for {}: {}", server.ip, e);
-            0
-        }
-    };
+    let players_list = schema::data::table
+        .filter(schema::data::server_id.eq(server.id))
+        .select(DataModelMini::as_select())
+        .load(&mut conn)
+        .await
+        .unwrap();
+
+    let unique_players = players_list
+        .iter()
+        .filter_map(|t| t.players.as_array())
+        .flatten()
+        .filter_map(|t| t.as_str())
+        .collect::<HashSet<_>>()
+        .len() as i32;
 
     let server_change = ServerUpdate {
         description: &status.description,
         updated: Utc::now(),
         was_online: true,
-        unique_players: unique_players as i32,
+        unique_players,
     };
 
-    if let Err(e) = diesel::update(schema::servers::table)
+    diesel::update(schema::servers::table)
         .filter(schema::servers::id.eq(server.id))
         .set(server_change)
         .execute(&mut conn)
         .await
-    {
-        error!("Failed to update server {}: {}", server.ip, e);
-    }
+        .unwrap();
 
     if with_connection {
         match get_extra_data(
@@ -361,13 +335,6 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
             Err(e) => debug!("Could not get extra data for {}: {}", server.ip, e),
         }
     }
-}
-
-/// Used for the raw SQL unique_players query result.
-#[derive(diesel::QueryableByName)]
-struct UniquePlayerCount {
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    count: i64,
 }
 
 #[tokio::main]
