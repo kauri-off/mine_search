@@ -1,13 +1,13 @@
 use clap::Parser;
 use reqwest::{Client, cookie::Jar};
 use serde_json::{Value, json};
-use std::{process::Command, sync::Arc};
+use std::sync::Arc;
 
 #[derive(Parser, Debug)]
 #[command(
     author,
     version,
-    about = "Run masscan on port 25565 and post IPs to API"
+    about = "Import IPs from a masscan output file and post them to the API"
 )]
 struct Args {
     /// API base endpoint (e.g. https://example.com)
@@ -18,28 +18,9 @@ struct Args {
     #[arg(short, long)]
     password: String,
 
-    #[command(subcommand)]
-    command: SubCommand,
-}
-
-#[derive(clap::Subcommand, Debug)]
-enum SubCommand {
-    /// Run masscan automatically and send results to the API
-    Scan {
-        /// Target range to scan (e.g. 192.168.1.0/24)
-        #[arg(short, long)]
-        range: String,
-
-        /// Masscan rate (packets per second)
-        #[arg(short = 'R', long, default_value = "10000")]
-        rate: u32,
-    },
-    /// Import IPs from a previously saved masscan grepable output file
-    Import {
-        /// Path to masscan -oG output file
-        #[arg(short, long)]
-        file: String,
-    },
+    /// Path to masscan -oG output file
+    #[arg(short, long)]
+    file: String,
 }
 
 #[tokio::main]
@@ -65,46 +46,20 @@ async fn main() -> anyhow::Result<()> {
     }
     println!("[+] Logged in successfully.");
 
-    // Get IPs either from file or by running masscan
-    let ips = match &args.command {
-        SubCommand::Import { file } => {
-            println!("[*] Reading masscan output from {}...", file);
-            let contents = std::fs::read_to_string(file)?;
-            parse_masscan_output(&contents)
-        }
-        SubCommand::Scan { range, rate } => {
-            println!("[*] Running masscan on {} port 25565...", range);
-            let output = Command::new("masscan")
-                .args([
-                    range.as_str(),
-                    "-p25565",
-                    "--rate",
-                    &rate.to_string(),
-                    "-oG",
-                    "-",
-                ])
-                .output()?;
+    println!("[*] Reading masscan output from {}...", args.file);
+    let contents = std::fs::read_to_string(&args.file)?;
+    let ips = parse_masscan_output(&contents);
 
-            if !output.status.success() {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                eprintln!("[-] masscan failed: {}", stderr);
-                std::process::exit(1);
-            }
-
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            parse_masscan_output(&stdout)
-        }
-    };
     println!("[+] Found {} IPs.", ips.len());
 
     if ips.is_empty() {
         println!("[*] Nothing to do.");
+        println!(
+            "[!] Tip: Generate an input file with:\n    \
+             sudo masscan <range> -p25565 --rate 10000 -oG output.txt\n    \
+             Then re-run this tool with --file output.txt"
+        );
         return Ok(());
-    }
-
-    println!("\nIPs to be added:");
-    for ip in &ips {
-        println!("  {}", ip);
     }
 
     print!(
@@ -122,9 +77,8 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let add_url = format!("{}/api/v1/ip/add_list", args.endpoint);
-
-    let ips: Vec<Value> = ips.into_iter().map(|ip| json!({ "ip": ip })).collect();
-    client.post(&add_url).json(&ips).send().await?;
+    let body: Vec<Value> = ips.into_iter().map(|ip| json!({ "ip": ip })).collect();
+    client.post(&add_url).json(&body).send().await?;
 
     println!("[*] Done.");
     Ok(())
@@ -135,14 +89,11 @@ async fn main() -> anyhow::Result<()> {
 fn parse_masscan_output(output: &str) -> Vec<String> {
     let mut ips = Vec::new();
     for line in output.lines() {
-        // Skip comment lines
         if line.starts_with('#') {
             continue;
         }
-        // Find "Host: <ip>" anywhere in the line
         if let Some(host_pos) = line.find("Host: ") {
             let after_host = &line[host_pos + 6..];
-            // IP is the next whitespace-delimited token
             if let Some(ip) = after_host.split_whitespace().next() {
                 ips.push(ip.to_string());
             }
