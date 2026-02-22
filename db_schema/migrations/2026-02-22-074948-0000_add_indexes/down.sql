@@ -1,0 +1,9 @@
+DROP INDEX IF EXISTS idx_servers_ip;
+DROP INDEX IF EXISTS idx_servers_license;
+DROP INDEX IF EXISTS idx_servers_checked;
+DROP INDEX IF EXISTS idx_servers_spoofable;
+DROP INDEX IF EXISTS idx_servers_crashed;
+DROP INDEX IF EXISTS idx_servers_was_online;
+DROP INDEX IF EXISTS idx_servers_unique_players;
+DROP INDEX IF EXISTS idx_data_server_id_id;
+DROP INDEX IF EXISTS idx_ips_ip_port;
