@@ -14,6 +14,97 @@ import {
 import { format } from "date-fns";
 import type { UpdateRequest } from "../types/UpdateRequest";
 
+const CopyButton = ({ text }: { text: string }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback for older browsers
+      const el = document.createElement("textarea");
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      title={copied ? "Copied!" : "Copy IP"}
+      className={`
+        relative inline-flex items-center justify-center
+        w-7 h-7 rounded-md transition-all duration-200
+        ${
+          copied
+            ? "bg-green-500/20 text-green-400 scale-95"
+            : "bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-white"
+        }
+      `}
+    >
+      {copied ? (
+        /* Checkmark icon */
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-4 h-4 animate-[pop_0.2s_ease-out]"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ animation: "pop 0.2s ease-out" }}
+        >
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ) : (
+        /* Clipboard icon */
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-4 h-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="9" y="2" width="6" height="4" rx="1" ry="1" />
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+        </svg>
+      )}
+
+      {/* Tooltip */}
+      <span
+        className={`
+          absolute -top-8 left-1/2 -translate-x-1/2
+          text-xs px-2 py-1 rounded bg-gray-900 border border-gray-700
+          whitespace-nowrap pointer-events-none
+          transition-opacity duration-150
+          ${copied ? "opacity-100" : "opacity-0"}
+        `}
+      >
+        Copied!
+      </span>
+
+      <style>{`
+        @keyframes pop {
+          0%   { transform: scale(0.6); opacity: 0.5; }
+          60%  { transform: scale(1.2); }
+          100% { transform: scale(1);   opacity: 1; }
+        }
+      `}</style>
+    </button>
+  );
+};
+
 export const ServerDetail = () => {
   const { ip } = useParams<{ ip: string }>();
   const navigate = useNavigate();
@@ -104,7 +195,11 @@ export const ServerDetail = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-            <h1 className="text-2xl font-bold break-all mb-2">{server.ip}</h1>
+            {/* IP + Copy button */}
+            <div className="flex items-center gap-2 mb-2">
+              <h1 className="text-2xl font-bold break-all">{server.ip}</h1>
+              <CopyButton text={server.ip} />
+            </div>
             <p className="text-gray-400 mb-4">{server.version_name}</p>
 
             <div className="space-y-3">
