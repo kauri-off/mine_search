@@ -19,11 +19,18 @@ pub async fn add_ips(
         })
         .collect();
 
-    insert_into(schema::ips::table)
-        .values(new_ips)
-        .execute(&mut db.pool.get().await.unwrap())
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut conn = db.pool.get().await.unwrap();
+
+    for chunk in new_ips.chunks(1000) {
+        insert_into(schema::ips::table)
+            .values(chunk)
+            .execute(&mut conn)
+            .await
+            .map_err(|e| {
+                tracing::error!("DB insert failed: {e}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+    }
 
     Ok(StatusCode::OK)
 }
