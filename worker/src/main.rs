@@ -2,7 +2,7 @@ use std::{collections::HashSet, env, net::IpAddr, sync::Arc, time::Duration};
 
 use chrono::Utc;
 use database::DatabaseWrapper;
-use diesel::{dsl::insert_into, prelude::*};
+use diesel::{dsl::insert_into, pg::Pg, prelude::*, sql_types::Bool};
 use diesel_async::RunQueryDsl;
 use rand::{SeedableRng, rngs::SysRng};
 use rand_chacha::ChaCha8Rng;
@@ -135,6 +135,7 @@ async fn updater(
     with_connection: bool,
     pause_tx: watch::Sender<bool>,
     search_module: bool,
+    only_update_spoofable: bool,
 ) {
     loop {
         if search_module {
@@ -149,7 +150,14 @@ async fn updater(
 
         info!(target: "updater", "Starting update cycle");
 
+        let spoofable_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
+            match only_update_spoofable {
+                true => Box::new(schema::servers::spoofable.assume_not_null().eq(true)),
+                false => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+            };
+
         let servers: Vec<ServerModelMini> = schema::servers::table
+            .filter(spoofable_filter)
             .select(ServerModelMini::as_select())
             .load(&mut db.pool.get().await.unwrap())
             .await
@@ -358,6 +366,11 @@ async fn main() {
         .parse()
         .unwrap_or(false);
 
+    let only_update_spoofable: bool = env::var("ONLY_UPDATE_SPOOFABLE")
+        .unwrap_or("false".to_string())
+        .parse()
+        .unwrap_or(false);
+
     tracing_subscriber::registry()
         .with(fmt::layer())
         .with(
@@ -385,6 +398,10 @@ async fn main() {
     info!("Search module: {:?}", search_module);
     info!("Update module: {:?}", update_module);
 
+    if update_module {
+        info!("Only update spoofable: {:?}", only_update_spoofable);
+    }
+
     let (tx, rx) = watch::channel(true);
 
     let mut tasks = vec![];
@@ -402,6 +419,7 @@ async fn main() {
             update_with_connection,
             tx,
             search_module,
+            only_update_spoofable,
         )));
     }
 

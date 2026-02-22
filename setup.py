@@ -188,6 +188,7 @@ def _worker_svc(env, local_postgres):
             "UPDATE_MODULE":          env["UPDATE_MODULE"],
             "UPDATE_WITH_CONNECTION": env["UPDATE_WITH_CONNECTION"],
             "RUST_LOG":               env["RUST_LOG"],
+            "ONLY_UPDATE_SPOOFABLE":  env["ONLY_UPDATE_SPOOFABLE"]
         },
         "networks": [APP_NETWORK],
         "restart":  "unless-stopped",
@@ -372,6 +373,7 @@ def mode_install():
         env["UPDATE_MODULE"]          = ask("UPDATE_MODULE",          env.get("UPDATE_MODULE",          "true"))
         env["UPDATE_WITH_CONNECTION"] = ask("UPDATE_WITH_CONNECTION", env.get("UPDATE_WITH_CONNECTION", "false"))
         env["RUST_LOG"]               = ask("RUST_LOG (info/debug)",  env.get("RUST_LOG",               "info"))
+        env["ONLY_UPDATE_SPOOFABLE"]  = ask("ONLY_UPDATE_SPOOFABLE",  env.get("RUST_LOG",               "false"))
 
     # Persist settings and generate compose
     save_env(env)
@@ -451,6 +453,7 @@ def mode_settings():
         ("SEARCH_MODULE",          "Search module enabled (true/false)"),
         ("UPDATE_MODULE",          "Update module enabled (true/false)"),
         ("UPDATE_WITH_CONNECTION", "Update with connection (true/false)"),
+        ("ONLY_UPDATE_SPOOFABLE",  "Only updates servers with flag Spoofable"),
         ("RUST_LOG",               "Worker log level (info/debug)"),
     ]
 
