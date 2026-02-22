@@ -427,9 +427,9 @@ def mode_update():
     elif choice == 2:
         run_diesel_migrations(load_env())
     elif choice == 3:
-        run(["docker", "compose", "up", svc, "-d"])
+        run(["docker", "compose", "up", "-d"])
     elif choice == 4:
-        run(["docker", "compose", "down", svc])
+        run(["docker", "compose", "down"])
 
 # ── Mode: Change Settings ─────────────────────────────────────────────────────
 
