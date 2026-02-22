@@ -203,7 +203,7 @@ async fn process_external_ips(db: Arc<DatabaseWrapper>) -> anyhow::Result<()> {
 
     drop(conn);
 
-    let semaphore = Arc::new(Semaphore::new(10));
+    let semaphore = Arc::new(Semaphore::new(50));
 
     let handles: Vec<_> = ips
         .into_iter()
@@ -216,7 +216,7 @@ async fn process_external_ips(db: Arc<DatabaseWrapper>) -> anyhow::Result<()> {
                 if let Ok(ip) = value.ip.parse() {
                     let port = value.port as u16;
                     let _ = timeout(
-                        Duration::from_secs(10),
+                        Duration::from_secs(5),
                         handle_valid_ip(&ip, port, th_db, None),
                     )
                     .await;
