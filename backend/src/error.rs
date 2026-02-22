@@ -14,6 +14,9 @@ pub enum AppError {
     /// The request is missing valid authentication.
     Unauthorized,
 
+    /// The caller has exceeded the allowed request rate.
+    RateLimited,
+
     /// A database / pool operation failed.
     Database(String),
 
@@ -39,6 +42,7 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = match &self {
             AppError::Unauthorized => StatusCode::UNAUTHORIZED,
+            AppError::RateLimited => StatusCode::TOO_MANY_REQUESTS,
             AppError::Database(_) | AppError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
         status.into_response()
