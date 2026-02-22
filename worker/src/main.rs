@@ -197,6 +197,8 @@ async fn process_external_ips(db: Arc<DatabaseWrapper>) -> anyhow::Result<()> {
         return Ok(());
     }
 
+    info!("Processing {} external ips", ips.len());
+
     diesel::delete(crate::schema::ips::table)
         .execute(&mut conn)
         .await?;
@@ -241,14 +243,13 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
     {
         Ok(Ok(s)) => s,
         Err(_) | Ok(_) => {
-            debug!("Timeout updating {}:{}", server.ip, server.port);
-            if let Ok(mut conn) = db.pool.get().await {
-                let _ = diesel::update(schema::servers::table)
-                    .filter(schema::servers::id.eq(&server.id))
-                    .set(schema::servers::was_online.eq(false))
-                    .execute(&mut conn)
-                    .await;
-            }
+            diesel::update(schema::servers::table)
+                .filter(schema::servers::id.eq(&server.id))
+                .set(schema::servers::was_online.eq(false))
+                .execute(&mut db.pool.get().await.unwrap())
+                .await
+                .unwrap();
+
             return;
         }
     };
