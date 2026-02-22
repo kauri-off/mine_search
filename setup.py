@@ -212,7 +212,7 @@ def _backend_svc(env, local_postgres):
 
 def _frontend_svc():
     return {
-        "build":      {"context": ".", "dockerfile": "frontend.Dockerfile"},
+        "image": "ghcr.io/kauri-off/mine_search/frontend:latest",
         "depends_on": ["backend"],
         "networks":   [APP_NETWORK],
         "restart":    "unless-stopped",

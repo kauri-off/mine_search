@@ -34,3 +34,16 @@ jobs:
         run: |
           docker build -t ghcr.io/${{ github.repository }}/backend:latest -f backend.Dockerfile .
           docker push ghcr.io/${{ github.repository }}/backend:latest
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and Push Frontend image
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/frontend:latest -f frontend.Dockerfile .
+          docker push ghcr.io/${{ github.repository }}/frontend:latest
