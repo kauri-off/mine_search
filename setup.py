@@ -373,7 +373,7 @@ def mode_install():
         env["UPDATE_MODULE"]          = ask("UPDATE_MODULE",          env.get("UPDATE_MODULE",          "true"))
         env["UPDATE_WITH_CONNECTION"] = ask("UPDATE_WITH_CONNECTION", env.get("UPDATE_WITH_CONNECTION", "false"))
         env["RUST_LOG"]               = ask("RUST_LOG (info/debug)",  env.get("RUST_LOG",               "info"))
-        env["ONLY_UPDATE_SPOOFABLE"]  = ask("ONLY_UPDATE_SPOOFABLE",  env.get("RUST_LOG",               "false"))
+        env["ONLY_UPDATE_SPOOFABLE"]  = ask("ONLY_UPDATE_SPOOFABLE",  env.get("ONLY_UPDATE_SPOOFABLE",               "false"))
 
     # Persist settings and generate compose
     save_env(env)
