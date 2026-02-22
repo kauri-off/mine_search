@@ -378,23 +378,23 @@ def mode_install():
     save_compose(build_compose(services, env))
 
     # Pull images
-    if ask_yes("\nPull latest Docker images?", default=True):
-        run(["docker", "compose", "pull"])
+    run(["docker", "compose", "pull"])
 
     # Start postgres first (if local), migrate, then bring up everything
     if needs_db:
-        if local_postgres:
-            run(["docker", "compose", "up", "postgres", "-d"])
-            if wait_for_postgres(env["POSTGRES_USER"]):
-                run_diesel_migrations(env)
+        if ask_yes("\nRun diesel(postgres) migrations?", default=True):
+            if local_postgres:
+                run(["docker", "compose", "up", "postgres", "-d"])
+                if wait_for_postgres(env["POSTGRES_USER"]):
+                    run_diesel_migrations(env)
+                else:
+                    warn("Postgres did not become ready in time.")
             else:
-                warn("Postgres did not become ready in time.")
-                warn(f"Run manually: cd {DB_SCHEMA} && DATABASE_URL='{migration_url(env)}' diesel migration run")
-        else:
-            if ask_yes("\nRun diesel migrations against the remote DB now?", default=True):
-                run_diesel_migrations(env)
+                    run_diesel_migrations(env)
 
-    run(["docker", "compose", "up", "-d"])
+    if ask_yes("\nRun docker compose up?", default=True):
+        run(["docker", "compose", "up", "-d"])
+
     success("Installation complete.")
 
 # ── Mode: Update ──────────────────────────────────────────────────────────────
@@ -407,6 +407,8 @@ def mode_update():
         "Pull latest images & restart all services",
         "Pull latest images & restart one service",
         "Run diesel migrations",
+        "Start everything",
+        "Stop everything"
     ])
 
     if choice == 0:
@@ -414,16 +416,18 @@ def mode_update():
         run(["docker", "compose", "pull"])
         run(["docker", "compose", "up", "-d"])
         success("All services updated.")
-
-    if choice == 1:
+    elif choice == 1:
         svc = ask("Service name (worker / backend / frontend / nginx)")
         run(["docker", "compose", "down", svc])
         run(["docker", "compose", "pull", svc])
         run(["docker", "compose", "up", svc, "-d"])
         success(f"'{svc}' updated.")
-
-    if choice == 2:
+    elif choice == 2:
         run_diesel_migrations(load_env())
+    elif choice == 3:
+        run(["docker", "compose", "up", svc, "-d"])
+    elif choice == 4:
+        run(["docker", "compose", "down", svc])
 
 # ── Mode: Change Settings ─────────────────────────────────────────────────────
 
