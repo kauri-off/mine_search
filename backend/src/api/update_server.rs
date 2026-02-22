@@ -9,7 +9,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use ts_rs::TS;
 
-use crate::database::DatabaseWrapper;
+use crate::{database::DatabaseWrapper, error::AppError};
 
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
@@ -41,12 +41,21 @@ impl From<UpdateRequest> for Options {
 pub async fn update_server(
     State(db): State<Arc<DatabaseWrapper>>,
     Json(body): Json<UpdateRequest>,
-) -> Result<StatusCode, StatusCode> {
-    update(servers::table)
-        .filter(servers::ip.eq(body.server_ip.clone()))
-        .set::<Options>(body.into())
-        .execute(&mut db.pool.get().await.unwrap())
+) -> Result<StatusCode, AppError> {
+    let server_ip = body.server_ip.clone();
+
+    let mut conn = db
+        .pool
+        .get()
         .await
-        .map(|_| StatusCode::OK)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+        .map_err(|e| AppError::db("Failed to acquire DB connection in update_server", e))?;
+
+    update(servers::table)
+        .filter(servers::ip.eq(&server_ip))
+        .set::<Options>(body.into())
+        .execute(&mut conn)
+        .await
+        .map_err(|e| AppError::db(format!("Failed to update server '{server_ip}'"), e))?;
+
+    Ok(StatusCode::OK)
 }

@@ -10,6 +10,7 @@ use ts_rs::TS;
 
 use crate::{
     BACKEND_PASSWORD,
+    error::AppError,
     jwt_wrapper::{Claims, jwt_encode},
 };
 
@@ -28,9 +29,9 @@ pub struct AuthReturn {
 pub async fn authenticate_user(
     headers: HeaderMap,
     Json(body): Json<AuthBody>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> Result<impl IntoResponse, AppError> {
     if body.password != *BACKEND_PASSWORD.lock().await {
-        return Err(StatusCode::UNAUTHORIZED);
+        return Err(AppError::Unauthorized);
     }
 
     let now = Utc::now();
@@ -49,7 +50,7 @@ pub async fn authenticate_user(
 
     let jwt = jwt_encode(my_claims)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|_| AppError::internal("JWT encode failed", "jwt_encode returned an error"))?;
 
     let cookie = Cookie::build(("token", &jwt))
         .path("/api")
@@ -57,11 +58,16 @@ pub async fn authenticate_user(
         .same_site(SameSite::Strict)
         .max_age(time::Duration::days(30));
 
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        SET_COOKIE,
-        HeaderValue::from_str(&cookie.to_string()).unwrap(),
-    );
+    let cookie_str = cookie.to_string();
+    let cookie_value = HeaderValue::from_str(&cookie_str)
+        .map_err(|e| AppError::internal("Invalid cookie header value", e))?;
 
-    Ok((headers, Json(AuthReturn { token: jwt })))
+    let mut response_headers = HeaderMap::new();
+    response_headers.insert(SET_COOKIE, cookie_value);
+
+    Ok((
+        StatusCode::OK,
+        response_headers,
+        Json(AuthReturn { token: jwt }),
+    ))
 }

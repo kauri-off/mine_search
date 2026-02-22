@@ -7,7 +7,7 @@ use diesel_async::RunQueryDsl;
 use serde::Deserialize;
 use ts_rs::TS;
 
-use crate::database::DatabaseWrapper;
+use crate::{database::DatabaseWrapper, error::AppError};
 
 #[derive(Deserialize, TS)]
 #[ts(export)]
@@ -18,17 +18,18 @@ pub struct ServerDeleteRequest {
 pub async fn server_delete(
     State(db): State<Arc<DatabaseWrapper>>,
     Json(body): Json<ServerDeleteRequest>,
-) -> Result<StatusCode, StatusCode> {
+) -> Result<StatusCode, AppError> {
+    let mut conn = db
+        .pool
+        .get()
+        .await
+        .map_err(|e| AppError::db("Failed to acquire DB connection in server_delete", e))?;
+
     diesel::delete(schema::servers::table)
         .filter(schema::servers::id.eq(body.id))
-        .execute(
-            &mut db
-                .pool
-                .get()
-                .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
-        )
+        .execute(&mut conn)
         .await
-        .map(|_| StatusCode::OK)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+        .map_err(|e| AppError::db(format!("Failed to delete server id={}", body.id), e))?;
+
+    Ok(StatusCode::OK)
 }

@@ -1,26 +1,33 @@
-use axum::{extract::Request, http::StatusCode, middleware::Next, response::Response};
+use axum::{extract::Request, middleware::Next, response::Response};
 use cookie::Cookie;
 
-use crate::jwt_wrapper::jwt_decode;
+use crate::{error::AppError, jwt_wrapper::jwt_decode};
 
-pub async fn middleware_check(req: Request, next: Next) -> Result<Response, StatusCode> {
-    if let Some(cookie_header) = req.headers().get("Cookie") {
-        if let Some(cookie) = Cookie::split_parse(
-            cookie_header
-                .to_str()
-                .map_err(|_| StatusCode::UNAUTHORIZED)?,
-        )
-        .find(|c| c.as_ref().map_or(false, |c| c.name() == "token"))
-        {
-            if let Ok(c) = cookie {
-                let token = c.value();
-                let _claims = jwt_decode(token)
-                    .await
-                    .map_err(|_| StatusCode::UNAUTHORIZED)?;
-                return Ok(next.run(req).await);
-            }
-        }
+pub async fn middleware_check(req: Request, next: Next) -> Result<Response, AppError> {
+    let authorized = 'auth: {
+        let Some(cookie_header) = req.headers().get("Cookie") else {
+            break 'auth false;
+        };
+
+        let Ok(raw) = cookie_header.to_str() else {
+            break 'auth false;
+        };
+
+        let token = Cookie::split_parse(raw)
+            .filter_map(|c| c.ok())
+            .find(|c| c.name() == "token")
+            .map(|c| c.value().to_owned());
+
+        let Some(token) = token else {
+            break 'auth false;
+        };
+
+        jwt_decode(&token).await.is_ok()
+    };
+
+    if authorized {
+        Ok(next.run(req).await)
+    } else {
+        Err(AppError::Unauthorized)
     }
-
-    Err(StatusCode::UNAUTHORIZED)
 }

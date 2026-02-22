@@ -33,6 +33,7 @@ lazy_static! {
 mod api;
 mod api_middleware;
 mod database;
+mod error;
 mod jwt_wrapper;
 
 #[tokio::main]
@@ -74,8 +75,6 @@ async fn main() {
         .layer(logging)
         .with_state(db);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-
     match env::var("BACKEND_PASSWORD") {
         Ok(t) => {
             let mut password_mutex = BACKEND_PASSWORD.lock().await;
@@ -89,8 +88,12 @@ async fn main() {
         }
     }
 
-    println!("Server started successfully");
-    axum::serve(listener, app).await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+        .await
+        .expect("Failed to bind TCP listener");
+
+    tracing::info!("Server started on 0.0.0.0:3000");
+    axum::serve(listener, app).await.expect("Server crashed");
 }
 
 fn generate_random_string(length: usize) -> String {

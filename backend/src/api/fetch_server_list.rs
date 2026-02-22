@@ -1,6 +1,6 @@
 use super::fetch_server_info::ServerInfoResponse;
-use crate::database::DatabaseWrapper;
-use axum::{Json, extract::State, http::StatusCode};
+use crate::{database::DatabaseWrapper, error::AppError};
+use axum::{Json, extract::State};
 use db_schema::{
     models::{data::DataModel, servers::ServerModel},
     schema::*,
@@ -30,12 +30,12 @@ pub struct ServerListRequest {
 pub async fn fetch_server_list(
     State(db): State<Arc<DatabaseWrapper>>,
     Json(body): Json<ServerListRequest>,
-) -> Result<Json<Vec<ServerInfoResponse>>, StatusCode> {
+) -> Result<Json<Vec<ServerInfoResponse>>, AppError> {
     let mut conn = db
         .pool
         .get()
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| AppError::db("Failed to acquire DB connection in fetch_server_list", e))?;
 
     let pagination_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
         if let Some(id) = body.offset_id {
@@ -91,7 +91,7 @@ pub async fn fetch_server_list(
         .limit(body.limit)
         .load::<(ServerModel, DataModel)>(&mut conn)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| AppError::db("Failed to load server list", e))?;
 
     Ok(Json(results.into_iter().map(Into::into).collect()))
 }
