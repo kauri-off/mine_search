@@ -8,6 +8,7 @@ import type { ServerListRequest } from '../types/ServerListRequest';
 import type { ServerInfoResponse } from '../types/ServerInfoResponse';
 import type { ServerDataResponse } from '../types/ServerDataResponse';
 import type { AddIpRequest } from '../types/AddIpRequest';
+import type { ServerDeleteRequest } from '../types/ServerDeleteRequest';
 
 const API_URL = '/api/v1';
 
@@ -61,5 +62,8 @@ export const serverApi = {
     },
     addIp: async (body: AddIpRequest) => {
         return api.post('/ip/add', body);
-    }
+    },
+    deleteServer: async (body: ServerDeleteRequest) => {
+        return api.post('/server/delete', body);
+    },
 };

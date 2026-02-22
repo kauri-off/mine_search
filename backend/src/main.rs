@@ -3,7 +3,8 @@ use std::{env, sync::Arc};
 use api::{
     add_ip::add_ip, add_ips::add_ips, auth::authenticate_user,
     fetch_server_data::fetch_server_data, fetch_server_info::fetch_server_info,
-    fetch_server_list::fetch_server_list, fetch_stats::fetch_stats, update_server::update_server,
+    fetch_server_list::fetch_server_list, fetch_stats::fetch_stats, server_delete::server_delete,
+    update_server::update_server,
 };
 use axum::{
     Router,
@@ -52,6 +53,7 @@ async fn main() {
         .route("/server/update", post(update_server))
         .route("/server/data", post(fetch_server_data))
         .route("/servers/list", post(fetch_server_list))
+        .route("/server/delete", post(server_delete))
         .route("/ip/add", post(add_ip))
         .route("/ip/add_list", post(add_ips))
         .route("/stats", post(fetch_stats))

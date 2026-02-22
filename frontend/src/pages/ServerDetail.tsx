@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { serverApi } from "../api/client";
@@ -17,6 +18,7 @@ export const ServerDetail = () => {
   const { ip } = useParams<{ ip: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (!ip) return null;
 
@@ -38,6 +40,14 @@ export const ServerDetail = () => {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => serverApi.deleteServer({ id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["servers"] });
+      navigate("/");
+    },
+  });
+
   const handleToggle = (field: "checked" | "spoofable" | "crashed") => {
     if (!server) return;
 
@@ -51,6 +61,11 @@ export const ServerDetail = () => {
       ...resetFields,
       [field]: !server[field],
     });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!server) return;
+    deleteMutation.mutate(server.id);
   };
 
   if (isInfoLoading)
@@ -133,6 +148,44 @@ export const ServerDetail = () => {
                 onClick={() => handleToggle("crashed")}
                 color="red"
               />
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-700">
+              {!showDeleteConfirm ? (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full py-2 px-4 rounded font-medium transition bg-red-900 hover:bg-red-800 text-red-300 hover:text-white flex items-center justify-center gap-2"
+                >
+                  <span>🗑</span>
+                  <span>Delete Server</span>
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-red-400 text-center font-medium">
+                    Are you sure you want to delete{" "}
+                    <span className="font-bold text-white">{server.ip}</span>?
+                  </p>
+                  <p className="text-xs text-gray-500 text-center">
+                    This action cannot be undone.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={deleteMutation.isPending}
+                      className="flex-1 py-2 px-4 rounded font-medium transition bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteConfirm}
+                      disabled={deleteMutation.isPending}
+                      className="flex-1 py-2 px-4 rounded font-medium transition bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {deleteMutation.isPending ? "Deleting..." : "Confirm"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
