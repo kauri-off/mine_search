@@ -407,28 +407,23 @@ def mode_update():
         "Pull latest images & restart all services",
         "Pull latest images & restart one service",
         "Run diesel migrations",
-        "Rebuild frontend image",
-        "Everything (pull + migrate + rebuild frontend)",
     ])
 
-    if choice in (0, 4):
+    if choice == 0:
+        run(["docker", "compose", "down"])
         run(["docker", "compose", "pull"])
-        run(["docker", "compose", "up", "-d", "--remove-orphans"])
+        run(["docker", "compose", "up", "-d"])
         success("All services updated.")
 
     if choice == 1:
         svc = ask("Service name (worker / backend / frontend / nginx)")
+        run(["docker", "compose", "down", svc])
         run(["docker", "compose", "pull", svc])
-        run(["docker", "compose", "up", "-d", svc])
+        run(["docker", "compose", "up", svc, "-d"])
         success(f"'{svc}' updated.")
 
-    if choice in (2, 4):
+    if choice == 2:
         run_diesel_migrations(load_env())
-
-    if choice in (3, 4):
-        run(["docker", "compose", "build", "frontend"])
-        run(["docker", "compose", "up", "-d", "frontend"])
-        success("Frontend rebuilt and restarted.")
 
 # ── Mode: Change Settings ─────────────────────────────────────────────────────
 
