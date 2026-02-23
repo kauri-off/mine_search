@@ -315,29 +315,30 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
         .unwrap();
 
     if with_connection {
-        match get_extra_data(
-            server.ip.clone(),
-            server.port as u16,
-            status.version.protocol as i32,
+        match timeout(
+            Duration::from_secs(5),
+            get_extra_data(
+                server.ip.clone(),
+                server.port as u16,
+                status.version.protocol as i32,
+            ),
         )
         .await
         {
-            Ok(extra_data) => {
+            Ok(Ok(extra_data)) => {
                 let server_extra_change = ServerExtraUpdate {
                     license: extra_data.license,
                     disconnect_reason: extra_data.disconnect_reason,
                 };
 
-                if let Err(e) = diesel::update(schema::servers::table)
+                diesel::update(schema::servers::table)
                     .filter(schema::servers::id.eq(server.id))
                     .set(server_extra_change)
                     .execute(&mut conn)
                     .await
-                {
-                    error!("Failed to update extra data for {}: {}", server.ip, e);
-                }
+                    .unwrap();
             }
-            Err(e) => debug!("Could not get extra data for {}: {}", server.ip, e),
+            Err(_) | Ok(Err(_)) => debug!("Could not get extra data for {}", server.ip),
         }
     }
 }
