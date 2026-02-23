@@ -6,6 +6,7 @@ pub mod fetch_server_data;
 pub mod fetch_server_info;
 pub mod fetch_server_list;
 pub mod fetch_stats;
+pub mod ping_server;
 pub mod server_delete;
 pub mod update_player;
 pub mod update_server;

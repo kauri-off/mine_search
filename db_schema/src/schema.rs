@@ -37,6 +37,13 @@ diesel::table! {
 }
 
 diesel::table! {
+    server_ping (id) {
+        id -> Int4,
+        server_id -> Int4,
+    }
+}
+
+diesel::table! {
     servers (id) {
         id -> Int4,
         ip -> Varchar,
@@ -57,5 +64,6 @@ diesel::table! {
 
 diesel::joinable!(data -> servers (server_id));
 diesel::joinable!(players -> servers (server_id));
+diesel::joinable!(server_ping -> servers (server_id));
 
-diesel::allow_tables_to_appear_in_same_query!(data, ips, players, servers,);
+diesel::allow_tables_to_appear_in_same_query!(data, ips, players, server_ping, servers,);

@@ -203,7 +203,7 @@ async fn updater(
 async fn process_external_ips(db: Arc<DatabaseWrapper>) -> anyhow::Result<()> {
     let mut conn = db.pool.get().await?;
 
-    let ips: Vec<IpModel> = crate::schema::ips::table
+    let ips: Vec<IpModel> = schema::ips::table
         .select(IpModel::as_select())
         .load(&mut conn)
         .await?;
@@ -214,7 +214,7 @@ async fn process_external_ips(db: Arc<DatabaseWrapper>) -> anyhow::Result<()> {
 
     info!("Processing {} external ips", ips.len());
 
-    diesel::delete(crate::schema::ips::table)
+    diesel::delete(schema::ips::table)
         .execute(&mut conn)
         .await?;
 
@@ -343,6 +343,49 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
     }
 }
 
+async fn server_ping_listener(db: Arc<DatabaseWrapper>) {
+    loop {
+        let mut conn = db.pool.get().await.unwrap();
+
+        let servers: Vec<ServerModelMini> = schema::server_ping::table
+            .inner_join(
+                schema::servers::table.on(schema::server_ping::server_id.eq(schema::servers::id)),
+            )
+            .select(ServerModelMini::as_select())
+            .load(&mut conn)
+            .await
+            .unwrap();
+
+        diesel::delete(schema::server_ping::table)
+            .execute(&mut conn)
+            .await
+            .unwrap();
+
+        drop(conn);
+
+        let semaphore = Arc::new(Semaphore::new(50));
+
+        let handles: Vec<_> = servers
+            .into_iter()
+            .map(|value| {
+                let permit = semaphore.clone().acquire_owned();
+                let th_db = db.clone();
+
+                tokio::spawn(async move {
+                    let _permit = permit.await;
+                    update_server(value, th_db, false).await;
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            let _ = handle.await;
+        }
+
+        tokio::time::sleep(Duration::from_secs(2)).await;
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let threads: i32 = env::var("THREADS")
@@ -421,6 +464,8 @@ async fn main() {
             only_update_spoofable,
         )));
     }
+
+    tasks.push(tokio::spawn(server_ping_listener(db.clone())));
 
     for task in tasks {
         let _ = task.await;

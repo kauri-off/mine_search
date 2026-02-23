@@ -64,6 +64,7 @@ export const ServerDetail = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pingCountdown, setPingCountdown] = useState<number | null>(null);
 
   if (!ip) return null;
 
@@ -114,6 +115,22 @@ export const ServerDetail = () => {
   const handleToggle = (field: ToggleField) => {
     if (!server) return;
     updateMutation.mutate(buildToggleUpdate(server.ip, field, server[field]));
+  };
+
+  const handlePing = () => {
+    if (!server || pingCountdown !== null) return;
+    serverApi.pingServer({ server_id: server.id });
+    setPingCountdown(12);
+    const interval = setInterval(() => {
+      setPingCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          window.location.reload();
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   // -- Early returns ---------------------------------------------------------
@@ -196,6 +213,22 @@ export const ServerDetail = () => {
                 onClick={() => handleToggle("crashed")}
                 color="red"
               />
+            </div>
+
+            {/* Ping */}
+            <div className="mt-4 pt-4 border-t border-gray-700">
+              <button
+                onClick={handlePing}
+                disabled={pingCountdown !== null}
+                className="w-full py-2 px-4 rounded font-medium transition bg-blue-900 hover:bg-blue-800 text-blue-300 hover:text-white flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                <span>📡</span>
+                <span>
+                  {pingCountdown !== null
+                    ? `Reloading in ${pingCountdown}s...`
+                    : "Ping Server"}
+                </span>
+              </button>
             </div>
 
             {/* Delete */}

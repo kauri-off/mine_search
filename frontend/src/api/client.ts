@@ -12,6 +12,7 @@ import type {
   PlayerResponse,
   PlayerListRequest,
   UpdatePlayerRequest,
+  PingServerRequest
 } from '@/types';
 
 const API_URL = '/api/v1';
@@ -70,4 +71,6 @@ export const serverApi = {
   },
 
   updatePlayer: (body: UpdatePlayerRequest) => api.post('/player/update', body),
+
+  pingServer: (body: PingServerRequest) => api.post('/server/ping', body),  
 };

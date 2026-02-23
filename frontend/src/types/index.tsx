@@ -15,3 +15,4 @@ export type { ServerListRequest } from "./ServerListRequest";
 export type { StatsResponse } from "./StatsResponse";
 export type { UpdatePlayerRequest } from "./UpdatePlayerRequest";
 export type { UpdateServerRequest } from "./UpdateServerRequest";
+export type { PingServerRequest } from "./PingServerRequest";
