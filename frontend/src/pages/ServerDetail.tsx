@@ -12,7 +12,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { format } from "date-fns";
-import type { UpdateRequest } from "../types/UpdateRequest";
+import type { UpdateServerRequest } from "../types/UpdateServerRequest";
+import type { UpdatePlayerRequest } from "../types/UpdatePlayerRequest";
+import type { PlayerStatus } from "../types/PlayerStatus";
 
 const CopyButton = ({ text }: { text: string }) => {
   const [copied, setCopied] = useState(false);
@@ -115,17 +117,31 @@ export const ServerDetail = () => {
 
   const { data: server, isLoading: isInfoLoading } = useQuery({
     queryKey: ["server", ip],
-    queryFn: () => serverApi.fetchInfo(ip),
+    queryFn: () => serverApi.fetchServerInfo(ip),
   });
 
   const { data: history } = useQuery({
     queryKey: ["serverData", server?.id],
-    queryFn: () => serverApi.fetchData({ server_id: server!.id, limit: 100 }),
+    queryFn: () =>
+      serverApi.fetchServerData({ server_id: server!.id, limit: 100 }),
     enabled: !!server?.id,
   });
 
+  const { data: players } = useQuery({
+    queryKey: ["playerList", server?.id],
+    queryFn: () => serverApi.fetchPlayerList({ server_id: server!.id }),
+    enabled: !!server?.id,
+  });
+
+  const updatePlayerMutation = useMutation({
+    mutationFn: (body: UpdatePlayerRequest) => serverApi.updatePlayer(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["playerList", server?.id] });
+    },
+  });
+
   const updateMutation = useMutation({
-    mutationFn: (body: UpdateRequest) => serverApi.update(body),
+    mutationFn: (body: UpdateServerRequest) => serverApi.updateServer(body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["server", ip] });
     },
@@ -173,15 +189,6 @@ export const ServerDetail = () => {
       formattedTime: format(new Date(d.timestamp), "HH:mm"),
     }))
     .reverse();
-
-  const allPlayers = Array.from(
-    new Set(
-      history?.flatMap((h) => {
-        if (Array.isArray(h.players)) return h.players as string[];
-        return [];
-      }) || [],
-    ),
-  );
 
   return (
     <div className="p-6 max-w-7xl mx-auto text-white">
@@ -339,16 +346,58 @@ export const ServerDetail = () => {
 
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
             <h3 className="font-bold mb-4">Players (All)</h3>
-            {allPlayers.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {allPlayers.map((player, idx) => (
-                  <span
-                    key={idx}
-                    className="bg-gray-700 px-2 py-1 rounded text-sm text-blue-200"
-                  >
-                    {player}
-                  </span>
-                ))}
+            {players && players.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-700 text-gray-400 text-left">
+                      <th className="pb-2 font-medium">Name</th>
+                      <th className="pb-2 font-medium text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700/50">
+                    {players.map((player) => (
+                      <tr key={player.id} className="group">
+                        <td className="py-2.5 pr-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white">{player.name}</span>
+                            <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                              <CopyButton text={player.name} />
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-2.5">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {(
+                              ["None", "Regular", "Admin"] as PlayerStatus[]
+                            ).map((status) => (
+                              <StatusBlock
+                                key={status}
+                                label={status}
+                                active={player.status === status}
+                                activeColor={
+                                  status === "None"
+                                    ? "gray"
+                                    : status === "Regular"
+                                      ? "blue"
+                                      : "amber"
+                                }
+                                onClick={() => {
+                                  if (player.status !== status) {
+                                    updatePlayerMutation.mutate({
+                                      id: player.id,
+                                      status,
+                                    });
+                                  }
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : (
               <span className="text-gray-500">Empty</span>
@@ -378,3 +427,42 @@ const ToggleButton = ({ label, active, onClick, color = "blue" }: any) => (
     </span>
   </button>
 );
+
+const colorMap: Record<string, { active: string; inactive: string }> = {
+  gray: {
+    active: "bg-gray-500/30 text-gray-300 border-gray-500",
+    inactive: "bg-gray-800 text-gray-600 border-gray-700",
+  },
+  blue: {
+    active: "bg-blue-500/20 text-blue-300 border-blue-500",
+    inactive: "bg-gray-800 text-gray-600 border-gray-700",
+  },
+  amber: {
+    active: "bg-amber-500/20 text-amber-300 border-amber-500",
+    inactive: "bg-gray-800 text-gray-600 border-gray-700",
+  },
+};
+
+const StatusBlock = ({
+  label,
+  active,
+  activeColor,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  activeColor: string;
+  onClick?: () => void;
+}) => {
+  const colors = colorMap[activeColor] ?? colorMap.gray;
+  return (
+    <span
+      onClick={onClick}
+      className={`px-2 py-0.5 rounded border text-xs font-medium transition-colors select-none
+        ${active ? `${colors.active} cursor-default` : `${colors.inactive} cursor-pointer hover:border-gray-500 hover:text-gray-400`}
+      `}
+    >
+      {label}
+    </span>
+  );
+};

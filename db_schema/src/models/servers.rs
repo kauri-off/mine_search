@@ -1,9 +1,8 @@
 use chrono::Utc;
 use diesel::prelude::*;
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Queryable, Selectable, Identifiable, Serialize, Deserialize, Debug)]
+#[derive(Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::servers)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ServerModel {
@@ -19,7 +18,6 @@ pub struct ServerModel {
     pub spoofable: Option<bool>,
     pub crashed: bool,
     pub was_online: bool,
-    pub unique_players: i32,
     pub created: chrono::DateTime<Utc>,
     pub updated: chrono::DateTime<Utc>,
 }
@@ -44,7 +42,6 @@ pub struct ServerInsert<'a> {
     pub description: &'a Value,
     pub license: bool,
     pub disconnect_reason: Option<Value>,
-    pub unique_players: i32,
 }
 
 #[derive(Insertable, AsChangeset)]
@@ -54,7 +51,6 @@ pub struct ServerUpdate<'a> {
     pub description: &'a serde_json::Value,
     pub updated: chrono::DateTime<Utc>,
     pub was_online: bool,
-    pub unique_players: i32,
 }
 
 #[derive(Insertable, AsChangeset)]

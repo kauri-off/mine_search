@@ -4,12 +4,12 @@ use axum::{Json, extract::State};
 use db_schema::schema::servers;
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use ts_rs::TS;
 
 use crate::{database::DatabaseWrapper, error::AppError};
 
-#[derive(Serialize, Deserialize, TS)]
+#[derive(Serialize, TS)]
 #[ts(export)]
 pub struct StatsResponse {
     #[ts(type = "number")]

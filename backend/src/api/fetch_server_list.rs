@@ -9,11 +9,11 @@ use diesel::pg::Pg;
 use diesel::prelude::*;
 use diesel::sql_types::Bool;
 use diesel_async::RunQueryDsl;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 use ts_rs::TS;
 
-#[derive(Serialize, Deserialize, TS)]
+#[derive(Deserialize, TS)]
 #[ts(export)]
 pub struct ServerListRequest {
     #[ts(type = "number")]
@@ -66,8 +66,12 @@ pub async fn fetch_server_list(
 
     let has_players_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
         match body.has_players {
-            Some(true) => Box::new(servers::unique_players.gt(0)),
-            Some(false) => Box::new(servers::unique_players.eq(0)),
+            Some(true) => Box::new(diesel::dsl::exists(
+                players::table.filter(players::server_id.eq(servers::id)),
+            )),
+            Some(false) => Box::new(diesel::dsl::not(diesel::dsl::exists(
+                players::table.filter(players::server_id.eq(servers::id)),
+            ))),
             None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
         };
 

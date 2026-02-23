@@ -12,7 +12,7 @@ use axum::{
 use chrono::Utc;
 use cookie::{Cookie, SameSite, time};
 use lazy_static::lazy_static;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use ts_rs::TS;
 
 use crate::{
@@ -69,16 +69,10 @@ fn check_rate_limit(ip: &str) -> bool {
 // Request / response types
 // ---------------------------------------------------------------------------
 
-#[derive(Serialize, Deserialize, TS)]
+#[derive(Deserialize, TS)]
 #[ts(export)]
 pub struct AuthBody {
     pub password: String,
-}
-
-#[derive(Serialize, Deserialize, TS)]
-#[ts(export)]
-pub struct AuthReturn {
-    pub token: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -130,9 +124,5 @@ pub async fn authenticate_user(
     let mut response_headers = HeaderMap::new();
     response_headers.insert(SET_COOKIE, cookie_value);
 
-    Ok((
-        StatusCode::OK,
-        response_headers,
-        Json(AuthReturn { token: jwt }),
-    ))
+    Ok((StatusCode::OK, response_headers))
 }

@@ -1,6 +1,6 @@
 use diesel::prelude::*;
 
-#[derive(Queryable, Selectable, Identifiable, Debug)]
+#[derive(Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::ips)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct IpModel {

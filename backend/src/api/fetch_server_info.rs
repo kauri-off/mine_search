@@ -12,13 +12,13 @@ use ts_rs::TS;
 
 use crate::{database::DatabaseWrapper, error::AppError};
 
-#[derive(Serialize, Deserialize, TS)]
+#[derive(Deserialize, TS)]
 #[ts(export)]
 pub struct ServerInfoRequest {
     pub ip: String,
 }
 
-#[derive(Serialize, Deserialize, TS)]
+#[derive(Serialize, TS)]
 #[ts(export)]
 pub struct ServerInfoResponse {
     pub id: i32,
@@ -32,7 +32,6 @@ pub struct ServerInfoResponse {
     pub updated: DateTime<Utc>,
     pub description_html: String,
     pub was_online: bool,
-    pub unique_players: i32,
     pub checked: bool,
     pub spoofable: Option<bool>,
     pub crashed: bool,
@@ -52,7 +51,6 @@ impl From<(ServerModel, DataModel)> for ServerInfoResponse {
             updated: server.updated,
             description_html: parse_html(server.description),
             was_online: server.was_online,
-            unique_players: server.unique_players,
             checked: server.checked,
             spoofable: server.spoofable,
             crashed: server.crashed,

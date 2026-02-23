@@ -6,14 +6,13 @@ use diesel::dsl::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use serde::Deserialize;
-use serde::Serialize;
 use ts_rs::TS;
 
 use crate::{database::DatabaseWrapper, error::AppError};
 
-#[derive(Serialize, Deserialize, TS)]
+#[derive(Deserialize, TS)]
 #[ts(export)]
-pub struct UpdateRequest {
+pub struct UpdateServerRequest {
     pub server_ip: String,
     pub checked: Option<bool>,
     pub spoofable: Option<bool>,
@@ -28,8 +27,8 @@ pub struct Options {
     pub crashed: Option<bool>,
 }
 
-impl From<UpdateRequest> for Options {
-    fn from(value: UpdateRequest) -> Self {
+impl From<UpdateServerRequest> for Options {
+    fn from(value: UpdateServerRequest) -> Self {
         Options {
             checked: value.checked,
             spoofable: value.spoofable,
@@ -40,7 +39,7 @@ impl From<UpdateRequest> for Options {
 
 pub async fn update_server(
     State(db): State<Arc<DatabaseWrapper>>,
-    Json(body): Json<UpdateRequest>,
+    Json(body): Json<UpdateServerRequest>,
 ) -> Result<StatusCode, AppError> {
     let server_ip = body.server_ip.clone();
 

@@ -1,14 +1,16 @@
 import axios from 'axios';
 import type { AuthBody } from '../types/AuthBody';
-import type { AuthReturn } from '../types/AuthReturn';
 import type { StatsResponse } from '../types/StatsResponse';
 import type { ServerDataRequest } from '../types/ServerDataRequest';
-import type { UpdateRequest } from '../types/UpdateRequest';
 import type { ServerListRequest } from '../types/ServerListRequest';
 import type { ServerInfoResponse } from '../types/ServerInfoResponse';
 import type { ServerDataResponse } from '../types/ServerDataResponse';
 import type { AddIpRequest } from '../types/AddIpRequest';
 import type { ServerDeleteRequest } from '../types/ServerDeleteRequest';
+import type { UpdateServerRequest } from '../types/UpdateServerRequest';
+import type { PlayerResponse } from '../types/PlayerResponse';
+import type { PlayerListRequest } from '../types/PlayerListRequest';
+import type { UpdatePlayerRequest } from '../types/UpdatePlayerRequest';
 
 const API_URL = '/api/v1';
 
@@ -35,8 +37,7 @@ api.interceptors.response.use(
 
 export const authApi = {
     login: async (body: AuthBody) => {
-        const { data } = await api.post<AuthReturn>('/auth/login', body);
-        return data;
+        await api.post('/auth/login', body);
     },
 };
 
@@ -45,25 +46,32 @@ export const serverApi = {
         const { data } = await api.post<StatsResponse>('/stats', {});
         return data;
     },
-    fetchList: async (body: ServerListRequest) => {
-        const { data } = await api.post<ServerInfoResponse[]>('/servers/list', body);
+    fetchServerList: async (body: ServerListRequest) => {
+        const { data } = await api.post<ServerInfoResponse[]>('/server/list', body);
         return data;
     },
-    fetchInfo: async (ip: string) => {
+    fetchServerInfo: async (ip: string) => {
         const { data } = await api.post<ServerInfoResponse>('/server/info', { ip });
         return data;
     },
-    fetchData: async (body: ServerDataRequest) => {
+    fetchServerData: async (body: ServerDataRequest) => {
         const { data } = await api.post<ServerDataResponse[]>('/server/data', body);
         return data;
     },
-    update: async (body: UpdateRequest) => {
+    updateServer: async (body: UpdateServerRequest) => {
         return api.post('/server/update', body);
     },
-    addIp: async (body: AddIpRequest) => {
+    addServerIp: async (body: AddIpRequest) => {
         return api.post('/ip/add', body);
     },
     deleteServer: async (body: ServerDeleteRequest) => {
         return api.post('/server/delete', body);
+    },
+    fetchPlayerList: async (body: PlayerListRequest) => {
+        const { data } = await api.post<PlayerResponse[]>('/player/list', body);
+        return data;
+    },
+    updatePlayer: async (body: UpdatePlayerRequest) => {
+        return api.post('/player/update', body);
     },
 };

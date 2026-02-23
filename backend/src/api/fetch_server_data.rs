@@ -10,7 +10,7 @@ use ts_rs::TS;
 
 use crate::{database::DatabaseWrapper, error::AppError};
 
-#[derive(Serialize, Deserialize, TS)]
+#[derive(Deserialize, TS)]
 #[ts(export)]
 pub struct ServerDataRequest {
     pub server_id: i32,
@@ -24,7 +24,6 @@ pub struct ServerDataResponse {
     pub server_id: i32,
     pub online: i32,
     pub max: i32,
-    pub players: Vec<String>,
     pub timestamp: chrono::DateTime<Utc>,
 }
 
@@ -32,33 +31,10 @@ impl TryFrom<DataModel> for ServerDataResponse {
     type Error = AppError;
 
     fn try_from(value: DataModel) -> Result<Self, Self::Error> {
-        let players = value
-            .players
-            .as_array()
-            .ok_or_else(|| {
-                AppError::internal(
-                    "Malformed players JSON: expected an array",
-                    format!("got: {}", value.players),
-                )
-            })?
-            .iter()
-            .map(|t| {
-                t.as_str()
-                    .ok_or_else(|| {
-                        AppError::internal(
-                            "Malformed players JSON: element is not a string",
-                            format!("got: {t}"),
-                        )
-                    })
-                    .map(str::to_owned)
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
         Ok(ServerDataResponse {
             server_id: value.server_id,
             online: value.online,
             max: value.max,
-            players,
             timestamp: value.timestamp,
         })
     }

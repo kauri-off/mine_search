@@ -26,6 +26,8 @@ use tower_http::{
 };
 use tracing::Level;
 
+use crate::api::{fetch_players_list::fetch_players_list, update_player::update_player};
+
 lazy_static! {
     static ref BACKEND_PASSWORD: Mutex<String> = Mutex::new(String::new());
     static ref BACKEND_SECRET: Mutex<String> = Mutex::new(String::new());
@@ -54,8 +56,10 @@ async fn main() {
         .route("/server/info", post(fetch_server_info))
         .route("/server/update", post(update_server))
         .route("/server/data", post(fetch_server_data))
-        .route("/servers/list", post(fetch_server_list))
+        .route("/server/list", post(fetch_server_list))
         .route("/server/delete", post(server_delete))
+        .route("/player/list", post(fetch_players_list))
+        .route("/player/update", post(update_player))
         .route("/ip/add", post(add_ip))
         .route("/ip/add_list", post(add_ips))
         .route("/stats", post(fetch_stats))

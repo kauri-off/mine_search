@@ -1,12 +1,17 @@
 // @generated automatically by Diesel CLI.
 
+pub mod sql_types {
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "player_status"))]
+    pub struct PlayerStatus;
+}
+
 diesel::table! {
     data (id) {
         id -> Int8,
         server_id -> Int4,
         online -> Int4,
         max -> Int4,
-        players -> Jsonb,
         timestamp -> Timestamptz,
     }
 }
@@ -16,6 +21,18 @@ diesel::table! {
         id -> Int4,
         ip -> Text,
         port -> Int4,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::PlayerStatus;
+
+    players (id) {
+        id -> Int4,
+        server_id -> Int4,
+        name -> Varchar,
+        status -> PlayerStatus,
     }
 }
 
@@ -34,11 +51,11 @@ diesel::table! {
         was_online -> Bool,
         created -> Timestamptz,
         updated -> Timestamptz,
-        unique_players -> Int4,
         disconnect_reason -> Nullable<Jsonb>,
     }
 }
 
 diesel::joinable!(data -> servers (server_id));
+diesel::joinable!(players -> servers (server_id));
 
-diesel::allow_tables_to_appear_in_same_query!(data, ips, servers,);
+diesel::allow_tables_to_appear_in_same_query!(data, ips, players, servers,);

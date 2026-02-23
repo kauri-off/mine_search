@@ -4,12 +4,12 @@ use axum::{Json, extract::State, http::StatusCode};
 use db_schema::{models::ip::IpInsert, schema};
 use diesel::insert_into;
 use diesel_async::RunQueryDsl;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use ts_rs::TS;
 
 use crate::{database::DatabaseWrapper, error::AppError};
 
-#[derive(Deserialize, Serialize, TS)]
+#[derive(Deserialize, TS)]
 #[ts(export)]
 pub struct AddIpRequest {
     pub ip: String,

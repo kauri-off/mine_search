@@ -1,4 +1,4 @@
-use std::{collections::HashSet, env, net::IpAddr, sync::Arc, time::Duration};
+use std::{env, net::IpAddr, sync::Arc, time::Duration};
 
 use chrono::Utc;
 use database::DatabaseWrapper;
@@ -6,7 +6,6 @@ use diesel::{dsl::insert_into, pg::Pg, prelude::*, sql_types::Bool};
 use diesel_async::RunQueryDsl;
 use rand::{SeedableRng, rngs::SysRng};
 use rand_chacha::ChaCha8Rng;
-use serde_json::json;
 use server_actions::{with_connection::get_extra_data, without_connection::get_status};
 use tokio::{
     net::TcpStream,
@@ -19,8 +18,9 @@ use worker::{check_server, description_to_str, generate_random_ip};
 
 use db_schema::{
     models::{
-        data::{DataInsert, DataModelMini},
+        data::DataInsert,
         ip::IpModel,
+        players::PlayerInsert,
         servers::{ServerExtraUpdate, ServerInsert, ServerModel, ServerModelMini, ServerUpdate},
     },
     schema,
@@ -49,7 +49,6 @@ pub async fn handle_valid_ip(
         description: &status.description,
         license: extra_data.license,
         disconnect_reason: extra_data.disconnect_reason,
-        unique_players: status.players.online as i32,
     };
 
     let mut conn = db.pool.get().await?;
@@ -70,19 +69,27 @@ pub async fn handle_valid_ip(
         server_id: server.id,
         online: status.players.online as i32,
         max: status.players.max as i32,
-        players: &json!(
-            status
-                .players
-                .sample
-                .unwrap_or_default()
-                .into_iter()
-                .map(|t| t.name)
-                .collect::<Vec<String>>()
-        ),
     };
 
     insert_into(schema::data::table)
         .values(data_insert)
+        .execute(&mut conn)
+        .await?;
+
+    insert_into(schema::players::table)
+        .values(
+            status
+                .players
+                .sample
+                .unwrap_or_default()
+                .iter()
+                .map(|t| PlayerInsert {
+                    server_id: server.id,
+                    name: &t.name,
+                })
+                .collect::<Vec<_>>(),
+        )
+        .on_conflict_do_nothing()
         .execute(&mut conn)
         .await?;
 
@@ -262,21 +269,10 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
         }
     };
 
-    let players_json = json!(
-        status
-            .players
-            .sample
-            .unwrap_or_default()
-            .into_iter()
-            .map(|t| t.name)
-            .collect::<Vec<String>>()
-    );
-
     let data_insert = DataInsert {
         server_id: server.id,
         online: status.players.online as i32,
         max: status.players.max as i32,
-        players: &players_json,
     };
 
     let mut conn = db.pool.get().await.unwrap();
@@ -287,26 +283,28 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
         .await
         .unwrap();
 
-    let players_list = schema::data::table
-        .filter(schema::data::server_id.eq(server.id))
-        .select(DataModelMini::as_select())
-        .load(&mut conn)
+    insert_into(schema::players::table)
+        .values(
+            status
+                .players
+                .sample
+                .unwrap_or_default()
+                .iter()
+                .map(|t| PlayerInsert {
+                    server_id: server.id,
+                    name: &t.name,
+                })
+                .collect::<Vec<_>>(),
+        )
+        .on_conflict_do_nothing()
+        .execute(&mut conn)
         .await
         .unwrap();
-
-    let unique_players = players_list
-        .iter()
-        .filter_map(|t| t.players.as_array())
-        .flatten()
-        .filter_map(|t| t.as_str())
-        .collect::<HashSet<_>>()
-        .len() as i32;
 
     let server_change = ServerUpdate {
         description: &status.description,
         updated: Utc::now(),
         was_online: true,
-        unique_players,
     };
 
     diesel::update(schema::servers::table)

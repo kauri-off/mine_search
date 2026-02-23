@@ -11,7 +11,7 @@ import type { ServerInfoResponse } from "../types/ServerInfoResponse";
 export const Dashboard = () => {
   const [ip, setIp] = useState("");
   const addIpMutation = useMutation({
-    mutationFn: (ip: string) => serverApi.addIp({ ip }),
+    mutationFn: (ip: string) => serverApi.addServerIp({ ip }),
     onSuccess: () => setIp(""),
     onError: (err) => console.error(err),
   });
@@ -41,7 +41,7 @@ export const Dashboard = () => {
     >({
       queryKey: ["servers", filters],
       queryFn: async ({ pageParam = null }) => {
-        return await serverApi.fetchList({
+        return await serverApi.fetchServerList({
           ...filters,
           offset_id: pageParam,
         });
@@ -176,7 +176,7 @@ export const Dashboard = () => {
                         {server.version_name}
                       </span>
                       <span className="bg-gray-700 px-2 py-0.5 rounded text-white">
-                        Online: {server.online}/{server.unique_players}
+                        Online: {server.online}/{server.max}
                       </span>
                     </div>
 
