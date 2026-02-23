@@ -12,7 +12,7 @@ import type {
   PlayerResponse,
   PlayerListRequest,
   UpdatePlayerRequest,
-} from '../types';
+} from '@/types';
 
 const API_URL = '/api/v1';
 

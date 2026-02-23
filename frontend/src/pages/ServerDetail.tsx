@@ -11,14 +11,13 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { format } from "date-fns";
-
-import { serverApi } from "../api/client";
-import { CopyButton, ToggleButton, StatusBlock } from "../components";
 import type {
-  UpdateServerRequest,
-  UpdatePlayerRequest,
   PlayerStatus,
-} from "../types";
+  UpdatePlayerRequest,
+  UpdateServerRequest,
+} from "@/types";
+import { serverApi } from "@/api/client";
+import { CopyButton, StatusBlock, ToggleButton } from "@/components";
 
 // ---------------------------------------------------------------------------
 // Constants

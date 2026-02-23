@@ -4,11 +4,10 @@ import type { InfiniteData } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { enUS } from "date-fns/locale";
-
-import { serverApi } from "../api/client";
-import { useIntersectionRef } from "../hooks/useIntersectionRef";
-import type { ServerListRequest, ServerInfoResponse } from "../types";
-import { cn } from "@/lib/cn";
+import type { ServerInfoResponse, ServerListRequest } from "@/types";
+import { cn } from "@/cn";
+import { serverApi } from "@/api/client";
+import { useIntersectionRef } from "@/hooks/useIntersectionRef";
 
 // ---------------------------------------------------------------------------
 // Types

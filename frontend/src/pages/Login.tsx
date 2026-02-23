@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { authApi } from "../api/client";
+import { authApi } from "@/api/client";
 
 export const Login = () => {
   const [password, setPassword] = useState("");
