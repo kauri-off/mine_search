@@ -8,6 +8,7 @@ use api::{
 };
 use axum::{
     Router,
+    extract::DefaultBodyLimit,
     http::{
         Method,
         header::{CONTENT_TYPE, COOKIE},
@@ -58,7 +59,8 @@ async fn main() {
         .route("/ip/add", post(add_ip))
         .route("/ip/add_list", post(add_ips))
         .route("/stats", post(fetch_stats))
-        .layer(middleware::from_fn(api_middleware::middleware_check));
+        .layer(middleware::from_fn(api_middleware::middleware_check))
+        .layer(DefaultBodyLimit::disable());
 
     let public_api = Router::new()
         .route("/auth/login", post(authenticate_user))
