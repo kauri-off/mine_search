@@ -7,8 +7,8 @@ import { enUS } from "date-fns/locale";
 
 import { serverApi } from "../api/client";
 import { useIntersectionRef } from "../hooks/useIntersectionRef";
-import { cn } from "../lib/cn";
 import type { ServerListRequest, ServerInfoResponse } from "../types";
+import { cn } from "@/lib/cn";
 
 // ---------------------------------------------------------------------------
 // Types
