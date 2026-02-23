@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { serverApi } from "../api/client";
 import {
   AreaChart,
   Area,
@@ -12,100 +11,54 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { format } from "date-fns";
-import type { UpdateServerRequest } from "../types/UpdateServerRequest";
-import type { UpdatePlayerRequest } from "../types/UpdatePlayerRequest";
-import type { PlayerStatus } from "../types/PlayerStatus";
 
-const CopyButton = ({ text }: { text: string }) => {
-  const [copied, setCopied] = useState(false);
+import { serverApi } from "../api/client";
+import { CopyButton, ToggleButton, StatusBlock } from "../components";
+import type {
+  UpdateServerRequest,
+  UpdatePlayerRequest,
+  PlayerStatus,
+} from "../types";
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback for older browsers
-      const el = document.createElement("textarea");
-      el.value = text;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
-  return (
-    <button
-      onClick={handleCopy}
-      title={copied ? "Copied!" : "Copy IP"}
-      className={`
-        relative inline-flex items-center justify-center
-        w-7 h-7 rounded-md transition-all duration-200
-        ${
-          copied
-            ? "bg-green-500/20 text-green-400 scale-95"
-            : "bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-white"
-        }
-      `}
-    >
-      {copied ? (
-        /* Checkmark icon */
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-4 h-4 animate-[pop_0.2s_ease-out]"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ animation: "pop 0.2s ease-out" }}
-        >
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      ) : (
-        /* Clipboard icon */
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-4 h-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <rect x="9" y="2" width="6" height="4" rx="1" ry="1" />
-          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-        </svg>
-      )}
+const PLAYER_STATUSES: PlayerStatus[] = ["None", "Regular", "Admin"];
 
-      {/* Tooltip */}
-      <span
-        className={`
-          absolute -top-8 left-1/2 -translate-x-1/2
-          text-xs px-2 py-1 rounded bg-gray-900 border border-gray-700
-          whitespace-nowrap pointer-events-none
-          transition-opacity duration-150
-          ${copied ? "opacity-100" : "opacity-0"}
-        `}
-      >
-        Copied!
-      </span>
-
-      <style>{`
-        @keyframes pop {
-          0%   { transform: scale(0.6); opacity: 0.5; }
-          60%  { transform: scale(1.2); }
-          100% { transform: scale(1);   opacity: 1; }
-        }
-      `}</style>
-    </button>
-  );
+const PLAYER_STATUS_COLOR: Record<PlayerStatus, string> = {
+  None: "gray",
+  Regular: "blue",
+  Admin: "amber",
 };
+
+/** Fields that are mutually exclusive when toggling server flags. */
+const EXCLUSIVE_TOGGLE_FIELDS = ["checked", "spoofable", "crashed"] as const;
+type ToggleField = (typeof EXCLUSIVE_TOGGLE_FIELDS)[number];
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds an UpdateServerRequest that flips `field` and resets all other
+ * exclusive fields to null (the API treats them as mutually exclusive).
+ */
+function buildToggleUpdate(
+  serverIp: string,
+  field: ToggleField,
+  currentValue: boolean | null,
+): UpdateServerRequest {
+  const resets = Object.fromEntries(
+    EXCLUSIVE_TOGGLE_FIELDS.filter((f) => f !== field).map((f) => [f, null]),
+  ) as Record<ToggleField, null>;
+
+  return { server_ip: serverIp, ...resets, [field]: !currentValue };
+}
+
+// ---------------------------------------------------------------------------
+// ServerDetail
+// ---------------------------------------------------------------------------
 
 export const ServerDetail = () => {
   const { ip } = useParams<{ ip: string }>();
@@ -114,6 +67,8 @@ export const ServerDetail = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (!ip) return null;
+
+  // -- Queries ---------------------------------------------------------------
 
   const { data: server, isLoading: isInfoLoading } = useQuery({
     queryKey: ["server", ip],
@@ -133,18 +88,12 @@ export const ServerDetail = () => {
     enabled: !!server?.id,
   });
 
-  const updatePlayerMutation = useMutation({
-    mutationFn: (body: UpdatePlayerRequest) => serverApi.updatePlayer(body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["playerList", server?.id] });
-    },
-  });
+  // -- Mutations -------------------------------------------------------------
 
   const updateMutation = useMutation({
     mutationFn: (body: UpdateServerRequest) => serverApi.updateServer(body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["server", ip] });
-    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["server", ip] }),
   });
 
   const deleteMutation = useMutation({
@@ -155,25 +104,20 @@ export const ServerDetail = () => {
     },
   });
 
-  const handleToggle = (field: "checked" | "spoofable" | "crashed") => {
+  const updatePlayerMutation = useMutation({
+    mutationFn: (body: UpdatePlayerRequest) => serverApi.updatePlayer(body),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["playerList", server?.id] }),
+  });
+
+  // -- Handlers --------------------------------------------------------------
+
+  const handleToggle = (field: ToggleField) => {
     if (!server) return;
-
-    const allFields = ["checked", "spoofable", "crashed"] as const;
-    const resetFields = Object.fromEntries(
-      allFields.filter((f) => f !== field).map((f) => [f, null]),
-    ) as Record<(typeof allFields)[number], null>;
-
-    updateMutation.mutate({
-      server_ip: server.ip,
-      ...resetFields,
-      [field]: !server[field],
-    });
+    updateMutation.mutate(buildToggleUpdate(server.ip, field, server[field]));
   };
 
-  const handleDeleteConfirm = () => {
-    if (!server) return;
-    deleteMutation.mutate(server.id);
-  };
+  // -- Early returns ---------------------------------------------------------
 
   if (isInfoLoading)
     return <div className="text-white text-center mt-20">Loading...</div>;
@@ -182,6 +126,8 @@ export const ServerDetail = () => {
       <div className="text-white text-center mt-20">Server is not found</div>
     );
 
+  // -- Derived data ----------------------------------------------------------
+
   const chartData = history
     ?.map((d) => ({
       time: d.timestamp,
@@ -189,6 +135,8 @@ export const ServerDetail = () => {
       formattedTime: format(new Date(d.timestamp), "HH:mm"),
     }))
     .reverse();
+
+  // -- Render ----------------------------------------------------------------
 
   return (
     <div className="p-6 max-w-7xl mx-auto text-white">
@@ -200,9 +148,12 @@ export const ServerDetail = () => {
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ----------------------------------------------------------------- */}
+        {/* Left column                                                        */}
+        {/* ----------------------------------------------------------------- */}
         <div className="lg:col-span-1 space-y-6">
+          {/* Server info card */}
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-            {/* IP + Copy button */}
             <div className="flex items-center gap-2 mb-2">
               <h1 className="text-2xl font-bold break-all">{server.ip}</h1>
               <CopyButton text={server.ip} />
@@ -210,8 +161,7 @@ export const ServerDetail = () => {
             <p className="text-gray-400 mb-4">{server.version_name}</p>
 
             <div className="space-y-3">
-              <div className="flex justify-between border-b border-gray-700 pb-2">
-                <span>Status:</span>
+              <InfoRow label="Status">
                 <span
                   className={
                     server.was_online ? "text-green-400" : "text-red-400"
@@ -219,19 +169,16 @@ export const ServerDetail = () => {
                 >
                   {server.was_online ? "Online" : "Offline"}
                 </span>
-              </div>
-              <div className="flex justify-between border-b border-gray-700 pb-2">
-                <span>Online:</span>
-                <span>
-                  {server.online} / {server.max}
-                </span>
-              </div>
-              <div className="flex justify-between border-b border-gray-700 pb-2">
-                <span>Licensed:</span>
-                <span>{server.license ? "Yes" : "No"}</span>
-              </div>
+              </InfoRow>
+              <InfoRow label="Online">
+                {server.online} / {server.max}
+              </InfoRow>
+              <InfoRow label="Licensed">
+                {server.license ? "Yes" : "No"}
+              </InfoRow>
             </div>
 
+            {/* Management toggles */}
             <div className="mt-6 space-y-2">
               <h3 className="font-semibold mb-2 text-gray-300">Management:</h3>
               <ToggleButton
@@ -252,16 +199,9 @@ export const ServerDetail = () => {
               />
             </div>
 
+            {/* Delete */}
             <div className="mt-4 pt-4 border-t border-gray-700">
-              {!showDeleteConfirm ? (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="w-full py-2 px-4 rounded font-medium transition bg-red-900 hover:bg-red-800 text-red-300 hover:text-white flex items-center justify-center gap-2"
-                >
-                  <span>🗑</span>
-                  <span>Delete Server</span>
-                </button>
-              ) : (
+              {showDeleteConfirm ? (
                 <div className="space-y-2">
                   <p className="text-sm text-red-400 text-center font-medium">
                     Are you sure you want to delete{" "}
@@ -279,7 +219,7 @@ export const ServerDetail = () => {
                       Cancel
                     </button>
                     <button
-                      onClick={handleDeleteConfirm}
+                      onClick={() => deleteMutation.mutate(server.id)}
                       disabled={deleteMutation.isPending}
                       className="flex-1 py-2 px-4 rounded font-medium transition bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -287,31 +227,35 @@ export const ServerDetail = () => {
                     </button>
                   </div>
                 </div>
+              ) : (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full py-2 px-4 rounded font-medium transition bg-red-900 hover:bg-red-800 text-red-300 hover:text-white flex items-center justify-center gap-2"
+                >
+                  <span>🗑</span>
+                  <span>Delete Server</span>
+                </button>
               )}
             </div>
           </div>
 
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 overflow-hidden">
-            <h3 className="font-bold mb-4">MOTD</h3>
-            <div
-              className="prose prose-invert prose-sm max-w-none bg-gray-900 p-2 rounded"
-              dangerouslySetInnerHTML={{ __html: server.description_html }}
-            />
-          </div>
+          {/* MOTD */}
+          <HtmlCard title="MOTD" html={server.description_html} />
+
+          {/* Disconnect reason */}
           {server.disconnect_reason_html && (
-            <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 overflow-hidden">
-              <h3 className="font-bold mb-4">Disconnect reason</h3>
-              <div
-                className="prose prose-invert prose-sm max-w-none bg-gray-900 p-2 rounded"
-                dangerouslySetInnerHTML={{
-                  __html: server.disconnect_reason_html,
-                }}
-              />
-            </div>
+            <HtmlCard
+              title="Disconnect reason"
+              html={server.disconnect_reason_html}
+            />
           )}
         </div>
 
+        {/* ----------------------------------------------------------------- */}
+        {/* Right column                                                       */}
+        {/* ----------------------------------------------------------------- */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Online graph */}
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 h-96">
             <h3 className="font-bold mb-4">Online graph</h3>
             <ResponsiveContainer width="100%" height="100%">
@@ -344,8 +288,10 @@ export const ServerDetail = () => {
             </ResponsiveContainer>
           </div>
 
+          {/* Players */}
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
             <h3 className="font-bold mb-4">Players (All)</h3>
+
             {players && players.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -368,20 +314,12 @@ export const ServerDetail = () => {
                         </td>
                         <td className="py-2.5">
                           <div className="flex items-center justify-end gap-1.5">
-                            {(
-                              ["None", "Regular", "Admin"] as PlayerStatus[]
-                            ).map((status) => (
+                            {PLAYER_STATUSES.map((status) => (
                               <StatusBlock
                                 key={status}
                                 label={status}
                                 active={player.status === status}
-                                activeColor={
-                                  status === "None"
-                                    ? "gray"
-                                    : status === "Regular"
-                                      ? "blue"
-                                      : "amber"
-                                }
+                                activeColor={PLAYER_STATUS_COLOR[status]}
                                 onClick={() => {
                                   if (player.status !== status) {
                                     updatePlayerMutation.mutate({
@@ -409,60 +347,31 @@ export const ServerDetail = () => {
   );
 };
 
-const ToggleButton = ({ label, active, onClick, color = "blue" }: any) => (
-  <button
-    onClick={onClick}
-    className={`w-full py-2 px-4 rounded font-medium transition flex justify-between items-center
-            ${
-              active
-                ? color === "red"
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-blue-600 hover:bg-blue-700"
-                : "bg-gray-700 hover:bg-gray-600"
-            }`}
-  >
-    <span>{label}</span>
-    <span className="text-xs uppercase bg-black/20 px-2 py-0.5 rounded">
-      {active ? "ON" : "OFF"}
-    </span>
-  </button>
-);
+// ---------------------------------------------------------------------------
+// Small local components
+// ---------------------------------------------------------------------------
 
-const colorMap: Record<string, { active: string; inactive: string }> = {
-  gray: {
-    active: "bg-gray-500/30 text-gray-300 border-gray-500",
-    inactive: "bg-gray-800 text-gray-600 border-gray-700",
-  },
-  blue: {
-    active: "bg-blue-500/20 text-blue-300 border-blue-500",
-    inactive: "bg-gray-800 text-gray-600 border-gray-700",
-  },
-  amber: {
-    active: "bg-amber-500/20 text-amber-300 border-amber-500",
-    inactive: "bg-gray-800 text-gray-600 border-gray-700",
-  },
-};
-
-const StatusBlock = ({
+/** A bordered key/value row used inside the server info card. */
+const InfoRow = ({
   label,
-  active,
-  activeColor,
-  onClick,
+  children,
 }: {
   label: string;
-  active: boolean;
-  activeColor: string;
-  onClick?: () => void;
-}) => {
-  const colors = colorMap[activeColor] ?? colorMap.gray;
-  return (
-    <span
-      onClick={onClick}
-      className={`px-2 py-0.5 rounded border text-xs font-medium transition-colors select-none
-        ${active ? `${colors.active} cursor-default` : `${colors.inactive} cursor-pointer hover:border-gray-500 hover:text-gray-400`}
-      `}
-    >
-      {label}
-    </span>
-  );
-};
+  children: React.ReactNode;
+}) => (
+  <div className="flex justify-between border-b border-gray-700 pb-2">
+    <span>{label}:</span>
+    <span>{children}</span>
+  </div>
+);
+
+/** A card that renders server HTML content (MOTD, disconnect reason, etc.). */
+const HtmlCard = ({ title, html }: { title: string; html: string }) => (
+  <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 overflow-hidden">
+    <h3 className="font-bold mb-4">{title}</h3>
+    <div
+      className="prose prose-invert prose-sm max-w-none bg-gray-900 p-2 rounded"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  </div>
+);

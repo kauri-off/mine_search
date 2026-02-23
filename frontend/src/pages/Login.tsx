@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import { authApi } from "../api/client";
 
 export const Login = () => {
@@ -7,15 +8,15 @@ export const Login = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.ChangeEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     try {
       await authApi.login({ password });
       navigate("/");
-    } catch (err: any) {
-      if (err.response?.status === 401) {
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
         setError("Wrong password");
       } else {
         setError("Network error. Try again later");
