@@ -29,6 +29,79 @@ const TRI_STATE_LABEL: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
+// Persistent filters — localStorage with schema-migration safety
+//
+// Strategy: when reading from storage, we compare the stored keys against
+// DEFAULT_FILTERS keys. Unknown keys (removed from codebase) are dropped;
+// missing keys (added to codebase) fall back to their default values.
+// The `limit` field is never persisted — it always uses the default.
+// ---------------------------------------------------------------------------
+
+const STORAGE_KEY = "dashboard_filters";
+
+const DEFAULT_FILTERS: Filters = {
+  limit: 50,
+  licensed: null,
+  checked: null,
+  spoofable: null,
+  crashed: null,
+  has_players: null,
+  online: null,
+};
+
+/**
+ * Merge stored filters with the current DEFAULT_FILTERS shape.
+ * - Keys in storage that no longer exist in defaults are silently dropped.
+ * - Keys that exist in defaults but not in storage get their default value.
+ * - `limit` is always taken from defaults (never persisted).
+ */
+function mergeWithDefaults(stored: Record<string, unknown>): Filters {
+  const merged = { ...DEFAULT_FILTERS };
+
+  for (const key of Object.keys(DEFAULT_FILTERS) as (keyof Filters)[]) {
+    if (key === "limit") continue; // never persist limit
+    if (key in stored) {
+      const val = stored[key];
+      // Only accept boolean | null — guards against corrupt data
+      if (val === null || val === true || val === false) {
+        (merged as Record<string, unknown>)[key] = val;
+      }
+    }
+  }
+
+  return merged;
+}
+
+function loadFilters(): Filters {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return DEFAULT_FILTERS;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return mergeWithDefaults(parsed);
+  } catch {
+    return DEFAULT_FILTERS;
+  }
+}
+
+function saveFilters(filters: Filters): void {
+  try {
+    // Exclude `limit` from persistence
+    const { limit: _limit, ...persistable } = filters;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
+  } catch {
+    // Storage quota exceeded or blocked — silently ignore
+  }
+}
+
+function clearFilters(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+// ---------------------------------------------------------------------------
 // FilterButton
 // ---------------------------------------------------------------------------
 
@@ -102,22 +175,24 @@ const ServerCard = ({ server, cardRef }: ServerCardProps) => (
 );
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Returns true when every tristate filter is null (i.e. nothing is active) */
+function areFiltersDefault(filters: Filters): boolean {
+  const triStateKeys = Object.keys(DEFAULT_FILTERS).filter(
+    (k) => k !== "limit",
+  ) as (keyof Omit<Filters, "limit">)[];
+  return triStateKeys.every((k) => filters[k] === null);
+}
+
+// ---------------------------------------------------------------------------
 // Dashboard
 // ---------------------------------------------------------------------------
 
-const DEFAULT_FILTERS: Filters = {
-  limit: 50,
-  licensed: null,
-  checked: null,
-  spoofable: null,
-  crashed: null,
-  has_players: null,
-  online: null,
-};
-
 export const Dashboard = () => {
   const [ip, setIp] = useState("");
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<Filters>(loadFilters);
 
   // -- Queries ---------------------------------------------------------------
 
@@ -165,8 +240,18 @@ export const Dashboard = () => {
 
   // -- Helpers ---------------------------------------------------------------
 
-  const setFilter = (field: keyof Filters, value: boolean | null) =>
-    setFilters((prev) => ({ ...prev, [field]: value }));
+  const setFilter = (field: keyof Filters, value: boolean | null) => {
+    setFilters((prev) => {
+      const next = { ...prev, [field]: value };
+      saveFilters(next);
+      return next;
+    });
+  };
+
+  const resetFilters = () => {
+    clearFilters();
+    setFilters(DEFAULT_FILTERS);
+  };
 
   const handleAddIp = () => addIpMutation.mutate(ip);
 
@@ -174,6 +259,7 @@ export const Dashboard = () => {
 
   const allServers = data?.pages.flat() ?? [];
   const isEmpty = data?.pages[0]?.length === 0;
+  const filtersActive = !areFiltersDefault(filters);
 
   return (
     <div className="p-6 max-w-7xl mx-auto text-white">
@@ -196,6 +282,7 @@ export const Dashboard = () => {
       {/* Filters */}
       <div className="mb-6 p-4 bg-gray-800 rounded-lg flex flex-wrap gap-4 items-center">
         <span className="text-gray-400">Filters:</span>
+
         {(
           [
             { label: "Licensed", field: "licensed" },
@@ -213,6 +300,30 @@ export const Dashboard = () => {
             onToggle={(next) => setFilter(field, next)}
           />
         ))}
+
+        {/* Reset button — only visible when at least one filter is active */}
+        {filtersActive && (
+          <button
+            onClick={resetFilters}
+            className="ml-auto px-3 py-1 rounded text-sm font-medium transition bg-gray-600 hover:bg-gray-500 text-gray-200 flex items-center gap-1.5"
+            title="Reset all filters"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-3.5 h-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+            Reset filters
+          </button>
+        )}
       </div>
 
       {/* Add IP */}
