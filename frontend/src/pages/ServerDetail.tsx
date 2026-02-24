@@ -99,16 +99,19 @@ export const ServerDetail = () => {
       await queryClient.cancelQueries({ queryKey: ["server", ip] });
 
       // Snapshot the previous value for rollback
-      const previousServer = queryClient.getQueryData<ServerInfoResponse>(["server", ip]);
+      const previousServer = queryClient.getQueryData<ServerInfoResponse>([
+        "server",
+        ip,
+      ]);
 
       // Optimistically apply only the field being toggled (null means "ignore" on the API)
       queryClient.setQueryData<ServerInfoResponse>(["server", ip], (old) => {
         if (!old) return old;
         return {
           ...old,
-          ...(body.checked   !== null && { checked:   body.checked }),
+          ...(body.checked !== null && { checked: body.checked }),
           ...(body.spoofable !== null && { spoofable: body.spoofable }),
-          ...(body.crashed   !== null && { crashed:   body.crashed }),
+          ...(body.crashed !== null && { crashed: body.crashed }),
         };
       });
 
@@ -143,7 +146,8 @@ export const ServerDetail = () => {
       await queryClient.cancelQueries({ queryKey });
 
       // Snapshot for rollback
-      const previousPlayers = queryClient.getQueryData<PlayerResponse[]>(queryKey);
+      const previousPlayers =
+        queryClient.getQueryData<PlayerResponse[]>(queryKey);
 
       // Optimistically update the player's status in the list
       queryClient.setQueryData<PlayerResponse[]>(queryKey, (old) =>
@@ -155,7 +159,10 @@ export const ServerDetail = () => {
     onError: (_err, _body, context) => {
       // Roll back to the previous players list on any error (non-200 response)
       if (context?.previousPlayers) {
-        queryClient.setQueryData(["playerList", server?.id], context.previousPlayers);
+        queryClient.setQueryData(
+          ["playerList", server?.id],
+          context.previousPlayers,
+        );
       }
     },
     // Always refetch after error or success to stay in sync
@@ -199,239 +206,247 @@ export const ServerDetail = () => {
 
   // -- Render ----------------------------------------------------------------
 
-return (
-  <div className="p-6 max-w-7xl mx-auto text-white">
-    {/* The Back button now renders regardless of data status */}
-    <button
-      onClick={() => navigate(-1)}
-      className="mb-4 text-blue-400 hover:underline flex items-center gap-1"
-    >
-      <span>←</span> Back
-    </button>
+  return (
+    <div className="p-6 max-w-7xl mx-auto text-white">
+      {/* The Back button now renders regardless of data status */}
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-4 text-blue-400 hover:underline flex items-center gap-1"
+      >
+        <span>←</span> Back
+      </button>
 
-    {isInfoLoading ? (
-      <div className="text-white text-center mt-20">
-        <div className="animate-pulse">Loading...</div>
-      </div>
-    ) : !server ? (
-      <div className="text-white text-center mt-20">Server is not found</div>
-    ) : (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ----------------------------------------------------------------- */}
-        {/* Left column                                                        */}
-        {/* ----------------------------------------------------------------- */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Server info card */}
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-            <div className="flex items-center gap-2 mb-2">
-              <h1 className="text-2xl font-bold break-all">{server.ip}</h1>
-              <CopyButton text={server.ip} />
-            </div>
-            <p className="text-gray-400 mb-4">{server.version_name}</p>
+      {isInfoLoading ? (
+        <div className="text-white text-center mt-20">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      ) : !server ? (
+        <div className="text-white text-center mt-20">Server is not found</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* ----------------------------------------------------------------- */}
+          {/* Left column                                                        */}
+          {/* ----------------------------------------------------------------- */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Server info card */}
+            <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-2xl font-bold break-all">{server.ip}</h1>
+                <CopyButton text={server.ip} />
+              </div>
+              <p className="text-gray-400 mb-4">{server.version_name}</p>
 
-            <div className="space-y-3">
-              <InfoRow label="Status">
-                <span
-                  className={
-                    server.was_online ? "text-green-400" : "text-red-400"
-                  }
+              <div className="space-y-3">
+                <InfoRow label="Status">
+                  <span
+                    className={
+                      server.was_online ? "text-green-400" : "text-red-400"
+                    }
+                  >
+                    {server.was_online ? "Online" : "Offline"}
+                  </span>
+                </InfoRow>
+                <InfoRow label="Online">
+                  {server.online} / {server.max}
+                </InfoRow>
+                <InfoRow label="Licensed">
+                  {server.license ? "Yes" : "No"}
+                </InfoRow>
+              </div>
+
+              {/* Management toggles */}
+              <div className="mt-6 space-y-2">
+                <h3 className="font-semibold mb-2 text-gray-300">
+                  Management:
+                </h3>
+                <ToggleButton
+                  label="Checked"
+                  active={!!server.checked}
+                  onClick={() => handleToggle("checked")}
+                />
+                <ToggleButton
+                  label="Spoofable"
+                  active={!!server.spoofable}
+                  onClick={() => handleToggle("spoofable")}
+                />
+                <ToggleButton
+                  label="Crashed"
+                  active={!!server.crashed}
+                  onClick={() => handleToggle("crashed")}
+                  color="red"
+                />
+              </div>
+
+              {/* Ping */}
+              <div className="mt-4 pt-4 border-t border-gray-700">
+                <button
+                  onClick={handlePing}
+                  disabled={pingCountdown !== null}
+                  className="w-full py-2 px-4 rounded font-medium transition bg-blue-900 hover:bg-blue-800 text-blue-300 hover:text-white flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  {server.was_online ? "Online" : "Offline"}
-                </span>
-              </InfoRow>
-              <InfoRow label="Online">
-                {server.online} / {server.max}
-              </InfoRow>
-              <InfoRow label="Licensed">
-                {server.license ? "Yes" : "No"}
-              </InfoRow>
-            </div>
+                  <span>📡</span>
+                  <span>
+                    {pingCountdown !== null
+                      ? `Reloading in ${pingCountdown}s...`
+                      : "Ping Server"}
+                  </span>
+                </button>
+              </div>
 
-            {/* Management toggles */}
-            <div className="mt-6 space-y-2">
-              <h3 className="font-semibold mb-2 text-gray-300">Management:</h3>
-              <ToggleButton
-                label="Checked"
-                active={!!server.checked}
-                onClick={() => handleToggle("checked")}
-              />
-              <ToggleButton
-                label="Spoofable"
-                active={!!server.spoofable}
-                onClick={() => handleToggle("spoofable")}
-              />
-              <ToggleButton
-                label="Crashed"
-                active={!!server.crashed}
-                onClick={() => handleToggle("crashed")}
-                color="red"
-              />
-            </div>
-
-            {/* Ping */}
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <button
-                onClick={handlePing}
-                disabled={pingCountdown !== null}
-                className="w-full py-2 px-4 rounded font-medium transition bg-blue-900 hover:bg-blue-800 text-blue-300 hover:text-white flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                <span>📡</span>
-                <span>
-                  {pingCountdown !== null
-                    ? `Reloading in ${pingCountdown}s...`
-                    : "Ping Server"}
-                </span>
-              </button>
-            </div>
-
-            {/* Delete */}
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              {showDeleteConfirm ? (
-                <div className="space-y-2">
-                  <p className="text-sm text-red-400 text-center font-medium">
-                    Are you sure you want to delete{" "}
-                    <span className="font-bold text-white">{server.ip}</span>?
-                  </p>
-                  <p className="text-xs text-gray-500 text-center">
-                    This action cannot be undone.
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setShowDeleteConfirm(false)}
-                      disabled={deleteMutation.isPending}
-                      className="flex-1 py-2 px-4 rounded font-medium transition bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate(server.id)}
-                      disabled={deleteMutation.isPending}
-                      className="flex-1 py-2 px-4 rounded font-medium transition bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {deleteMutation.isPending ? "Deleting..." : "Confirm"}
-                    </button>
+              {/* Delete */}
+              <div className="mt-4 pt-4 border-t border-gray-700">
+                {showDeleteConfirm ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-400 text-center font-medium">
+                      Are you sure you want to delete{" "}
+                      <span className="font-bold text-white">{server.ip}</span>?
+                    </p>
+                    <p className="text-xs text-gray-500 text-center">
+                      This action cannot be undone.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowDeleteConfirm(false)}
+                        disabled={deleteMutation.isPending}
+                        className="flex-1 py-2 px-4 rounded font-medium transition bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => deleteMutation.mutate(server.id)}
+                        disabled={deleteMutation.isPending}
+                        className="flex-1 py-2 px-4 rounded font-medium transition bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deleteMutation.isPending ? "Deleting..." : "Confirm"}
+                      </button>
+                    </div>
                   </div>
+                ) : (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="w-full py-2 px-4 rounded font-medium transition bg-red-900 hover:bg-red-800 text-red-300 hover:text-white flex items-center justify-center gap-2"
+                  >
+                    <span>🗑</span>
+                    <span>Delete Server</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* MOTD */}
+            <HtmlCard title="MOTD" html={server.description_html} />
+
+            {/* Disconnect reason */}
+            {server.disconnect_reason_html && (
+              <HtmlCard
+                title="Disconnect reason"
+                html={server.disconnect_reason_html}
+              />
+            )}
+          </div>
+
+          {/* ----------------------------------------------------------------- */}
+          {/* Right column                                                       */}
+          {/* ----------------------------------------------------------------- */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Online graph */}
+            <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 h-96">
+              <h3 className="font-bold mb-4">Online graph</h3>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient
+                      id="colorOnline"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="formattedTime" stroke="#9ca3af" />
+                  <YAxis stroke="#9ca3af" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#1f2937",
+                      border: "none",
+                      borderRadius: "8px",
+                    }}
+                    itemStyle={{ color: "#fff" }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="online"
+                    stroke="#3b82f6"
+                    fillOpacity={1}
+                    fill="url(#colorOnline)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Players */}
+            <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+              <h3 className="font-bold mb-4">Players (All)</h3>
+
+              {players && players.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-700 text-gray-400 text-left">
+                        <th className="pb-2 font-medium">Name</th>
+                        <th className="pb-2 font-medium text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700/50">
+                      {players.map((player) => (
+                        <tr key={player.id} className="group">
+                          <td className="py-2.5 pr-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-white">{player.name}</span>
+                              <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <CopyButton text={player.name} />
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-2.5">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {PLAYER_STATUSES.map((status) => (
+                                <StatusBlock
+                                  key={status}
+                                  label={status}
+                                  active={player.status === status}
+                                  activeColor={PLAYER_STATUS_COLOR[status]}
+                                  onClick={() => {
+                                    if (player.status !== status) {
+                                      updatePlayerMutation.mutate({
+                                        id: player.id,
+                                        status,
+                                      });
+                                    }
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="w-full py-2 px-4 rounded font-medium transition bg-red-900 hover:bg-red-800 text-red-300 hover:text-white flex items-center justify-center gap-2"
-                >
-                  <span>🗑</span>
-                  <span>Delete Server</span>
-                </button>
+                <span className="text-gray-500">Empty</span>
               )}
             </div>
           </div>
-
-          {/* MOTD */}
-          <HtmlCard title="MOTD" html={server.description_html} />
-
-          {/* Disconnect reason */}
-          {server.disconnect_reason_html && (
-            <HtmlCard
-              title="Disconnect reason"
-              html={server.disconnect_reason_html}
-            />
-          )}
         </div>
-
-        {/* ----------------------------------------------------------------- */}
-        {/* Right column                                                       */}
-        {/* ----------------------------------------------------------------- */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Online graph */}
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 h-96">
-            <h3 className="font-bold mb-4">Online graph</h3>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorOnline" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="formattedTime" stroke="#9ca3af" />
-                <YAxis stroke="#9ca3af" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1f2937",
-                    border: "none",
-                    borderRadius: "8px",
-                  }}
-                  itemStyle={{ color: "#fff" }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="online"
-                  stroke="#3b82f6"
-                  fillOpacity={1}
-                  fill="url(#colorOnline)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Players */}
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-            <h3 className="font-bold mb-4">Players (All)</h3>
-
-            {players && players.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-700 text-gray-400 text-left">
-                      <th className="pb-2 font-medium">Name</th>
-                      <th className="pb-2 font-medium text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700/50">
-                    {players.map((player) => (
-                      <tr key={player.id} className="group">
-                        <td className="py-2.5 pr-4">
-                          <div className="flex items-center gap-2">
-                            <span className="text-white">{player.name}</span>
-                            <span className="opacity-0 group-hover:opacity-100 transition-opacity">
-                              <CopyButton text={player.name} />
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-2.5">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {PLAYER_STATUSES.map((status) => (
-                              <StatusBlock
-                                key={status}
-                                label={status}
-                                active={player.status === status}
-                                activeColor={PLAYER_STATUS_COLOR[status]}
-                                onClick={() => {
-                                  if (player.status !== status) {
-                                    updatePlayerMutation.mutate({
-                                      id: player.id,
-                                      status,
-                                    });
-                                  }
-                                }}
-                              />
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <span className="text-gray-500">Empty</span>
-            )}
-          </div>
-        </div>
-      </div>
-    )}
-  </div>
-);
-}
+      )}
+    </div>
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Small local components
