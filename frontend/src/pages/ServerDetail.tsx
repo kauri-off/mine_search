@@ -204,24 +204,18 @@ return (
     {/* The Back button now renders regardless of data status */}
     <button
       onClick={() => navigate(-1)}
-      className="mb-4 text-blue-400 hover:underline"
+      className="mb-4 text-blue-400 hover:underline flex items-center gap-1"
     >
-      ← Back
+      <span>←</span> Back
     </button>
 
     {isInfoLoading ? (
-      <div className="text-white text-center mt-20">Loading...</div>
+      <div className="text-white text-center mt-20">
+        <div className="animate-pulse">Loading...</div>
+      </div>
     ) : !server ? (
       <div className="text-white text-center mt-20">Server is not found</div>
     ) : (
-    <div className="p-6 max-w-7xl mx-auto text-white">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-4 text-blue-400 hover:underline"
-      >
-        ← Back
-      </button>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ----------------------------------------------------------------- */}
         {/* Left column                                                        */}
@@ -434,9 +428,10 @@ return (
           </div>
         </div>
       </div>
-    </div>
-  )});
-};
+    )}
+  </div>
+);
+}
 
 // ---------------------------------------------------------------------------
 // Small local components
