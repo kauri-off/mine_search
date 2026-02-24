@@ -13,6 +13,7 @@ use crate::{database::DatabaseWrapper, error::AppError};
 #[ts(export)]
 pub struct PingServerRequest {
     pub server_id: i32,
+    pub with_connection: bool,
 }
 
 pub async fn ping_server(
@@ -27,6 +28,7 @@ pub async fn ping_server(
 
     let ping_insert = ServerPingInsert {
         server_id: body.server_id,
+        with_connection: body.with_connection,
     };
 
     insert_into(server_ping::table)

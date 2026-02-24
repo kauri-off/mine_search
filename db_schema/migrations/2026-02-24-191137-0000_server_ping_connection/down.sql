@@ -1,0 +1,1 @@
+ALTER TABLE server_ping DROP COLUMN with_connection;

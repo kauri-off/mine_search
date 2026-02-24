@@ -6,6 +6,7 @@ use diesel::prelude::*;
 pub struct ServerPingModel {
     pub id: i32,
     pub server_id: i32,
+    pub with_connection: bool,
 }
 
 #[derive(Insertable)]
@@ -13,4 +14,5 @@ pub struct ServerPingModel {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ServerPingInsert {
     pub server_id: i32,
+    pub with_connection: bool,
 }

@@ -21,6 +21,7 @@ use db_schema::{
         data::DataInsert,
         ip::IpModel,
         players::PlayerInsert,
+        server_ping::ServerPingModel,
         servers::{ServerExtraUpdate, ServerInsert, ServerModel, ServerModelMini, ServerUpdate},
     },
     schema,
@@ -347,11 +348,11 @@ async fn server_ping_listener(db: Arc<DatabaseWrapper>) {
     loop {
         let mut conn = db.pool.get().await.unwrap();
 
-        let servers: Vec<ServerModelMini> = schema::server_ping::table
+        let servers: Vec<(ServerModelMini, ServerPingModel)> = schema::server_ping::table
             .inner_join(
                 schema::servers::table.on(schema::server_ping::server_id.eq(schema::servers::id)),
             )
-            .select(ServerModelMini::as_select())
+            .select((ServerModelMini::as_select(), ServerPingModel::as_select()))
             .load(&mut conn)
             .await
             .unwrap();
@@ -367,13 +368,13 @@ async fn server_ping_listener(db: Arc<DatabaseWrapper>) {
 
         let handles: Vec<_> = servers
             .into_iter()
-            .map(|value| {
+            .map(|(server, server_ping)| {
                 let permit = semaphore.clone().acquire_owned();
                 let th_db = db.clone();
 
                 tokio::spawn(async move {
                     let _permit = permit.await;
-                    update_server(value, th_db, false).await;
+                    update_server(server, th_db, server_ping.with_connection).await;
                 })
             })
             .collect();

@@ -22,6 +22,7 @@ export const ServerDetail = () => {
   const queryClient = useQueryClient();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pingCountdown, setPingCountdown] = useState<number | null>(null);
+  const [showPingSplit, setShowPingSplit] = useState(false);
 
   if (!ip) return null;
 
@@ -122,9 +123,18 @@ export const ServerDetail = () => {
     updateMutation.mutate(buildToggleUpdate(server.ip, field, server[field]));
   };
 
-  const handlePing = () => {
+  const handlePingRequest = () => {
     if (!server || pingCountdown !== null) return;
-    serverApi.pingServer({ server_id: server.id });
+    setShowPingSplit(true);
+  };
+
+  const handlePing = (withConnection: boolean) => {
+    if (!server || pingCountdown !== null) return;
+    setShowPingSplit(false);
+    serverApi.pingServer({
+      server_id: server.id,
+      with_connection: withConnection,
+    });
     setPingCountdown(12);
     const interval = setInterval(() => {
       setPingCountdown((prev) => {
@@ -166,9 +176,11 @@ export const ServerDetail = () => {
             <ServerInfoCard
               server={server}
               pingCountdown={pingCountdown}
+              showPingSplit={showPingSplit}
               showDeleteConfirm={showDeleteConfirm}
               isDeletePending={deleteMutation.isPending}
               onToggle={handleToggle}
+              onPingRequest={handlePingRequest}
               onPing={handlePing}
               onDeleteRequest={() => setShowDeleteConfirm(true)}
               onDeleteCancel={() => setShowDeleteConfirm(false)}

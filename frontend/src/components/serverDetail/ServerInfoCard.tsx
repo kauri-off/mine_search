@@ -6,10 +6,12 @@ import type { ToggleField } from "@/constants/serverDetail";
 interface ServerInfoCardProps {
   server: ServerInfoResponse;
   pingCountdown: number | null;
+  showPingSplit: boolean;
   showDeleteConfirm: boolean;
   isDeletePending: boolean;
   onToggle: (field: ToggleField) => void;
-  onPing: () => void;
+  onPingRequest: () => void;
+  onPing: (withConnection: boolean) => void;
   onDeleteRequest: () => void;
   onDeleteCancel: () => void;
   onDeleteConfirm: () => void;
@@ -18,9 +20,11 @@ interface ServerInfoCardProps {
 export const ServerInfoCard = ({
   server,
   pingCountdown,
+  showPingSplit,
   showDeleteConfirm,
   isDeletePending,
   onToggle,
+  onPingRequest,
   onPing,
   onDeleteRequest,
   onDeleteCancel,
@@ -70,18 +74,41 @@ export const ServerInfoCard = ({
 
     {/* Ping */}
     <div className="mt-4 pt-4 border-t border-gray-700">
-      <button
-        onClick={onPing}
-        disabled={pingCountdown !== null}
-        className="w-full py-2 px-4 rounded font-medium transition bg-blue-900 hover:bg-blue-800 text-blue-300 hover:text-white flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-      >
-        <span>📡</span>
-        <span>
-          {pingCountdown !== null
-            ? `Reloading in ${pingCountdown}s...`
-            : "Ping Server"}
-        </span>
-      </button>
+      {pingCountdown !== null ? (
+        <button
+          disabled
+          className="w-full py-2 px-4 rounded font-medium bg-blue-900 text-blue-300 opacity-70 cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <span>📡</span>
+          <span>Reloading in {pingCountdown}s...</span>
+        </button>
+      ) : showPingSplit ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs text-gray-400 text-center">Choose ping type:</p>
+          <button
+            onClick={() => onPing(true)}
+            className="w-full py-2 px-4 rounded font-medium transition bg-blue-900 hover:bg-blue-800 text-blue-300 hover:text-white flex items-center justify-center gap-2"
+          >
+            <span>🔗</span>
+            <span>With Connection</span>
+          </button>
+          <button
+            onClick={() => onPing(false)}
+            className="w-full py-2 px-4 rounded font-medium transition bg-blue-950 hover:bg-blue-900 text-blue-400 hover:text-white flex items-center justify-center gap-2"
+          >
+            <span>📡</span>
+            <span>Without Connection</span>
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={onPingRequest}
+          className="w-full py-2 px-4 rounded font-medium transition bg-blue-900 hover:bg-blue-800 text-blue-300 hover:text-white flex items-center justify-center gap-2"
+        >
+          <span>📡</span>
+          <span>Ping Server</span>
+        </button>
+      )}
     </div>
 
     {/* Delete */}

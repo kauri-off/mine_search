@@ -1,0 +1,1 @@
+ALTER TABLE server_ping ADD COLUMN with_connection BOOLEAN NOT NULL DEFAULT FALSE;

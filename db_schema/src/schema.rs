@@ -40,6 +40,7 @@ diesel::table! {
     server_ping (id) {
         id -> Int4,
         server_id -> Int4,
+        with_connection -> Bool,
     }
 }
 
