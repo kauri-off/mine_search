@@ -187,15 +187,6 @@ export const ServerDetail = () => {
     }, 1000);
   };
 
-  // -- Early returns ---------------------------------------------------------
-
-  if (isInfoLoading)
-    return <div className="text-white text-center mt-20">Loading...</div>;
-  if (!server)
-    return (
-      <div className="text-white text-center mt-20">Server is not found</div>
-    );
-
   // -- Derived data ----------------------------------------------------------
 
   const chartData = history
@@ -208,7 +199,21 @@ export const ServerDetail = () => {
 
   // -- Render ----------------------------------------------------------------
 
-  return (
+return (
+  <div className="p-6 max-w-7xl mx-auto text-white">
+    {/* The Back button now renders regardless of data status */}
+    <button
+      onClick={() => navigate(-1)}
+      className="mb-4 text-blue-400 hover:underline"
+    >
+      ← Back
+    </button>
+
+    {isInfoLoading ? (
+      <div className="text-white text-center mt-20">Loading...</div>
+    ) : !server ? (
+      <div className="text-white text-center mt-20">Server is not found</div>
+    ) : (
     <div className="p-6 max-w-7xl mx-auto text-white">
       <button
         onClick={() => navigate(-1)}
@@ -430,7 +435,7 @@ export const ServerDetail = () => {
         </div>
       </div>
     </div>
-  );
+  )});
 };
 
 // ---------------------------------------------------------------------------
