@@ -1,0 +1,126 @@
+import type { ServerInfoResponse } from "@/types";
+import { CopyButton, ToggleButton } from "@/components";
+import { InfoRow } from "./InfoRow";
+import type { ToggleField } from "@/constants/serverDetail";
+
+interface ServerInfoCardProps {
+  server: ServerInfoResponse;
+  pingCountdown: number | null;
+  showDeleteConfirm: boolean;
+  isDeletePending: boolean;
+  onToggle: (field: ToggleField) => void;
+  onPing: () => void;
+  onDeleteRequest: () => void;
+  onDeleteCancel: () => void;
+  onDeleteConfirm: () => void;
+}
+
+export const ServerInfoCard = ({
+  server,
+  pingCountdown,
+  showDeleteConfirm,
+  isDeletePending,
+  onToggle,
+  onPing,
+  onDeleteRequest,
+  onDeleteCancel,
+  onDeleteConfirm,
+}: ServerInfoCardProps) => (
+  <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+    {/* Header */}
+    <div className="flex items-center gap-2 mb-2">
+      <h1 className="text-2xl font-bold break-all">{server.ip}</h1>
+      <CopyButton text={server.ip} />
+    </div>
+    <p className="text-gray-400 mb-4">{server.version_name}</p>
+
+    {/* Info rows */}
+    <div className="space-y-3">
+      <InfoRow label="Status">
+        <span className={server.was_online ? "text-green-400" : "text-red-400"}>
+          {server.was_online ? "Online" : "Offline"}
+        </span>
+      </InfoRow>
+      <InfoRow label="Online">
+        {server.online} / {server.max}
+      </InfoRow>
+      <InfoRow label="Licensed">{server.license ? "Yes" : "No"}</InfoRow>
+    </div>
+
+    {/* Management toggles */}
+    <div className="mt-6 space-y-2">
+      <h3 className="font-semibold mb-2 text-gray-300">Management:</h3>
+      <ToggleButton
+        label="Checked"
+        active={!!server.checked}
+        onClick={() => onToggle("checked")}
+      />
+      <ToggleButton
+        label="Spoofable"
+        active={!!server.spoofable}
+        onClick={() => onToggle("spoofable")}
+      />
+      <ToggleButton
+        label="Crashed"
+        active={!!server.crashed}
+        onClick={() => onToggle("crashed")}
+        color="red"
+      />
+    </div>
+
+    {/* Ping */}
+    <div className="mt-4 pt-4 border-t border-gray-700">
+      <button
+        onClick={onPing}
+        disabled={pingCountdown !== null}
+        className="w-full py-2 px-4 rounded font-medium transition bg-blue-900 hover:bg-blue-800 text-blue-300 hover:text-white flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+      >
+        <span>📡</span>
+        <span>
+          {pingCountdown !== null
+            ? `Reloading in ${pingCountdown}s...`
+            : "Ping Server"}
+        </span>
+      </button>
+    </div>
+
+    {/* Delete */}
+    <div className="mt-4 pt-4 border-t border-gray-700">
+      {showDeleteConfirm ? (
+        <div className="space-y-2">
+          <p className="text-sm text-red-400 text-center font-medium">
+            Are you sure you want to delete{" "}
+            <span className="font-bold text-white">{server.ip}</span>?
+          </p>
+          <p className="text-xs text-gray-500 text-center">
+            This action cannot be undone.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={onDeleteCancel}
+              disabled={isDeletePending}
+              className="flex-1 py-2 px-4 rounded font-medium transition bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onDeleteConfirm}
+              disabled={isDeletePending}
+              className="flex-1 py-2 px-4 rounded font-medium transition bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeletePending ? "Deleting..." : "Confirm"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={onDeleteRequest}
+          className="w-full py-2 px-4 rounded font-medium transition bg-red-900 hover:bg-red-800 text-red-300 hover:text-white flex items-center justify-center gap-2"
+        >
+          <span>🗑</span>
+          <span>Delete Server</span>
+        </button>
+      )}
+    </div>
+  </div>
+);
