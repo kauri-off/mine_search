@@ -101,14 +101,14 @@ export const ServerDetail = () => {
       // Snapshot the previous value for rollback
       const previousServer = queryClient.getQueryData<ServerInfoResponse>(["server", ip]);
 
-      // Optimistically apply the new toggle values
+      // Optimistically apply only the field being toggled (null means "ignore" on the API)
       queryClient.setQueryData<ServerInfoResponse>(["server", ip], (old) => {
         if (!old) return old;
         return {
           ...old,
-          checked: body.checked ?? null,
-          spoofable: body.spoofable ?? null,
-          crashed: body.crashed ?? null,
+          ...(body.checked   !== null && { checked:   body.checked }),
+          ...(body.spoofable !== null && { spoofable: body.spoofable }),
+          ...(body.crashed   !== null && { crashed:   body.crashed }),
         };
       });
 
