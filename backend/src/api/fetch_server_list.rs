@@ -5,9 +5,9 @@ use db_schema::{
     models::{data::DataModel, servers::ServerModel},
     schema::*,
 };
-use diesel::pg::Pg;
 use diesel::prelude::*;
 use diesel::sql_types::Bool;
+use diesel::{dsl::sql, pg::Pg};
 use diesel_async::RunQueryDsl;
 use serde::Deserialize;
 use std::sync::Arc;
@@ -25,6 +25,7 @@ pub struct ServerListRequest {
     pub crashed: Option<bool>,
     pub has_players: Option<bool>,
     pub online: Option<bool>,
+    pub forge: Option<bool>,
 }
 
 pub async fn fetch_server_list(
@@ -41,27 +42,27 @@ pub async fn fetch_server_list(
         if let Some(id) = body.offset_id {
             Box::new(servers::id.lt(id))
         } else {
-            Box::new(diesel::dsl::sql::<Bool>("TRUE"))
+            Box::new(sql::<Bool>("TRUE"))
         };
 
     let license_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.licensed {
         Some(license) => Box::new(servers::license.eq(license)),
-        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+        None => Box::new(sql::<Bool>("TRUE")),
     };
 
     let checked_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.checked {
         Some(checked) => Box::new(servers::checked.assume_not_null().eq(checked)),
-        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+        None => Box::new(sql::<Bool>("TRUE")),
     };
 
     let spoofable_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.spoofable {
         Some(spoofable) => Box::new(servers::spoofable.assume_not_null().eq(spoofable)),
-        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+        None => Box::new(sql::<Bool>("TRUE")),
     };
 
     let crashed_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.crashed {
         Some(crashed) => Box::new(servers::crashed.assume_not_null().eq(crashed)),
-        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+        None => Box::new(sql::<Bool>("TRUE")),
     };
 
     let has_players_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
@@ -72,12 +73,20 @@ pub async fn fetch_server_list(
             Some(false) => Box::new(diesel::dsl::not(diesel::dsl::exists(
                 players::table.filter(players::server_id.eq(servers::id)),
             ))),
-            None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+            None => Box::new(sql::<Bool>("TRUE")),
         };
 
     let online_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.online {
         Some(online) => Box::new(servers::was_online.eq(online)),
-        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+        None => Box::new(sql::<Bool>("TRUE")),
+    };
+
+    let forge_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.forge {
+        Some(true) => Box::new(sql::<Bool>("disconnect_reason::text ILIKE '%forge%'")),
+        Some(false) => Box::new(sql::<Bool>(
+            "disconnect_reason IS NULL OR disconnect_reason::text NOT ILIKE '%forge%'",
+        )),
+        None => Box::new(sql::<Bool>("TRUE")),
     };
 
     let results = servers::table
@@ -89,6 +98,7 @@ pub async fn fetch_server_list(
         .filter(crashed_filter)
         .filter(has_players_filter)
         .filter(online_filter)
+        .filter(forge_filter)
         .order((servers::id.desc(), data::id.desc()))
         .distinct_on(servers::id)
         .select((ServerModel::as_select(), DataModel::as_select()))
