@@ -84,7 +84,7 @@ pub async fn fetch_server_list(
     let forge_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.forge {
         Some(true) => Box::new(sql::<Bool>("disconnect_reason::text ILIKE '%forge%'")),
         Some(false) => Box::new(sql::<Bool>(
-            "disconnect_reason IS NULL OR disconnect_reason::text NOT ILIKE '%forge%'",
+            "(disconnect_reason IS NULL OR disconnect_reason::text NOT ILIKE '%forge%')",
         )),
         None => Box::new(sql::<Bool>("TRUE")),
     };
