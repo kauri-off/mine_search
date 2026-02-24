@@ -13,6 +13,8 @@ import {
 import { format } from "date-fns";
 import type {
   PlayerStatus,
+  PlayerResponse,
+  ServerInfoResponse,
   UpdatePlayerRequest,
   UpdateServerRequest,
 } from "@/types";
@@ -92,8 +94,36 @@ export const ServerDetail = () => {
 
   const updateMutation = useMutation({
     mutationFn: (body: UpdateServerRequest) => serverApi.updateServer(body),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["server", ip] }),
+    onMutate: async (body: UpdateServerRequest) => {
+      // Cancel any in-flight refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["server", ip] });
+
+      // Snapshot the previous value for rollback
+      const previousServer = queryClient.getQueryData<ServerInfoResponse>(["server", ip]);
+
+      // Optimistically apply the new toggle values
+      queryClient.setQueryData<ServerInfoResponse>(["server", ip], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          checked: body.checked ?? null,
+          spoofable: body.spoofable ?? null,
+          crashed: body.crashed ?? null,
+        };
+      });
+
+      return { previousServer };
+    },
+    onError: (_err, _body, context) => {
+      // Roll back to the previous server state on any error (non-200 response)
+      if (context?.previousServer) {
+        queryClient.setQueryData(["server", ip], context.previousServer);
+      }
+    },
+    // Always refetch after error or success to stay in sync
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["server", ip] });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -106,8 +136,32 @@ export const ServerDetail = () => {
 
   const updatePlayerMutation = useMutation({
     mutationFn: (body: UpdatePlayerRequest) => serverApi.updatePlayer(body),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["playerList", server?.id] }),
+    onMutate: async (body: UpdatePlayerRequest) => {
+      const queryKey = ["playerList", server?.id];
+
+      // Cancel any in-flight refetches
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot for rollback
+      const previousPlayers = queryClient.getQueryData<PlayerResponse[]>(queryKey);
+
+      // Optimistically update the player's status in the list
+      queryClient.setQueryData<PlayerResponse[]>(queryKey, (old) =>
+        old?.map((p) => (p.id === body.id ? { ...p, status: body.status } : p)),
+      );
+
+      return { previousPlayers };
+    },
+    onError: (_err, _body, context) => {
+      // Roll back to the previous players list on any error (non-200 response)
+      if (context?.previousPlayers) {
+        queryClient.setQueryData(["playerList", server?.id], context.previousPlayers);
+      }
+    },
+    // Always refetch after error or success to stay in sync
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["playerList", server?.id] });
+    },
   });
 
   // -- Handlers --------------------------------------------------------------
