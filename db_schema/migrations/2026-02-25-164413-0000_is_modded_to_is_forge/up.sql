@@ -1,0 +1,1 @@
+ALTER TABLE servers RENAME COLUMN is_modded TO is_forge;

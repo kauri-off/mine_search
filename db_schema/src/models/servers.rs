@@ -18,7 +18,7 @@ pub struct ServerModel {
     pub spoofable: Option<bool>,
     pub crashed: bool,
     pub was_online: bool,
-    pub is_modded: bool,
+    pub is_forge: bool,
     pub created: chrono::DateTime<Utc>,
     pub updated: chrono::DateTime<Utc>,
 }
@@ -43,7 +43,7 @@ pub struct ServerInsert<'a> {
     pub description: &'a Value,
     pub license: bool,
     pub disconnect_reason: Option<Value>,
-    pub is_modded: bool,
+    pub is_forge: bool,
 }
 
 #[derive(Insertable, AsChangeset)]
@@ -55,7 +55,7 @@ pub struct ServerUpdate<'a> {
     pub description: &'a serde_json::Value,
     pub updated: chrono::DateTime<Utc>,
     pub was_online: bool,
-    pub is_modded: bool,
+    pub is_forge: bool,
 }
 
 #[derive(Insertable, AsChangeset)]

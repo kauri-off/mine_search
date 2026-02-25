@@ -12,8 +12,6 @@ pub struct Status {
     pub description: Value,
     #[serde(rename = "forgeData")]
     pub forge_data: Option<Value>,
-    #[serde(rename = "isModded")]
-    pub is_modded: Option<bool>,
 }
 
 #[allow(unused)]
