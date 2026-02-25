@@ -12,6 +12,7 @@ pub struct Status {
     pub description: Value,
     #[serde(rename = "forgeData")]
     pub forge_data: Option<Value>,
+    pub modinfo: Option<Value>,
 }
 
 #[allow(unused)]

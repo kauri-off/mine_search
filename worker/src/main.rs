@@ -42,7 +42,7 @@ pub async fn handle_valid_ip(
     let extra_data =
         get_extra_data(format!("{}", ip), port, status.version.protocol as i32).await?;
 
-    let is_forge = status.forge_data.is_some();
+    let is_forge = status.forge_data.is_some() || status.modinfo.is_some();
 
     let server_insert = ServerInsert {
         ip: &format!("{}", ip),
@@ -305,7 +305,7 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
         .await
         .unwrap();
 
-    let is_forge = status.forge_data.is_some();
+    let is_forge = status.forge_data.is_some() || status.modinfo.is_some();
 
     let server_change = ServerUpdate {
         version_name: &status.version.name,
