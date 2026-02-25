@@ -25,7 +25,7 @@ pub struct ServerListRequest {
     pub crashed: Option<bool>,
     pub has_players: Option<bool>,
     pub online: Option<bool>,
-    pub forge: Option<bool>,
+    pub is_modded: Option<bool>,
 }
 
 pub async fn fetch_server_list(
@@ -81,21 +81,8 @@ pub async fn fetch_server_list(
         None => Box::new(sql::<Bool>("TRUE")),
     };
 
-    let forge_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.forge {
-        Some(true) => Box::new(
-            servers::disconnect_reason
-                .assume_not_null()
-                .cast::<diesel::sql_types::Text>()
-                .ilike("%forge%"),
-        ),
-        Some(false) => Box::new(
-            servers::disconnect_reason
-                .is_null()
-                .or(servers::disconnect_reason
-                    .assume_not_null()
-                    .cast::<diesel::sql_types::Text>()
-                    .not_ilike("%forge%")),
-        ),
+    let is_modded_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.is_modded {
+        Some(is_modded) => Box::new(servers::is_modded.eq(is_modded)),
         None => Box::new(sql::<Bool>("TRUE")),
     };
 
@@ -108,7 +95,7 @@ pub async fn fetch_server_list(
         .filter(crashed_filter)
         .filter(has_players_filter)
         .filter(online_filter)
-        .filter(forge_filter)
+        .filter(is_modded_filter)
         .order((servers::id.desc(), data::id.desc()))
         .distinct_on(servers::id)
         .select((ServerModel::as_select(), DataModel::as_select()))

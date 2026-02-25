@@ -8,7 +8,7 @@ const FILTER_FIELDS = [
   { label: "Crashed", field: "crashed" },
   { label: "Has Players", field: "has_players" },
   { label: "Online", field: "online" },
-  { label: "Has forge", field: "forge" },
+  { label: "Modded", field: "is_modded" },
 ] as const;
 
 const ResetIcon = () => (

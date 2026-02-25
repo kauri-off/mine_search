@@ -60,6 +60,7 @@ diesel::table! {
         created -> Timestamptz,
         updated -> Timestamptz,
         disconnect_reason -> Nullable<Jsonb>,
+        is_modded -> Bool,
     }
 }
 

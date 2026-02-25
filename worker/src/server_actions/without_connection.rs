@@ -10,6 +10,10 @@ pub struct Status {
     pub players: Players,
     pub version: Version,
     pub description: Value,
+    #[serde(rename = "forgeData")]
+    pub forge_data: Option<Value>,
+    #[serde(rename = "isModded")]
+    pub is_modded: Option<bool>,
 }
 
 #[allow(unused)]

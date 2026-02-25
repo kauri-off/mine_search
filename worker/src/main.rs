@@ -42,6 +42,8 @@ pub async fn handle_valid_ip(
     let extra_data =
         get_extra_data(format!("{}", ip), port, status.version.protocol as i32).await?;
 
+    let is_modded = status.forge_data.is_some() || status.is_modded.unwrap_or(false);
+
     let server_insert = ServerInsert {
         ip: &format!("{}", ip),
         port: port as i32,
@@ -50,6 +52,7 @@ pub async fn handle_valid_ip(
         description: &status.description,
         license: extra_data.license,
         disconnect_reason: extra_data.disconnect_reason,
+        is_modded,
     };
 
     let mut conn = db.pool.get().await?;
@@ -302,10 +305,15 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
         .await
         .unwrap();
 
+    let is_modded = status.forge_data.is_some() || status.is_modded.unwrap_or(false);
+
     let server_change = ServerUpdate {
+        version_name: &status.version.name,
+        protocol: status.version.protocol as i32,
         description: &status.description,
         updated: Utc::now(),
         was_online: true,
+        is_modded,
     };
 
     diesel::update(schema::servers::table)

@@ -1,0 +1,1 @@
+ALTER TABLE servers ADD COLUMN is_modded BOOLEAN NOT NULL DEFAULT false;
