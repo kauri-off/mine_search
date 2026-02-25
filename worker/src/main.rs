@@ -450,6 +450,7 @@ async fn main() {
     info!("Update module: {:?}", update_module);
 
     if update_module {
+        info!("Update with connection: {:?}", update_with_connection);
         info!("Only update spoofable: {:?}", only_update_spoofable);
     }
 
