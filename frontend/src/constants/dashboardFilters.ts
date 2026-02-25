@@ -12,7 +12,7 @@ export const DEFAULT_FILTERS: Filters = {
   crashed: null,
   has_players: null,
   online: null,
-  is_modded: null,
+  is_forge: null,
 };
 
 // Tri-state cycle: null → true → false → null
