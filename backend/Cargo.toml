@@ -8,7 +8,7 @@ axum = "0.8.8"
 db_schema = { path = "../db_schema" }
 tokio = { version = "1.49.0", features = ["full"] }
 
-diesel = { version = "2.3.6", features = ["postgres", "chrono", "serde_json"] }
+diesel = { version = "2.3.6", features = ["postgres", "chrono", "serde_json", "postgres_backend"] }
 diesel-async = { version = "0.7.4", features = ["postgres", "deadpool"] }
 pq-sys = { version = "0.7.5", features = ["bundled"] }
 openssl-sys = { version = "0.9.111", features = ["vendored"] } 
