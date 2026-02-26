@@ -75,9 +75,6 @@ export const ServerDetail = () => {
         queryClient.setQueryData(["server", ip], context.previousServer);
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["server", ip] });
-    },
   });
 
   const deleteMutation = useMutation({
@@ -110,9 +107,6 @@ export const ServerDetail = () => {
           context.previousPlayers,
         );
       }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["playerList", server?.id] });
     },
   });
 
