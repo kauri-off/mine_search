@@ -44,6 +44,8 @@ pub async fn handle_valid_ip(
 
     let is_forge = status.forge_data.is_some() || status.modinfo.is_some();
 
+    let favicon_ref = status.favicon.as_deref();
+
     let server_insert = ServerInsert {
         ip: &format!("{}", ip),
         port: port as i32,
@@ -53,6 +55,7 @@ pub async fn handle_valid_ip(
         license: extra_data.license,
         disconnect_reason: extra_data.disconnect_reason,
         is_forge,
+        favicon: favicon_ref,
     };
 
     let mut conn = db.pool.get().await?;
@@ -64,6 +67,7 @@ pub async fn handle_valid_ip(
         .set((
             schema::servers::updated.eq(Utc::now()),
             schema::servers::was_online.eq(true),
+            schema::servers::favicon.eq(favicon_ref),
         ))
         .returning(ServerModel::as_returning())
         .get_result(&mut conn)
@@ -106,6 +110,7 @@ pub async fn handle_valid_ip(
         max = status.players.max,
         license = extra_data.license,
         desc = %description_to_str(status.description).unwrap_or_default(),
+        has_favicon = status.favicon.is_some(),
         "New server detected"
     );
     Ok(())
@@ -306,6 +311,7 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
         .unwrap();
 
     let is_forge = status.forge_data.is_some() || status.modinfo.is_some();
+    let favicon_ref = status.favicon.as_deref();
 
     let server_change = ServerUpdate {
         version_name: &status.version.name,
@@ -314,6 +320,7 @@ async fn update_server(server: ServerModelMini, db: Arc<DatabaseWrapper>, with_c
         updated: Utc::now(),
         was_online: true,
         is_forge,
+        favicon: favicon_ref,
     };
 
     diesel::update(schema::servers::table)

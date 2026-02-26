@@ -35,6 +35,8 @@ pub struct ServerInfoResponse {
     pub checked: bool,
     pub spoofable: Option<bool>,
     pub crashed: bool,
+    pub is_forge: bool,
+    pub favicon: Option<String>,
 }
 
 impl From<(ServerModel, DataModel)> for ServerInfoResponse {
@@ -54,6 +56,8 @@ impl From<(ServerModel, DataModel)> for ServerInfoResponse {
             checked: server.checked,
             spoofable: server.spoofable,
             crashed: server.crashed,
+            is_forge: server.is_forge,
+            favicon: server.favicon,
         }
     }
 }

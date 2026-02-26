@@ -1,4 +1,7 @@
-use minecraft_protocol::{packet::RawPacket, varint::VarInt};
+use minecraft_protocol::{
+    packet::{RawPacket, UncompressedPacket},
+    varint::VarInt,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::net::TcpStream;
@@ -13,6 +16,7 @@ pub struct Status {
     #[serde(rename = "forgeData")]
     pub forge_data: Option<Value>,
     pub modinfo: Option<Value>,
+    pub favicon: Option<String>,
 }
 
 #[allow(unused)]
@@ -46,27 +50,27 @@ pub async fn get_status(
         None => TcpStream::connect(&format!("{}:{}", ip, port)).await?,
     };
 
-    c2s::Handshake {
+    let handshake = c2s::Handshake {
         protocol_version: VarInt(765),
         server_address: ip.to_string(),
         server_port: port,
         intent: VarInt(1),
-    }
-    .as_uncompressed()?
-    .to_raw_packet()?
-    .write(&mut tcp_stream)
-    .await?;
+    };
 
-    c2s::StatusRequest {}
-        .as_uncompressed()?
-        .to_raw_packet()?
-        .write(&mut tcp_stream)
+    UncompressedPacket::from_packet(&handshake)?
+        .write_async(&mut tcp_stream)
         .await?;
 
-    let response: s2c::StatusResponse = RawPacket::read(&mut tcp_stream)
+    let status_request = c2s::StatusRequest {};
+
+    UncompressedPacket::from_packet(&status_request)?
+        .write_async(&mut tcp_stream)
+        .await?;
+
+    let response: s2c::StatusResponse = RawPacket::read_async(&mut tcp_stream)
         .await?
         .as_uncompressed()?
-        .convert()?;
+        .deserialize_payload()?;
 
     let value: Status = serde_json::from_str(&response.response)?;
     Ok(value)

@@ -2,7 +2,7 @@ use minecraft_protocol::{Packet, varint::VarInt};
 
 #[allow(unused)]
 pub mod c2s {
-    use minecraft_protocol::packet::RawPacket;
+    use minecraft_protocol::packet::{RawPacket, UncompressedPacket};
 
     use super::*;
     // ----------- HANDSHAKING -----------
@@ -32,7 +32,10 @@ pub mod c2s {
     impl LoginStart {
         pub fn raw_by_protocol(&self, protocol: i32) -> RawPacket {
             if protocol > 763 {
-                self.as_uncompressed().unwrap().to_raw_packet().unwrap()
+                UncompressedPacket::from_packet(self)
+                    .unwrap()
+                    .to_raw_packet()
+                    .unwrap()
             } else if protocol > 761 {
                 let mut payload = Vec::new();
                 minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload);

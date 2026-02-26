@@ -21,6 +21,7 @@ pub struct ServerModel {
     pub is_forge: bool,
     pub created: chrono::DateTime<Utc>,
     pub updated: chrono::DateTime<Utc>,
+    pub favicon: Option<String>,
 }
 
 #[derive(Queryable, Selectable, Identifiable)]
@@ -44,6 +45,7 @@ pub struct ServerInsert<'a> {
     pub license: bool,
     pub disconnect_reason: Option<Value>,
     pub is_forge: bool,
+    pub favicon: Option<&'a str>,
 }
 
 #[derive(Insertable, AsChangeset)]
@@ -56,6 +58,7 @@ pub struct ServerUpdate<'a> {
     pub updated: chrono::DateTime<Utc>,
     pub was_online: bool,
     pub is_forge: bool,
+    pub favicon: Option<&'a str>,
 }
 
 #[derive(Insertable, AsChangeset)]

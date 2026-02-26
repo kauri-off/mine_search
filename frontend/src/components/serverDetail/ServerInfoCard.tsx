@@ -2,6 +2,8 @@ import type { ServerInfoResponse } from "@/types";
 import { CopyButton, ToggleButton } from "@/components";
 import { InfoRow } from "./InfoRow";
 import type { ToggleField } from "@/constants/serverDetail";
+import { formatDistanceToNow } from "date-fns";
+import { enUS } from "date-fns/locale";
 
 interface ServerInfoCardProps {
   server: ServerInfoResponse;
@@ -31,12 +33,29 @@ export const ServerInfoCard = ({
   onDeleteConfirm,
 }: ServerInfoCardProps) => (
   <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-    {/* Header */}
-    <div className="flex items-center gap-2 mb-2">
-      <h1 className="text-2xl font-bold break-all">{server.ip}</h1>
-      <CopyButton text={server.ip} />
+    {/* Header: favicon + IP */}
+    <div className="flex items-center gap-3 mb-2">
+      {server.favicon ? (
+        <img
+          src={server.favicon}
+          alt="Server icon"
+          className="w-16 h-16 rounded flex-shrink-0"
+          style={{ imageRendering: "pixelated" }}
+          title="Server favicon"
+        />
+      ) : (
+        <div className="w-16 h-16 rounded flex-shrink-0 bg-gray-700 flex items-center justify-center text-gray-500 text-2xl">
+          ?
+        </div>
+      )}
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold break-all">{server.ip}</h1>
+          <CopyButton text={server.ip} />
+        </div>
+        <p className="text-gray-400">{server.version_name}</p>
+      </div>
     </div>
-    <p className="text-gray-400 mb-4">{server.version_name}</p>
 
     {/* Info rows */}
     <div className="space-y-3">
@@ -46,9 +65,31 @@ export const ServerInfoCard = ({
         </span>
       </InfoRow>
       <InfoRow label="Online">
-        {server.online} / {server.max}
+        <span className="text-gray-300">
+          {server.online} / {server.max}
+        </span>
       </InfoRow>
-      <InfoRow label="Licensed">{server.license ? "Yes" : "No"}</InfoRow>
+      <InfoRow label="Licensed">
+        <span className="text-gray-300">{server.license ? "Yes" : "No"}</span>
+      </InfoRow>
+      <InfoRow label="Forge / Modded">
+        {server.is_forge ? (
+          <span className="text-purple-400">Yes</span>
+        ) : (
+          <span className="text-gray-300">No</span>
+        )}
+      </InfoRow>
+      <InfoRow label="Last Seen">
+        <span
+          className="text-gray-300"
+          title={new Date(server.updated).toLocaleString()}
+        >
+          {formatDistanceToNow(new Date(server.updated), {
+            addSuffix: true,
+            locale: enUS,
+          })}
+        </span>
+      </InfoRow>
     </div>
 
     {/* Management toggles */}
