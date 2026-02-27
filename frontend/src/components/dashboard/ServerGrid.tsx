@@ -19,7 +19,9 @@ export const ServerGrid = ({
   lastServerRef,
 }: ServerGridProps) => {
   if (isLoading) {
-    return <div className="text-center py-20">Loading...</div>;
+    return <div className="text-white text-center mt-20">
+      <div className="animate-pulse">Loading...</div>
+    </div>;
   }
 
   return (
