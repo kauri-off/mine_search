@@ -1,8 +1,8 @@
 use minecraft_protocol::{Packet, varint::VarInt};
 
-#[allow(unused)]
 pub mod c2s {
-    use minecraft_protocol::packet::{RawPacket, UncompressedPacket};
+    use minecraft_protocol::packet::{PacketError, RawPacket, UncompressedPacket};
+    use uuid::Uuid;
 
     use super::*;
     // ----------- HANDSHAKING -----------
@@ -26,89 +26,47 @@ pub mod c2s {
     #[packet(0x00)]
     pub struct LoginStart {
         pub name: String,
-        pub uuid: u128,
+        pub uuid: Uuid,
     }
 
     impl LoginStart {
-        pub fn raw_by_protocol(&self, protocol: i32) -> RawPacket {
+        pub fn raw_by_protocol(&self, protocol: i32) -> Result<RawPacket, PacketError> {
             if protocol > 763 {
                 UncompressedPacket::from_packet(self)
                     .unwrap()
                     .to_raw_packet()
-                    .unwrap()
             } else if protocol > 761 {
                 let mut payload = Vec::new();
-                minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload);
-                minecraft_protocol::ser::Serialize::serialize(&true, &mut payload);
-                minecraft_protocol::ser::Serialize::serialize(&self.uuid, &mut payload);
+                minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload)?;
+                minecraft_protocol::ser::Serialize::serialize(&Some(self.uuid), &mut payload)?;
 
                 minecraft_protocol::packet::UncompressedPacket {
                     packet_id: Self::PACKET_ID.clone(),
                     payload,
                 }
                 .to_raw_packet()
-                .unwrap()
             } else if protocol > 758 {
                 let mut payload = Vec::new();
-                minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload);
-                minecraft_protocol::ser::Serialize::serialize(&false, &mut payload);
-                minecraft_protocol::ser::Serialize::serialize(&true, &mut payload);
-                minecraft_protocol::ser::Serialize::serialize(&self.uuid, &mut payload);
+                minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload)?;
+                minecraft_protocol::ser::Serialize::serialize(&false, &mut payload)?;
+                minecraft_protocol::ser::Serialize::serialize(&Some(self.uuid), &mut payload)?;
 
                 minecraft_protocol::packet::UncompressedPacket {
                     packet_id: Self::PACKET_ID.clone(),
                     payload,
                 }
                 .to_raw_packet()
-                .unwrap()
             } else {
                 let mut payload = Vec::new();
-                minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload);
+                minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload)?;
 
                 minecraft_protocol::packet::UncompressedPacket {
                     packet_id: Self::PACKET_ID.clone(),
                     payload,
                 }
                 .to_raw_packet()
-                .unwrap()
             }
         }
-    }
-
-    #[derive(Packet, Debug)]
-    #[packet(0x14)]
-    pub struct Look {
-        pub yaw: f32,
-        pub pitch: f32,
-        pub on_ground: bool,
-    }
-
-    #[derive(Packet, Debug)]
-    #[packet(0x13)]
-    pub struct PositionLook {
-        pub x: f64,
-        pub y: f64,
-        pub z: f64,
-        pub yaw: f32,
-        pub pitch: f32,
-        pub on_ground: bool,
-    }
-
-    #[derive(Packet, Debug)]
-    #[packet(0x12)]
-    pub struct Position {
-        pub x: f64,
-        pub y: f64,
-        pub z: f64,
-        pub on_ground: bool,
-    }
-
-    #[derive(Packet, Debug, Clone)]
-    #[packet(0x07)]
-    pub struct Transaction {
-        pub window_id: i8,
-        pub action: i16,
-        pub accepted: bool,
     }
 }
 
@@ -128,6 +86,14 @@ pub mod s2c {
     pub struct LoginDisconnect {
         pub reason: String,
     }
+
+    #[derive(Packet, Debug)]
+    #[packet(0x01)]
+    pub struct EncryptionRequest {}
+
+    #[derive(Packet, Debug)]
+    #[packet(0x02)]
+    pub struct LoginFinished {}
 
     #[derive(Packet, Debug)]
     #[packet(0x03)]

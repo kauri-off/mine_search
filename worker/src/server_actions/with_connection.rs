@@ -4,6 +4,7 @@ use minecraft_protocol::{
 };
 use serde_json::Value;
 use tokio::net::TcpStream;
+use uuid::Uuid;
 
 use crate::packets::*;
 
@@ -29,10 +30,11 @@ pub async fn get_extra_data(ip: String, port: u16, protocol: i32) -> anyhow::Res
 
     let login_start = c2s::LoginStart {
         name: "Notch".to_string(),
-        uuid: 0x069a79f444e94726a5befca90e38aaf5,
+        uuid: Uuid::from_u128(0x069a79f444e94726a5befca90e38aaf5),
     };
 
-    UncompressedPacket::from_packet(&login_start)?
+    login_start
+        .raw_by_protocol(protocol)?
         .write_async(&mut conn)
         .await?;
 
@@ -44,26 +46,26 @@ pub async fn get_extra_data(ip: String, port: u16, protocol: i32) -> anyhow::Res
             .uncompress(threshold)?;
 
         match packet.packet_id {
-            0 => {
+            s2c::LoginDisconnect::PACKET_ID => {
                 let reason: String = packet.deserialize_payload::<s2c::LoginDisconnect>()?.reason;
                 return Ok(ExtraData {
                     license: false,
                     disconnect_reason: Some(serde_json::from_str::<Value>(&reason)?),
                 });
             }
-            1 => {
+            s2c::EncryptionRequest::PACKET_ID => {
                 return Ok(ExtraData {
                     license: true,
                     disconnect_reason: None,
                 });
             }
-            2 => {
+            s2c::LoginFinished::PACKET_ID => {
                 return Ok(ExtraData {
                     license: false,
                     disconnect_reason: None,
                 });
             }
-            3 => {
+            s2c::SetCompression::PACKET_ID => {
                 threshold = Some(
                     packet
                         .deserialize_payload::<s2c::SetCompression>()?
