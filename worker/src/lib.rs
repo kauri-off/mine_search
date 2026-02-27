@@ -1,18 +1,9 @@
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    time::Duration,
-};
+use std::net::Ipv4Addr;
 
-use rand::prelude::*;
+use rand::RngExt;
 use rand_chacha::ChaCha8Rng;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tokio::{net::TcpStream, time::timeout};
-
-pub async fn check_server(ip: &IpAddr, port: u16) -> anyhow::Result<TcpStream> {
-    let addr = format!("{}:{}", ip, port);
-    Ok(timeout(Duration::from_millis(750), TcpStream::connect(&addr)).await??)
-}
 
 pub fn generate_random_ip(rng: &mut ChaCha8Rng) -> Ipv4Addr {
     loop {
