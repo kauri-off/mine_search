@@ -11,12 +11,14 @@ import type {
 import { serverApi } from "@/api/client";
 import type { ToggleField } from "@/constants/serverDetail";
 import { buildChartData, buildToggleUpdate } from "@/utils/serverDetailHelpers";
+import { useTranslation } from "@/i18n";
 import { ServerInfoCard } from "@/components/serverDetail/ServerInfoCard";
 import { HtmlCard } from "@/components/serverDetail/HtmlCard";
 import { OnlineGraph } from "@/components/serverDetail/OnlineGraph";
 import { PlayersTable } from "@/components/serverDetail/PlayersTable";
 
 export const ServerDetail = () => {
+  const { t } = useTranslation();
   const { ip } = useParams<{ ip: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -154,15 +156,15 @@ export const ServerDetail = () => {
         onClick={() => navigate(-1)}
         className="mb-4 text-blue-400 hover:underline flex items-center gap-1"
       >
-        <span>←</span> Back
+        <span>←</span> {t.serverDetail.back}
       </button>
 
       {isInfoLoading ? (
         <div className="text-white text-center mt-20">
-          <div className="animate-pulse">Loading...</div>
+          <div className="animate-pulse">{t.serverDetail.loading}</div>
         </div>
       ) : !server ? (
-        <div className="text-white text-center mt-20">Server is not found</div>
+        <div className="text-white text-center mt-20">{t.serverDetail.notFound}</div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column */}
@@ -185,7 +187,7 @@ export const ServerDetail = () => {
 
             {server.disconnect_reason_html && (
               <HtmlCard
-                title="Disconnect reason"
+                title={t.serverDetail.disconnectReason}
                 html={server.disconnect_reason_html}
               />
             )}

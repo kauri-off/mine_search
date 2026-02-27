@@ -1,0 +1,82 @@
+import { ru as ruLocale } from "date-fns/locale";
+import type { Translations } from "./translations";
+
+export const ru: Translations = {
+  dateFnsLocale: ruLocale,
+  dashboard: {
+    title: "Дашборд",
+    all: "Всего",
+    cracked: "Пиратских",
+  },
+  filters: {
+    label: "Фильтры:",
+    fields: {
+      licensed: "Лицензия",
+      checked: "Проверен",
+      spoofable: "Без авторизации",
+      crashed: "Загриферен",
+      has_players: "С игроками",
+      online: "Онлайн",
+      is_forge: "Forge",
+    },
+    reset: "Сбросить",
+  },
+  addIp: {
+    label: "Добавить IP:",
+    add: "Добавить",
+    adding: "Добавляю...",
+  },
+  serverGrid: {
+    loading: "Загрузка...",
+    empty: "Список серверов пуст",
+    end: "🎉 Больше серверов нет",
+  },
+  serverDetail: {
+    back: "Назад",
+    loading: "Загрузка...",
+    notFound: "Сервер не найден",
+    disconnectReason: "Причина отключения",
+  },
+  serverInfo: {
+    status: "Статус",
+    onlineCount: "Онлайн",
+    statusOnline: "Онлайн",
+    statusOffline: "Оффлайн",
+    licensed: "Лицензия",
+    forgeModded: "Forge / Моды",
+    lastSeen: "Последний онлайн",
+    yes: "Да",
+    no: "Нет",
+    management: "Управление:",
+    checked: "Проверен",
+    spoofable: "Без авторизации",
+    crashed: "Загриферен",
+    reloadingIn: (n) => `Перезагрузка через ${n}с...`,
+    choosePingType: "Тип пинга:",
+    withConnection: "С подключением",
+    withoutConnection: "Без подключения",
+    pingServer: "Пинговать",
+    deleteConfirm: (ip) => `Удалить ${ip}?`,
+    deleteWarning: "Это действие нельзя отменить.",
+    cancel: "Отмена",
+    deleting: "Удаление...",
+    confirm: "Подтвердить",
+    deleteServer: "Удалить сервер",
+  },
+  playersTable: {
+    title: "Игроки (Все)",
+    name: "Имя",
+    status: "Статус",
+    empty: "Пусто",
+  },
+  onlineGraph: {
+    title: "График онлайна",
+  },
+  login: {
+    title: "Панель администратора",
+    token: "Токен",
+    login: "Войти",
+    wrongPassword: "Неверный пароль",
+    networkError: "Ошибка сети. Попробуйте позже",
+  },
+};

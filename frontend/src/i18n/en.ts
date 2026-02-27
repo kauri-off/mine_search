@@ -1,0 +1,82 @@
+import { enUS } from "date-fns/locale";
+import type { Translations } from "./translations";
+
+export const en: Translations = {
+  dateFnsLocale: enUS,
+  dashboard: {
+    title: "Dashboard",
+    all: "All",
+    cracked: "Cracked",
+  },
+  filters: {
+    label: "Filters:",
+    fields: {
+      licensed: "Licensed",
+      checked: "Checked",
+      spoofable: "Spoofable",
+      crashed: "Crashed",
+      has_players: "Has Players",
+      online: "Online",
+      is_forge: "Forge",
+    },
+    reset: "Reset filters",
+  },
+  addIp: {
+    label: "Add IP:",
+    add: "Add",
+    adding: "Adding...",
+  },
+  serverGrid: {
+    loading: "Loading...",
+    empty: "Server list is empty",
+    end: "🎉 This is the end",
+  },
+  serverDetail: {
+    back: "Back",
+    loading: "Loading...",
+    notFound: "Server is not found",
+    disconnectReason: "Disconnect reason",
+  },
+  serverInfo: {
+    status: "Status",
+    onlineCount: "Online",
+    statusOnline: "Online",
+    statusOffline: "Offline",
+    licensed: "Licensed",
+    forgeModded: "Forge / Modded",
+    lastSeen: "Last Seen",
+    yes: "Yes",
+    no: "No",
+    management: "Management:",
+    checked: "Checked",
+    spoofable: "Spoofable",
+    crashed: "Crashed",
+    reloadingIn: (n) => `Reloading in ${n}s...`,
+    choosePingType: "Choose ping type:",
+    withConnection: "With Connection",
+    withoutConnection: "Without Connection",
+    pingServer: "Ping Server",
+    deleteConfirm: (ip) => `Are you sure you want to delete ${ip}?`,
+    deleteWarning: "This action cannot be undone.",
+    cancel: "Cancel",
+    deleting: "Deleting...",
+    confirm: "Confirm",
+    deleteServer: "Delete Server",
+  },
+  playersTable: {
+    title: "Players (All)",
+    name: "Name",
+    status: "Status",
+    empty: "Empty",
+  },
+  onlineGraph: {
+    title: "Online graph",
+  },
+  login: {
+    title: "Admin Panel",
+    token: "Token",
+    login: "Login",
+    wrongPassword: "Wrong password",
+    networkError: "Network error. Try again later",
+  },
+};

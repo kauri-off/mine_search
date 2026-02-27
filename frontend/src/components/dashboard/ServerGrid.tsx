@@ -1,4 +1,5 @@
 import type { ServerInfoResponse } from "@/types";
+import { useTranslation } from "@/i18n";
 import { ServerCard } from "./ServerCard";
 
 interface ServerGridProps {
@@ -18,10 +19,14 @@ export const ServerGrid = ({
   hasNextPage,
   lastServerRef,
 }: ServerGridProps) => {
+  const { t } = useTranslation();
+
   if (isLoading) {
-    return <div className="text-white text-center mt-20">
-      <div className="animate-pulse">Loading...</div>
-    </div>;
+    return (
+      <div className="text-white text-center mt-20">
+        <div className="animate-pulse">{t.serverGrid.loading}</div>
+      </div>
+    );
   }
 
   return (
@@ -37,18 +42,20 @@ export const ServerGrid = ({
 
         {isEmpty && (
           <div className="col-span-full text-center text-gray-500">
-            Server list is empty
+            {t.serverGrid.empty}
           </div>
         )}
       </div>
 
       {isFetchingNextPage && (
-        <div className="text-center py-4 text-gray-400">Loading...</div>
+        <div className="text-center py-4 text-gray-400">
+          {t.serverGrid.loading}
+        </div>
       )}
 
       {!hasNextPage && !isEmpty && (
         <div className="mt-8 p-4 text-center border-t border-gray-800 text-gray-500 italic">
-          🎉 This is the end
+          {t.serverGrid.end}
         </div>
       )}
     </>

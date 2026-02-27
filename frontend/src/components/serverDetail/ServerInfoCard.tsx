@@ -3,7 +3,7 @@ import { CopyButton, ToggleButton } from "@/components";
 import { InfoRow } from "./InfoRow";
 import type { ToggleField } from "@/constants/serverDetail";
 import { formatDistanceToNow } from "date-fns";
-import { enUS } from "date-fns/locale";
+import { useTranslation } from "@/i18n";
 
 interface ServerInfoCardProps {
   server: ServerInfoResponse;
@@ -31,164 +31,169 @@ export const ServerInfoCard = ({
   onDeleteRequest,
   onDeleteCancel,
   onDeleteConfirm,
-}: ServerInfoCardProps) => (
-  <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-    {/* Header: favicon + IP */}
-    <div className="flex items-center gap-3 mb-2">
-      {server.favicon ? (
-        <img
-          src={server.favicon}
-          alt="Server icon"
-          className="w-16 h-16 rounded flex-shrink-0"
-          style={{ imageRendering: "pixelated" }}
-          title="Server favicon"
-        />
-      ) : (
-        <div className="w-16 h-16 rounded flex-shrink-0 bg-gray-700 flex items-center justify-center text-gray-500 text-2xl">
-          ?
-        </div>
-      )}
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold break-all">{server.ip}</h1>
-          <CopyButton text={server.ip} />
-        </div>
-        <p className="text-gray-400">{server.version_name}</p>
-      </div>
-    </div>
+}: ServerInfoCardProps) => {
+  const { t } = useTranslation();
 
-    {/* Info rows */}
-    <div className="space-y-3">
-      <InfoRow label="Status">
-        <span className={server.was_online ? "text-green-400" : "text-red-400"}>
-          {server.was_online ? "Online" : "Offline"}
-        </span>
-      </InfoRow>
-      <InfoRow label="Online">
-        <span className="text-gray-300">
-          {server.online} / {server.max}
-        </span>
-      </InfoRow>
-      <InfoRow label="Licensed">
-        <span className="text-gray-300">{server.license ? "Yes" : "No"}</span>
-      </InfoRow>
-      <InfoRow label="Forge / Modded">
-        {server.is_forge ? (
-          <span className="text-purple-400">Yes</span>
+  return (
+    <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+      {/* Header: favicon + IP */}
+      <div className="flex items-center gap-3 mb-2">
+        {server.favicon ? (
+          <img
+            src={server.favicon}
+            alt="Server icon"
+            className="w-16 h-16 rounded flex-shrink-0"
+            style={{ imageRendering: "pixelated" }}
+            title="Server favicon"
+          />
         ) : (
-          <span className="text-gray-300">No</span>
+          <div className="w-16 h-16 rounded flex-shrink-0 bg-gray-700 flex items-center justify-center text-gray-500 text-2xl">
+            ?
+          </div>
         )}
-      </InfoRow>
-      <InfoRow label="Last Seen">
-        <span
-          className="text-gray-300"
-          title={new Date(server.updated).toLocaleString()}
-        >
-          {formatDistanceToNow(new Date(server.updated), {
-            addSuffix: true,
-            locale: enUS,
-          })}
-        </span>
-      </InfoRow>
-    </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold break-all">{server.ip}</h1>
+            <CopyButton text={server.ip} />
+          </div>
+          <p className="text-gray-400">{server.version_name}</p>
+        </div>
+      </div>
 
-    {/* Management toggles */}
-    <div className="mt-6 space-y-2">
-      <h3 className="font-semibold mb-2 text-gray-300">Management:</h3>
-      <ToggleButton
-        label="Checked"
-        active={!!server.checked}
-        onClick={() => onToggle("checked")}
-      />
-      <ToggleButton
-        label="Spoofable"
-        active={!!server.spoofable}
-        onClick={() => onToggle("spoofable")}
-      />
-      <ToggleButton
-        label="Crashed"
-        active={!!server.crashed}
-        onClick={() => onToggle("crashed")}
-        color="red"
-      />
-    </div>
-
-    {/* Ping */}
-    <div className="mt-4 pt-4 border-t border-gray-700">
-      {pingCountdown !== null ? (
-        <button
-          disabled
-          className="w-full py-2 px-4 rounded font-medium bg-blue-900 text-blue-300 opacity-70 cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          <span>📡</span>
-          <span>Reloading in {pingCountdown}s...</span>
-        </button>
-      ) : showPingSplit ? (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs text-gray-400 text-center">Choose ping type:</p>
-          <button
-            onClick={() => onPing(true)}
-            className="w-full py-2 px-4 rounded font-medium transition bg-blue-900 hover:bg-blue-800 text-blue-300 hover:text-white flex items-center justify-center gap-2"
+      {/* Info rows */}
+      <div className="space-y-3">
+        <InfoRow label={t.serverInfo.status}>
+          <span className={server.was_online ? "text-green-400" : "text-red-400"}>
+            {server.was_online ? t.serverInfo.statusOnline : t.serverInfo.statusOffline}
+          </span>
+        </InfoRow>
+        <InfoRow label={t.serverInfo.onlineCount}>
+          <span className="text-gray-300">
+            {server.online} / {server.max}
+          </span>
+        </InfoRow>
+        <InfoRow label={t.serverInfo.licensed}>
+          <span className="text-gray-300">
+            {server.license ? t.serverInfo.yes : t.serverInfo.no}
+          </span>
+        </InfoRow>
+        <InfoRow label={t.serverInfo.forgeModded}>
+          {server.is_forge ? (
+            <span className="text-purple-400">{t.serverInfo.yes}</span>
+          ) : (
+            <span className="text-gray-300">{t.serverInfo.no}</span>
+          )}
+        </InfoRow>
+        <InfoRow label={t.serverInfo.lastSeen}>
+          <span
+            className="text-gray-300"
+            title={new Date(server.updated).toLocaleString()}
           >
-            <span>🔗</span>
-            <span>With Connection</span>
-          </button>
+            {formatDistanceToNow(new Date(server.updated), {
+              addSuffix: true,
+              locale: t.dateFnsLocale,
+            })}
+          </span>
+        </InfoRow>
+      </div>
+
+      {/* Management toggles */}
+      <div className="mt-6 space-y-2">
+        <h3 className="font-semibold mb-2 text-gray-300">{t.serverInfo.management}</h3>
+        <ToggleButton
+          label={t.serverInfo.checked}
+          active={!!server.checked}
+          onClick={() => onToggle("checked")}
+        />
+        <ToggleButton
+          label={t.serverInfo.spoofable}
+          active={!!server.spoofable}
+          onClick={() => onToggle("spoofable")}
+        />
+        <ToggleButton
+          label={t.serverInfo.crashed}
+          active={!!server.crashed}
+          onClick={() => onToggle("crashed")}
+          color="red"
+        />
+      </div>
+
+      {/* Ping */}
+      <div className="mt-4 pt-4 border-t border-gray-700">
+        {pingCountdown !== null ? (
           <button
-            onClick={() => onPing(false)}
-            className="w-full py-2 px-4 rounded font-medium transition bg-blue-950 hover:bg-blue-900 text-blue-400 hover:text-white flex items-center justify-center gap-2"
+            disabled
+            className="w-full py-2 px-4 rounded font-medium bg-blue-900 text-blue-300 opacity-70 cursor-not-allowed flex items-center justify-center gap-2"
           >
             <span>📡</span>
-            <span>Without Connection</span>
+            <span>{t.serverInfo.reloadingIn(pingCountdown)}</span>
           </button>
-        </div>
-      ) : (
-        <button
-          onClick={onPingRequest}
-          className="w-full py-2 px-4 rounded font-medium transition bg-blue-900 hover:bg-blue-800 text-blue-300 hover:text-white flex items-center justify-center gap-2"
-        >
-          <span>📡</span>
-          <span>Ping Server</span>
-        </button>
-      )}
-    </div>
-
-    {/* Delete */}
-    <div className="mt-4 pt-4 border-t border-gray-700">
-      {showDeleteConfirm ? (
-        <div className="space-y-2">
-          <p className="text-sm text-red-400 text-center font-medium">
-            Are you sure you want to delete{" "}
-            <span className="font-bold text-white">{server.ip}</span>?
-          </p>
-          <p className="text-xs text-gray-500 text-center">
-            This action cannot be undone.
-          </p>
-          <div className="flex gap-2">
+        ) : showPingSplit ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-gray-400 text-center">{t.serverInfo.choosePingType}</p>
             <button
-              onClick={onDeleteCancel}
-              disabled={isDeletePending}
-              className="flex-1 py-2 px-4 rounded font-medium transition bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50"
+              onClick={() => onPing(true)}
+              className="w-full py-2 px-4 rounded font-medium transition bg-blue-900 hover:bg-blue-800 text-blue-300 hover:text-white flex items-center justify-center gap-2"
             >
-              Cancel
+              <span>🔗</span>
+              <span>{t.serverInfo.withConnection}</span>
             </button>
             <button
-              onClick={onDeleteConfirm}
-              disabled={isDeletePending}
-              className="flex-1 py-2 px-4 rounded font-medium transition bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => onPing(false)}
+              className="w-full py-2 px-4 rounded font-medium transition bg-blue-950 hover:bg-blue-900 text-blue-400 hover:text-white flex items-center justify-center gap-2"
             >
-              {isDeletePending ? "Deleting..." : "Confirm"}
+              <span>📡</span>
+              <span>{t.serverInfo.withoutConnection}</span>
             </button>
           </div>
-        </div>
-      ) : (
-        <button
-          onClick={onDeleteRequest}
-          className="w-full py-2 px-4 rounded font-medium transition bg-red-900 hover:bg-red-800 text-red-300 hover:text-white flex items-center justify-center gap-2"
-        >
-          <span>🗑</span>
-          <span>Delete Server</span>
-        </button>
-      )}
+        ) : (
+          <button
+            onClick={onPingRequest}
+            className="w-full py-2 px-4 rounded font-medium transition bg-blue-900 hover:bg-blue-800 text-blue-300 hover:text-white flex items-center justify-center gap-2"
+          >
+            <span>📡</span>
+            <span>{t.serverInfo.pingServer}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Delete */}
+      <div className="mt-4 pt-4 border-t border-gray-700">
+        {showDeleteConfirm ? (
+          <div className="space-y-2">
+            <p className="text-sm text-red-400 text-center font-medium">
+              {t.serverInfo.deleteConfirm(server.ip)}
+            </p>
+            <p className="text-xs text-gray-500 text-center">
+              {t.serverInfo.deleteWarning}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={onDeleteCancel}
+                disabled={isDeletePending}
+                className="flex-1 py-2 px-4 rounded font-medium transition bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50"
+              >
+                {t.serverInfo.cancel}
+              </button>
+              <button
+                onClick={onDeleteConfirm}
+                disabled={isDeletePending}
+                className="flex-1 py-2 px-4 rounded font-medium transition bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeletePending ? t.serverInfo.deleting : t.serverInfo.confirm}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={onDeleteRequest}
+            className="w-full py-2 px-4 rounded font-medium transition bg-red-900 hover:bg-red-800 text-red-300 hover:text-white flex items-center justify-center gap-2"
+          >
+            <span>🗑</span>
+            <span>{t.serverInfo.deleteServer}</span>
+          </button>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};

@@ -1,14 +1,15 @@
 import type { Filters } from "@/constants/dashboardFilters";
+import { useTranslation } from "@/i18n";
 import { FilterButton } from "./FilterButton";
 
-const FILTER_FIELDS = [
-  { label: "Licensed", field: "licensed" },
-  { label: "Checked", field: "checked" },
-  { label: "Spoofable", field: "spoofable" },
-  { label: "Crashed", field: "crashed" },
-  { label: "Has Players", field: "has_players" },
-  { label: "Online", field: "online" },
-  { label: "Forge", field: "is_forge" },
+const FILTER_FIELD_KEYS = [
+  "licensed",
+  "checked",
+  "spoofable",
+  "crashed",
+  "has_players",
+  "online",
+  "is_forge",
 ] as const;
 
 const ResetIcon = () => (
@@ -39,28 +40,32 @@ export const FilterBar = ({
   filtersActive,
   onFilterChange,
   onReset,
-}: FilterBarProps) => (
-  <div className="mb-6 p-4 bg-gray-800 rounded-lg flex flex-wrap gap-4 items-center">
-    <span className="text-gray-400">Filters:</span>
+}: FilterBarProps) => {
+  const { t } = useTranslation();
 
-    {FILTER_FIELDS.map(({ label, field }) => (
-      <FilterButton
-        key={field}
-        label={label}
-        value={filters[field]}
-        onToggle={(next) => onFilterChange(field, next)}
-      />
-    ))}
+  return (
+    <div className="mb-6 p-4 bg-gray-800 rounded-lg flex flex-wrap gap-4 items-center">
+      <span className="text-gray-400">{t.filters.label}</span>
 
-    {filtersActive && (
-      <button
-        onClick={onReset}
-        className="ml-auto px-3 py-1 rounded text-sm font-medium transition bg-gray-600 hover:bg-gray-500 text-gray-200 flex items-center gap-1.5"
-        title="Reset all filters"
-      >
-        <ResetIcon />
-        Reset filters
-      </button>
-    )}
-  </div>
-);
+      {FILTER_FIELD_KEYS.map((field) => (
+        <FilterButton
+          key={field}
+          label={t.filters.fields[field]}
+          value={filters[field]}
+          onToggle={(next) => onFilterChange(field, next)}
+        />
+      ))}
+
+      {filtersActive && (
+        <button
+          onClick={onReset}
+          className="ml-auto px-3 py-1 rounded text-sm font-medium transition bg-gray-600 hover:bg-gray-500 text-gray-200 flex items-center gap-1.5"
+          title={t.filters.reset}
+        >
+          <ResetIcon />
+          {t.filters.reset}
+        </button>
+      )}
+    </div>
+  );
+};

@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { authApi } from "@/api/client";
+import { useTranslation } from "@/i18n";
 
 export const Login = () => {
+  const { t } = useTranslation();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -17,9 +19,9 @@ export const Login = () => {
       navigate("/");
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
-        setError("Wrong password");
+        setError(t.login.wrongPassword);
       } else {
-        setError("Network error. Try again later");
+        setError(t.login.networkError);
       }
     }
   };
@@ -30,7 +32,7 @@ export const Login = () => {
         onSubmit={handleLogin}
         className="w-full max-w-sm p-8 bg-gray-800 rounded-lg shadow-lg"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center">Admin Panel</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">{t.login.title}</h2>
 
         {error && (
           <div className="mb-4 p-2 bg-red-500/20 border border-red-500 text-red-500 text-sm rounded text-center">
@@ -40,7 +42,7 @@ export const Login = () => {
 
         <div className="mb-4">
           <label className="block mb-2 text-sm font-medium text-gray-400">
-            Token
+            {t.login.token}
           </label>
           <input
             type="password"
@@ -55,7 +57,7 @@ export const Login = () => {
           type="submit"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded transition shadow-md active:transform active:scale-95"
         >
-          Login
+          {t.login.login}
         </button>
       </form>
     </div>

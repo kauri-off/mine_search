@@ -13,8 +13,11 @@ import { clearFilters, loadFilters, saveFilters } from "@/utils/filterStorage";
 import { FilterBar } from "@/components/dashboard/FilterBar";
 import { AddIpForm } from "@/components/dashboard/AddIpForm";
 import { ServerGrid } from "@/components/dashboard/ServerGrid";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from "@/i18n";
 
 export const Dashboard = () => {
+  const { t } = useTranslation();
   const [ip, setIp] = useState("");
   const [filters, setFilters] = useState<Filters>(loadFilters);
 
@@ -88,18 +91,22 @@ export const Dashboard = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto text-white">
       <header className="mb-8 flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        {stats && (
-          <div className="flex gap-4 text-sm bg-gray-800 p-3 rounded-lg">
-            <span>
-              All: <b className="text-blue-400">{stats.total_servers}</b>
-            </span>
-            <span>
-              Cracked:{" "}
-              <b className="text-orange-400">{stats.cracked_servers}</b>
-            </span>
-          </div>
-        )}
+        <h1 className="text-3xl font-bold">{t.dashboard.title}</h1>
+        <div className="flex items-center gap-3">
+          {stats && (
+            <div className="flex gap-4 text-sm bg-gray-800 p-3 rounded-lg">
+              <span>
+                {t.dashboard.all}:{" "}
+                <b className="text-blue-400">{stats.total_servers}</b>
+              </span>
+              <span>
+                {t.dashboard.cracked}:{" "}
+                <b className="text-orange-400">{stats.cracked_servers}</b>
+              </span>
+            </div>
+          )}
+          <LanguageSwitcher />
+        </div>
       </header>
 
       <FilterBar
