@@ -1,20 +1,31 @@
 #!/usr/bin/env python3
 """
 mine_search — Setup Script
-Modes: Install / Update / Change Settings
+Modes: Install / Update / Settings
 Platform independent (Windows, Linux, macOS)
+
+Architecture note:
+  • All runtime values live in .env (single source of truth).
+  • docker-compose.yml references them via ${VAR} substitution — values
+    are never baked into the YAML.  Editing .env is enough to change
+    behaviour without touching the compose file.
 """
+
+from __future__ import annotations
 
 import os
 import sys
 import time
 import shutil
 import subprocess
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
+
 import yaml
 
-
 # ── ANSI colours ──────────────────────────────────────────────────────────────
+
 RESET  = "\033[0m"
 BOLD   = "\033[1m"
 CYAN   = "\033[96m"
@@ -22,27 +33,40 @@ GREEN  = "\033[92m"
 YELLOW = "\033[93m"
 RED    = "\033[91m"
 
-def c(text, col):  return f"{col}{text}{RESET}"
-def header(text):  print(f"\n{BOLD}{CYAN}{'─'*52}\n  {text}\n{'─'*52}{RESET}")
-def success(text): print(c(f"  ✔  {text}", GREEN))
-def warn(text):    print(c(f"  ⚠  {text}", YELLOW))
-def error(text):   print(c(f"  ✖  {text}", RED))
+
+def _c(text: str, col: str) -> str:
+    return f"{col}{text}{RESET}"
+
+def header(text: str) -> None:
+    print(f"\n{BOLD}{CYAN}{'─'*52}\n  {text}\n{'─'*52}{RESET}")
+
+def success(text: str) -> None:
+    print(_c(f"  ✔  {text}", GREEN))
+
+def warn(text: str) -> None:
+    print(_c(f"  ⚠  {text}", YELLOW))
+
+def error(text: str) -> None:
+    print(_c(f"  ✖  {text}", RED))
+
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
 
-def ask(prompt, default=""):
+def ask(prompt: str, default: str = "") -> str:
     suffix = f" [{default}]" if default else ""
     val = input(f"  {prompt}{suffix}: ").strip()
     return val if val else default
 
-def ask_yes(prompt, default=True):
+
+def ask_yes(prompt: str, default: bool = True) -> bool:
     suffix = "Y/n" if default else "y/N"
     val = input(f"  {prompt} [{suffix}]: ").strip().lower()
     if val == "":
         return default
     return val in ("y", "yes")
 
-def menu(title, options):
+
+def menu(title: str, options: list[str]) -> int:
     print(f"\n  {BOLD}{title}{RESET}")
     for i, opt in enumerate(options, 1):
         print(f"    {i}) {opt}")
@@ -52,60 +76,160 @@ def menu(title, options):
             return int(raw) - 1
         warn("Invalid choice, try again.")
 
-# ── Shell helpers ─────────────────────────────────────────────────────────────
 
-def run(cmd, check=True, extra_env=None, cwd=None):
-    """Run a command list, optionally merging extra environment variables."""
+# ── Shell / prerequisite checks ───────────────────────────────────────────────
+
+class Checks:
+    """Static prerequisite checks that abort on failure."""
+
+    @staticmethod
+    def docker() -> None:
+        if shutil.which("docker") is None:
+            error("Docker not found. Install it from https://docs.docker.com/get-docker/")
+            sys.exit(1)
+        r = subprocess.run(["docker", "compose", "version"], capture_output=True)
+        if r.returncode != 0:
+            error("Docker Compose v2 not found. Please upgrade Docker.")
+            sys.exit(1)
+        success("Docker & Docker Compose detected.")
+
+    @staticmethod
+    def diesel() -> None:
+        if shutil.which("diesel") is not None:
+            success("diesel CLI detected.")
+            return
+        error("diesel CLI not found. Install it with the command below, then re-run.\n")
+        if sys.platform == "win32":
+            print(_c(
+                "  Set-ExecutionPolicy RemoteSigned -scope CurrentUser\n"
+                "  irm https://github.com/diesel-rs/diesel/releases/download/v2.3.5"
+                "/diesel_cli-installer.ps1 | iex",
+                CYAN,
+            ))
+        else:
+            print(_c(
+                "  curl --proto '=https' --tlsv1.2 -LsSf"
+                " https://github.com/diesel-rs/diesel/releases/download/v2.3.5"
+                "/diesel_cli-installer.sh | sh",
+                CYAN,
+            ))
+        print()
+        sys.exit(1)
+
+    @staticmethod
+    def git() -> None:
+        if shutil.which("git") is None:
+            error("git not found — required before running migrations.")
+            sys.exit(1)
+
+
+def run(
+    cmd: list[str],
+    *,
+    check: bool = True,
+    extra_env: dict[str, str] | None = None,
+    cwd: str | None = None,
+) -> int:
     display = " ".join(str(x) for x in cmd)
-    print(c(f"  $ {display}", CYAN))
-    merged_env = {**os.environ, **(extra_env or {})}
+    print(_c(f"  $ {display}", CYAN))
+    merged_env: dict[str, str] = {**os.environ, **(extra_env or {})}
     result = subprocess.run(cmd, env=merged_env, cwd=cwd)
     if check and result.returncode != 0:
         error(f"Command failed (exit {result.returncode})")
         sys.exit(result.returncode)
     return result.returncode
 
-def check_docker():
-    if shutil.which("docker") is None:
-        error("Docker not found. Install it from https://docs.docker.com/get-docker/")
-        sys.exit(1)
-    r = subprocess.run(["docker", "compose", "version"], capture_output=True)
-    if r.returncode != 0:
-        error("Docker Compose v2 not found. Please upgrade Docker.")
-        sys.exit(1)
-    success("Docker & Docker Compose detected.")
 
-def check_diesel():
-    if shutil.which("diesel") is not None:
-        success("diesel CLI detected.")
-        return
-    error("diesel CLI not found. Install it with the command below, then re-run this script.\n")
-    if sys.platform == "win32":
-        print(c(
-            "  Set-ExecutionPolicy RemoteSigned -scope CurrentUser\n"
-            "  irm https://github.com/diesel-rs/diesel/releases/download/v2.3.5/diesel_cli-installer.ps1 | iex",
-            CYAN,
-        ))
-    else:
-        print(c(
-            "  curl --proto '=https' --tlsv1.2 -LsSf"
-            " https://github.com/diesel-rs/diesel/releases/download/v2.3.5/diesel_cli-installer.sh | sh",
-            CYAN,
-        ))
-    print()
-    sys.exit(1)
+# ── Configuration model ───────────────────────────────────────────────────────
 
-# ── .env ──────────────────────────────────────────────────────────────────────
+@dataclass
+class DatabaseConfig:
+    user:     str
+    password: str
+    db:       str
+    host:     str = ""   # empty → local Docker container
+    port:     str = "5432"
 
-ENV_FILE     = Path(".env")
-COMPOSE_FILE = Path("docker-compose.yml")
-DB_SCHEMA    = Path("db_schema")
+    @property
+    def is_remote(self) -> bool:
+        return bool(self.host.strip())
 
-POSTGRES_CONTAINER = "postgres-container"
-APP_NETWORK        = "app-network"
+    def service_url(self, local_container: str) -> str:
+        """URL used by services inside Docker (container hostname or remote host)."""
+        h = self.host if self.is_remote else local_container
+        p = f":{self.port}" if self.is_remote else ""
+        return f"postgres://{self.user}:{self.password}@{h}{p}/{self.db}"
 
-def load_env():
-    env = {}
+    def migration_url(self) -> str:
+        """URL used by diesel CLI running on the host machine."""
+        h = self.host if self.is_remote else "127.0.0.1"
+        return f"postgres://{self.user}:{self.password}@{h}:{self.port}/{self.db}"
+
+
+@dataclass
+class WorkerConfig:
+    threads:                str = "500"
+    search_module:          str = "true"
+    update_module:          str = "true"
+    update_with_connection: str = "false"
+    rust_log:               str = "info"
+    only_update_spoofable:  str = "false"
+
+
+@dataclass
+class AppConfig:
+    db:               DatabaseConfig
+    backend_password: str               = "CHANGE_THIS"
+    worker:           WorkerConfig      = field(default_factory=WorkerConfig)
+    services:         list[str]         = field(default_factory=list)
+
+    # ── .env serialisation ────────────────────────────────────────────────────
+
+    def to_env(self) -> dict[str, str]:
+        d: dict[str, str] = {
+            "POSTGRES_USER":            self.db.user,
+            "POSTGRES_PASSWORD":        self.db.password,
+            "POSTGRES_DB":              self.db.db,
+            "POSTGRES_PORT":            self.db.port,
+            "BACKEND_PASSWORD":         self.backend_password,
+            "THREADS":                  self.worker.threads,
+            "SEARCH_MODULE":            self.worker.search_module,
+            "UPDATE_MODULE":            self.worker.update_module,
+            "UPDATE_WITH_CONNECTION":   self.worker.update_with_connection,
+            "RUST_LOG":                 self.worker.rust_log,
+            "ONLY_UPDATE_SPOOFABLE":    self.worker.only_update_spoofable,
+        }
+        if self.db.is_remote:
+            d["DB_HOST"] = self.db.host
+        return d
+
+    @classmethod
+    def from_env(cls, raw: dict[str, str]) -> "AppConfig":
+        db = DatabaseConfig(
+            user     = raw.get("POSTGRES_USER",     "user"),
+            password = raw.get("POSTGRES_PASSWORD", "CHANGE_THIS"),
+            db       = raw.get("POSTGRES_DB",       "mine_search_db"),
+            host     = raw.get("DB_HOST",           ""),
+            port     = raw.get("POSTGRES_PORT",     "5432"),
+        )
+        worker = WorkerConfig(
+            threads                = raw.get("THREADS",                "500"),
+            search_module          = raw.get("SEARCH_MODULE",          "true"),
+            update_module          = raw.get("UPDATE_MODULE",          "true"),
+            update_with_connection = raw.get("UPDATE_WITH_CONNECTION", "false"),
+            rust_log               = raw.get("RUST_LOG",               "info"),
+            only_update_spoofable  = raw.get("ONLY_UPDATE_SPOOFABLE",  "false"),
+        )
+        return cls(db=db, backend_password=raw.get("BACKEND_PASSWORD", "CHANGE_THIS"), worker=worker)
+
+
+# ── .env persistence ──────────────────────────────────────────────────────────
+
+ENV_FILE = Path(".env")
+
+
+def load_raw_env() -> dict[str, str]:
+    env: dict[str, str] = {}
     if ENV_FILE.exists():
         for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -114,162 +238,159 @@ def load_env():
                 env[k.strip()] = v.strip()
     return env
 
-def save_env(env):
-    lines = [f"{k}={v}" for k, v in env.items()]
+
+def save_env(cfg: AppConfig) -> None:
+    lines = [f"{k}={v}" for k, v in cfg.to_env().items()]
     ENV_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
     success(".env saved.")
 
-# ── DB URL helpers ────────────────────────────────────────────────────────────
-
-def is_remote_db(env):
-    """Return True when DB_IP is set, meaning postgres lives on a remote host."""
-    return bool(env.get("DB_IP", "").strip())
-
-def database_url(env):
-    """
-    Build the DATABASE_URL used inside docker-compose services.
-    - Remote DB  → uses DB_IP / DB_PORT from .env
-    - Local DB   → uses the postgres container hostname
-    """
-    user = env["POSTGRES_USER"]
-    pw   = env["POSTGRES_PASSWORD"]
-    db   = env["POSTGRES_DB"]
-    if is_remote_db(env):
-        host = env["DB_IP"]
-        port = env.get("DB_PORT", "5432")
-        return f"postgres://{user}:{pw}@{host}:{port}/{db}"
-    return f"postgres://{user}:{pw}@{POSTGRES_CONTAINER}/{db}"
-
-def migration_url(env):
-    """
-    Build the DATABASE_URL used by the diesel CLI running on the host machine.
-    - Remote DB  → same as database_url (the remote host is already reachable)
-    - Local DB   → 127.0.0.1:5432 (the container port mapped to the host)
-    """
-    user = env["POSTGRES_USER"]
-    pw   = env["POSTGRES_PASSWORD"]
-    db   = env["POSTGRES_DB"]
-    if is_remote_db(env):
-        host = env["DB_IP"]
-        port = env.get("DB_PORT", "5432")
-        return f"postgres://{user}:{pw}@{host}:{port}/{db}"
-    return f"postgres://{user}:{pw}@127.0.0.1:5432/{db}"
 
 # ── docker-compose builder ────────────────────────────────────────────────────
+#
+# Values are referenced via ${VAR} — docker compose reads .env automatically.
+# This means you never have to regenerate docker-compose.yml just because a
+# password changed: edit .env, restart, done.
 
-def _postgres_svc(env):
-    return {
-        "image": "postgres",
-        "container_name": POSTGRES_CONTAINER,
-        "environment": {
-            "POSTGRES_USER":     env["POSTGRES_USER"],
-            "POSTGRES_PASSWORD": env["POSTGRES_PASSWORD"],
-            "POSTGRES_DB":       env["POSTGRES_DB"],
-        },
-        "healthcheck": {
-            "test":     ["CMD-SHELL", f"pg_isready -U {env['POSTGRES_USER']} -d {env['POSTGRES_DB']}"],
-            "interval": "5s",
-            "timeout":  "5s",
-            "retries":  5,
-        },
-        "networks": [APP_NETWORK],
-        "volumes":  ["postgres-data:/var/lib/postgresql"],
-        "ports":    ["127.0.0.1:5432:5432/tcp"],
-        "restart":  "unless-stopped",
-    }
+POSTGRES_CONTAINER = "postgres-container"
+APP_NETWORK        = "app-network"
+COMPOSE_FILE       = Path("docker-compose.yml")
+DB_SCHEMA          = Path("db_schema")
 
-def _worker_svc(env, local_postgres):
-    svc = {
-        "image": "ghcr.io/kauri-off/mine_search/worker:latest",
-        "environment": {
-            "THREADS":                env["THREADS"],
-            "DATABASE_URL":           database_url(env),
-            "SEARCH_MODULE":          env["SEARCH_MODULE"],
-            "UPDATE_MODULE":          env["UPDATE_MODULE"],
-            "UPDATE_WITH_CONNECTION": env["UPDATE_WITH_CONNECTION"],
-            "RUST_LOG":               env["RUST_LOG"],
-            "ONLY_UPDATE_SPOOFABLE":  env["ONLY_UPDATE_SPOOFABLE"]
-        },
-        "networks": [APP_NETWORK],
-        "restart":  "unless-stopped",
-    }
-    if local_postgres:
-        svc["depends_on"] = {"postgres": {"condition": "service_healthy"}}
-    return svc
 
-def _backend_svc(env, local_postgres):
-    svc = {
-        "image": "ghcr.io/kauri-off/mine_search/backend:latest",
-        "environment": {
-            "DATABASE_URL":     database_url(env),
-            "BACKEND_PASSWORD": env["BACKEND_PASSWORD"],
-        },
-        "networks": [APP_NETWORK],
-        "restart":  "unless-stopped",
-    }
-    if local_postgres:
-        svc["depends_on"] = {"postgres": {"condition": "service_healthy"}}
-    return svc
+class ComposeBuilder:
+    """Builds a docker-compose structure whose runtime values come from .env."""
 
-def _frontend_svc():
-    return {
-        "image": "ghcr.io/kauri-off/mine_search/frontend:latest",
-        "depends_on": ["backend"],
-        "networks":   [APP_NETWORK],
-        "restart":    "unless-stopped",
-    }
+    def __init__(self, services: list[str]) -> None:
+        self.services = services
 
-def _nginx_svc():
-    return {
-        "image":          "nginx:alpine",
-        "container_name": "nginx-proxy",
-        "volumes":        ["./nginx.conf:/etc/nginx/conf.d/default.conf:ro"],
-        "ports":          ["8080:80"],
-        "depends_on":     ["backend", "frontend"],
-        "networks":       [APP_NETWORK],
-        "restart":        "unless-stopped",
-    }
+    @property
+    def _local_postgres(self) -> bool:
+        return "postgres" in self.services
 
-def build_compose(services, env):
-    """Build a docker-compose structure from scratch using env for all values."""
-    local_postgres = "postgres" in services
+    # ── service definitions ───────────────────────────────────────────────────
 
-    compose = {
-        "services": {},
-        "networks": {APP_NETWORK: {}},
-        "volumes":  {},
-    }
+    def _postgres_svc(self) -> dict[str, Any]:
+        return {
+            "image":          "postgres",
+            "container_name": POSTGRES_CONTAINER,
+            "environment": {
+                "POSTGRES_USER":     "${POSTGRES_USER}",
+                "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD}",
+                "POSTGRES_DB":       "${POSTGRES_DB}",
+            },
+            "healthcheck": {
+                "test":     ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"],
+                "interval": "5s",
+                "timeout":  "5s",
+                "retries":  5,
+            },
+            "networks": [APP_NETWORK],
+            "volumes":  ["postgres-data:/var/lib/postgresql"],
+            "ports":    ["127.0.0.1:5432:5432/tcp"],
+            "restart":  "unless-stopped",
+        }
 
-    if local_postgres:
-        compose["services"]["postgres"] = _postgres_svc(env)
-        compose["volumes"]["postgres-data"] = {}
+    def _worker_svc(self) -> dict[str, Any]:
+        svc: dict[str, Any] = {
+            "image": "ghcr.io/kauri-off/mine_search/worker:latest",
+            "environment": {
+                "THREADS":                "${THREADS}",
+                "DATABASE_URL":           "${DATABASE_URL}",
+                "SEARCH_MODULE":          "${SEARCH_MODULE}",
+                "UPDATE_MODULE":          "${UPDATE_MODULE}",
+                "UPDATE_WITH_CONNECTION": "${UPDATE_WITH_CONNECTION}",
+                "RUST_LOG":               "${RUST_LOG}",
+                "ONLY_UPDATE_SPOOFABLE":  "${ONLY_UPDATE_SPOOFABLE}",
+            },
+            "networks": [APP_NETWORK],
+            "restart":  "unless-stopped",
+        }
+        if self._local_postgres:
+            svc["depends_on"] = {"postgres": {"condition": "service_healthy"}}
+        return svc
 
-    if "worker" in services:
-        compose["services"]["worker"] = _worker_svc(env, local_postgres)
+    def _backend_svc(self) -> dict[str, Any]:
+        svc: dict[str, Any] = {
+            "image": "ghcr.io/kauri-off/mine_search/backend:latest",
+            "environment": {
+                "DATABASE_URL":     "${DATABASE_URL}",
+                "BACKEND_PASSWORD": "${BACKEND_PASSWORD}",
+            },
+            "networks": [APP_NETWORK],
+            "restart":  "unless-stopped",
+        }
+        if self._local_postgres:
+            svc["depends_on"] = {"postgres": {"condition": "service_healthy"}}
+        return svc
 
-    if "backend" in services:
-        compose["services"]["backend"] = _backend_svc(env, local_postgres)
+    def _frontend_svc(self) -> dict[str, Any]:
+        return {
+            "image":      "ghcr.io/kauri-off/mine_search/frontend:latest",
+            "depends_on": ["backend"],
+            "networks":   [APP_NETWORK],
+            "restart":    "unless-stopped",
+        }
 
-    if "frontend" in services:
-        if "backend" not in services:
-            warn("frontend depends on backend, but backend is not selected.")
-        compose["services"]["frontend"] = _frontend_svc()
+    def _nginx_svc(self) -> dict[str, Any]:
+        return {
+            "image":          "nginx:alpine",
+            "container_name": "nginx-proxy",
+            "volumes":        ["./nginx.conf:/etc/nginx/conf.d/default.conf:ro"],
+            "ports":          ["8080:80"],
+            "depends_on":     ["backend", "frontend"],
+            "networks":       [APP_NETWORK],
+            "restart":        "unless-stopped",
+        }
 
-    if "nginx" in services:
-        compose["services"]["nginx"] = _nginx_svc()
+    # ── public API ────────────────────────────────────────────────────────────
 
-    return compose
+    def build(self) -> dict[str, Any]:
+        compose: dict[str, Any] = {
+            "services": {},
+            "networks": {APP_NETWORK: {}},
+            "volumes":  {},
+        }
 
-def save_compose(data):
-    with open(COMPOSE_FILE, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
-    success("docker-compose.yml written.")
+        builders: dict[str, Any] = {
+            "postgres": self._postgres_svc,
+            "worker":   self._worker_svc,
+            "backend":  self._backend_svc,
+            "frontend": self._frontend_svc,
+            "nginx":    self._nginx_svc,
+        }
+
+        for svc in self.services:
+            if svc == "frontend" and "backend" not in self.services:
+                warn("frontend depends on backend, but backend is not selected.")
+            fn = builders.get(svc)
+            if fn:
+                compose["services"][svc] = fn()
+
+        if self._local_postgres:
+            compose["volumes"]["postgres-data"] = {}
+
+        return compose
+
+    def save(self) -> None:
+        with open(COMPOSE_FILE, "w", encoding="utf-8") as f:
+            yaml.dump(self.build(), f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        success("docker-compose.yml written.")
+
+    @staticmethod
+    def active_services() -> list[str]:
+        """Return the list of services defined in the existing compose file."""
+        if not COMPOSE_FILE.exists():
+            return []
+        with open(COMPOSE_FILE, encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        return list(data.get("services", {}).keys())
+
 
 # ── Service / profile selection ───────────────────────────────────────────────
 
-ALL_SERVICES = ["postgres", "worker", "backend", "frontend", "nginx"]
+ALL_SERVICES: list[str] = ["postgres", "worker", "backend", "frontend", "nginx"]
 
-PROFILES = {
+PROFILES: dict[str, list[str] | None] = {
     "Full (all services)":       ["postgres", "worker", "backend", "frontend", "nginx"],
     "Worker only":               ["worker"],
     "DB only":                   ["postgres"],
@@ -277,7 +398,8 @@ PROFILES = {
     "Custom":                    None,
 }
 
-def pick_services():
+
+def pick_services() -> list[str]:
     idx  = menu("Select installation profile:", list(PROFILES.keys()))
     name = list(PROFILES.keys())[idx]
     svcs = PROFILES[name]
@@ -293,39 +415,91 @@ def pick_services():
         error("No services selected.")
         sys.exit(1)
 
-    success(f"Profile : {name}")
-    print(   f"  Services: {', '.join(svcs)}")
+    success(f"Profile: {name}")
+    print(  f"  Services: {', '.join(svcs)}")
     return svcs
 
-# ── Diesel migrations ─────────────────────────────────────────────────────────
 
-def wait_for_postgres(pg_user, retries=20, delay=3):
+# ── Postgres readiness ────────────────────────────────────────────────────────
+
+def wait_for_local_postgres(pg_user: str, retries: int = 20, delay: float = 3.0) -> bool:
     """Poll the local postgres container until it accepts connections."""
-    print(f"\n  Waiting for postgres", end="", flush=True)
+    print("\n  Waiting for postgres", end="", flush=True)
     for _ in range(retries):
         r = subprocess.run(
             ["docker", "compose", "exec", "postgres", "pg_isready", "-U", pg_user],
             capture_output=True,
         )
         if r.returncode == 0:
-            print(c("  ready!", GREEN))
+            print(_c("  ready!", GREEN))
             return True
         print(".", end="", flush=True)
         time.sleep(delay)
     print()
     return False
 
-def run_diesel_migrations(env):
-    """Run diesel migrations from db_schema/ using migration_url derived from env."""
+
+def wait_for_remote_postgres(db: DatabaseConfig, retries: int = 10, delay: float = 3.0) -> bool:
+    """Poll a remote postgres until it accepts connections (uses pg_isready on host)."""
+    if shutil.which("pg_isready") is None:
+        warn("pg_isready not found on host — skipping remote DB readiness check.")
+        return True
+    print("\n  Waiting for remote postgres", end="", flush=True)
+    for _ in range(retries):
+        r = subprocess.run(
+            ["pg_isready", "-h", db.host, "-p", db.port, "-U", db.user],
+            capture_output=True,
+        )
+        if r.returncode == 0:
+            print(_c("  ready!", GREEN))
+            return True
+        print(".", end="", flush=True)
+        time.sleep(delay)
+    print()
+    return False
+
+
+# ── Diesel migrations ─────────────────────────────────────────────────────────
+
+def git_pull() -> None:
+    """Pull latest commits, discarding any local schema.rs changes first.
+
+    diesel migration run regenerates schema.rs as a side-effect, so the file
+    is always dirty after a migration.  Trying to pull with a dirty schema.rs
+    causes a merge conflict every time.  We discard it unconditionally because:
+      - it is auto-generated (not hand-edited)
+      - the correct version will be regenerated by the migration that follows
+    """
+    if not Path(".git").is_dir():
+        warn("Not a git repository — skipping git pull.")
+        return
+    Checks.git()
+
+    schema = DB_SCHEMA / "src" / "schema.rs"
+    if schema.exists():
+        r = subprocess.run(
+            ["git", "status", "--porcelain", str(schema)],
+            capture_output=True, text=True,
+        )
+        if r.stdout.strip():
+            warn(f"Discarding local changes to {schema} (auto-generated by diesel).")
+            run(["git", "checkout", "--", str(schema)])
+
+    run(["git", "pull"])
+
+
+def run_diesel_migrations(cfg: AppConfig) -> None:
     header("DIESEL MIGRATIONS")
 
     if not DB_SCHEMA.is_dir():
         warn(f"'{DB_SCHEMA}/' directory not found — skipping migrations.")
         return
 
-    check_diesel()
+    Checks.diesel()
 
-    url = migration_url(env)
+    git_pull()
+
+    url = cfg.db.migration_url()
     run(
         ["diesel", "migration", "run"],
         extra_env={"DATABASE_URL": url},
@@ -333,175 +507,257 @@ def run_diesel_migrations(env):
     )
     success("Diesel migrations applied.")
 
+
+# ── Prompt helpers ────────────────────────────────────────────────────────────
+
+def prompt_db(existing: DatabaseConfig, remote: bool) -> DatabaseConfig:
+    user     = ask("POSTGRES_USER",     existing.user)
+    password = ask("POSTGRES_PASSWORD", existing.password)
+    db       = ask("POSTGRES_DB",       existing.db)
+    port     = existing.port
+    host     = ""
+
+    if remote:
+        warn("No local postgres selected. Enter remote DB connection details.")
+        host = ask("DB_HOST (remote host)", existing.host)
+        port = ask("DB_PORT (remote port)", existing.port)
+
+    return DatabaseConfig(user=user, password=password, db=db, host=host, port=port)
+
+
+def prompt_worker(existing: WorkerConfig) -> WorkerConfig:
+    return WorkerConfig(
+        threads                = ask("THREADS",                existing.threads),
+        search_module          = ask("SEARCH_MODULE",          existing.search_module),
+        update_module          = ask("UPDATE_MODULE",          existing.update_module),
+        update_with_connection = ask("UPDATE_WITH_CONNECTION", existing.update_with_connection),
+        rust_log               = ask("RUST_LOG (info/debug)",  existing.rust_log),
+        only_update_spoofable  = ask("ONLY_UPDATE_SPOOFABLE",  existing.only_update_spoofable),
+    )
+
+
+# ── DATABASE_URL injection into .env ─────────────────────────────────────────
+#
+# docker-compose reads .env and resolves ${DATABASE_URL} inside service
+# definitions, so we write it there rather than baking it into the YAML.
+
+def inject_database_url(cfg: AppConfig) -> None:
+    """Add DATABASE_URL to the .env so compose can resolve it in services."""
+    raw = load_raw_env()
+    local_container = POSTGRES_CONTAINER
+    raw["DATABASE_URL"] = cfg.db.service_url(local_container)
+    lines = [f"{k}={v}" for k, v in raw.items()]
+    ENV_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 # ── Mode: Install ─────────────────────────────────────────────────────────────
 
-def mode_install():
-    header("INSTALL")
-    check_docker()
+class InstallMode:
+    def run(self) -> None:
+        header("INSTALL")
+        Checks.docker()
 
-    services       = pick_services()
-    local_postgres = "postgres" in services
-    needs_backend  = "backend" in services
-    needs_db       = any(s in services for s in ("worker", "backend"))
+        # Warn if compose already exists to avoid clobbering production overrides
+        if COMPOSE_FILE.exists():
+            warn(
+                "docker-compose.yml already exists.\n"
+                "  If you have production overrides (Let's Encrypt ports, etc.) they will be lost."
+            )
+            choice = menu("How do you want to proceed?", [
+                "Overwrite docker-compose.yml",
+                "Keep existing docker-compose.yml (only update .env)",
+                "Abort",
+            ])
+            if choice == 2:
+                print("  Aborted.")
+                sys.exit(0)
+            keep_compose = (choice == 1)
+        else:
+            keep_compose = False
 
-    env = load_env()
-    print("\n  Configure environment variables:")
+        services       = pick_services()
+        local_postgres = "postgres" in services
+        needs_backend  = "backend" in services
+        needs_db       = any(s in services for s in ("worker", "backend"))
 
-    # Core DB credentials
-    env["POSTGRES_USER"]     = ask("POSTGRES_USER",     env.get("POSTGRES_USER",     "user"))
-    env["POSTGRES_PASSWORD"] = ask("POSTGRES_PASSWORD", env.get("POSTGRES_PASSWORD", "CHANGE_THIS"))
-    env["POSTGRES_DB"]       = ask("POSTGRES_DB",       env.get("POSTGRES_DB",       "mine_search_db"))
+        raw     = load_raw_env()
+        existing = AppConfig.from_env(raw)
 
-    # Remote DB overrides (optional — leave blank for local)
-    if not local_postgres and needs_db:
-        warn("No local postgres selected. Enter remote DB connection details.")
-        env["DB_IP"]   = ask("DB_IP   (remote host)",  env.get("DB_IP",   ""))
-        env["DB_PORT"] = ask("DB_PORT (remote port)",  env.get("DB_PORT", "5432"))
-    else:
-        # Clear remote keys if switching back to local
-        env.pop("DB_IP",   None)
-        env.pop("DB_PORT", None)
+        print("\n  Configure environment variables:")
 
-    # App secrets
-    if needs_backend:
-        env["BACKEND_PASSWORD"] = ask("BACKEND_PASSWORD", env.get("BACKEND_PASSWORD", "CHANGE_THIS"))
+        db = prompt_db(existing.db, remote=(not local_postgres and needs_db))
+        backend_password = ask("BACKEND_PASSWORD", existing.backend_password) if needs_backend else existing.backend_password
+        worker = prompt_worker(existing.worker) if "worker" in services else existing.worker
 
-    # Worker tuning
-    if "worker" in services:
-        env["THREADS"]                = ask("THREADS",                env.get("THREADS",                "500"))
-        env["SEARCH_MODULE"]          = ask("SEARCH_MODULE",          env.get("SEARCH_MODULE",          "true"))
-        env["UPDATE_MODULE"]          = ask("UPDATE_MODULE",          env.get("UPDATE_MODULE",          "true"))
-        env["UPDATE_WITH_CONNECTION"] = ask("UPDATE_WITH_CONNECTION", env.get("UPDATE_WITH_CONNECTION", "false"))
-        env["RUST_LOG"]               = ask("RUST_LOG (info/debug)",  env.get("RUST_LOG",               "info"))
-        env["ONLY_UPDATE_SPOOFABLE"]  = ask("ONLY_UPDATE_SPOOFABLE",  env.get("ONLY_UPDATE_SPOOFABLE",               "false"))
+        cfg = AppConfig(db=db, backend_password=backend_password, worker=worker, services=services)
+        save_env(cfg)
+        inject_database_url(cfg)
 
-    # Persist settings and generate compose
-    save_env(env)
-    save_compose(build_compose(services, env))
+        if not keep_compose:
+            ComposeBuilder(services).save()
 
-    # Pull images
-    run(["docker", "compose", "pull"])
+        run(["docker", "compose", "pull"])
 
-    # Start postgres first (if local), migrate, then bring up everything
-    if needs_db:
-        if ask_yes("\nRun diesel(postgres) migrations?", default=True):
-            if local_postgres:
-                run(["docker", "compose", "up", "postgres", "-d"])
-                if wait_for_postgres(env["POSTGRES_USER"]):
-                    run_diesel_migrations(env)
-                else:
-                    warn("Postgres did not become ready in time.")
+        if needs_db and ask_yes("\nRun diesel migrations?", default=True):
+            self._handle_migrations(cfg, local_postgres)
+
+        if ask_yes("\nRun docker compose up?", default=True):
+            run(["docker", "compose", "up", "-d"])
+
+        success("Installation complete.")
+
+    def _handle_migrations(self, cfg: AppConfig, local_postgres: bool) -> None:
+        if local_postgres:
+            run(["docker", "compose", "up", "postgres", "-d"])
+            if wait_for_local_postgres(cfg.db.user):
+                run_diesel_migrations(cfg)
             else:
-                    run_diesel_migrations(env)
+                warn("Postgres did not become ready in time — skipping migrations.")
+        else:
+            if wait_for_remote_postgres(cfg.db):
+                run_diesel_migrations(cfg)
+            else:
+                warn("Remote postgres did not become ready in time — skipping migrations.")
 
-    if ask_yes("\nRun docker compose up?", default=True):
-        run(["docker", "compose", "up", "-d"])
-
-    success("Installation complete.")
 
 # ── Mode: Update ──────────────────────────────────────────────────────────────
 
-def mode_update():
-    header("UPDATE")
-    check_docker()
+class UpdateMode:
+    def run(self) -> None:
+        header("UPDATE")
+        Checks.docker()
 
-    choice = menu("What would you like to update?", [
-        "Pull latest images & restart all services",
-        "Pull latest images & restart one service",
-        "Run diesel migrations",
-        "Start everything",
-        "Stop everything"
-    ])
+        options = [
+            "Pull latest images & restart all services",
+            "Pull latest images & restart one service",
+            "Run diesel migrations (git pull first)",
+            "Start everything",
+            "Stop everything",
+        ]
+        choice = menu("What would you like to update?", options)
 
-    if choice == 0:
+        dispatch = {
+            0: self._update_all,
+            1: self._update_one,
+            2: self._migrate,
+            3: self._start,
+            4: self._stop,
+        }
+        dispatch[choice]()
+
+    def _update_all(self) -> None:
         run(["docker", "compose", "down"])
         run(["docker", "compose", "pull"])
         run(["docker", "compose", "up", "-d"])
         success("All services updated.")
-    elif choice == 1:
+
+    def _update_one(self) -> None:
         svc = ask("Service name (worker / backend / frontend / nginx)")
         run(["docker", "compose", "down", svc])
         run(["docker", "compose", "pull", svc])
         run(["docker", "compose", "up", svc, "-d"])
         success(f"'{svc}' updated.")
-    elif choice == 2:
-        run_diesel_migrations(load_env())
-    elif choice == 3:
+
+    def _migrate(self) -> None:
+        cfg = AppConfig.from_env(load_raw_env())
+        local_postgres = "postgres" in ComposeBuilder.active_services()
+        if local_postgres:
+            if not wait_for_local_postgres(cfg.db.user):
+                warn("Postgres not ready — aborting migrations.")
+                return
+        else:
+            if not wait_for_remote_postgres(cfg.db):
+                warn("Remote postgres not ready — aborting migrations.")
+                return
+        run_diesel_migrations(cfg)
+
+    def _start(self) -> None:
         run(["docker", "compose", "up", "-d"])
-    elif choice == 4:
+
+    def _stop(self) -> None:
         run(["docker", "compose", "down"])
 
-# ── Mode: Change Settings ─────────────────────────────────────────────────────
 
-def mode_settings():
-    header("CHANGE SETTINGS")
+# ── Mode: Settings ────────────────────────────────────────────────────────────
 
-    env = load_env()
-    if not env:
-        warn(".env not found or empty — starting from scratch.")
-
-    print("  Press Enter to keep the current value.\n")
-
-    fields = [
-        ("POSTGRES_USER",          "PostgreSQL user"),
-        ("POSTGRES_PASSWORD",      "PostgreSQL password"),
-        ("POSTGRES_DB",            "PostgreSQL database name"),
-        ("DB_IP",                  "Remote DB host (leave blank for local Docker)"),
-        ("DB_PORT",                "Remote DB port"),
-        ("BACKEND_PASSWORD",       "Backend API password"),
-        ("THREADS",                "Worker threads"),
-        ("SEARCH_MODULE",          "Search module enabled (true/false)"),
-        ("UPDATE_MODULE",          "Update module enabled (true/false)"),
-        ("UPDATE_WITH_CONNECTION", "Update with connection (true/false)"),
-        ("ONLY_UPDATE_SPOOFABLE",  "Only updates servers with flag Spoofable"),
-        ("RUST_LOG",               "Worker log level (info/debug)"),
+class SettingsMode:
+    # Each entry: (env_key, prompt_label, always_show)
+    FIELDS: list[tuple[str, str]] = [
+        ("POSTGRES_USER",           "PostgreSQL user"),
+        ("POSTGRES_PASSWORD",       "PostgreSQL password"),
+        ("POSTGRES_DB",             "PostgreSQL database name"),
+        ("POSTGRES_PORT",           "PostgreSQL port"),
+        ("DB_HOST",                 "Remote DB host (leave blank for local Docker)"),
+        ("BACKEND_PASSWORD",        "Backend API password"),
+        ("THREADS",                 "Worker threads"),
+        ("SEARCH_MODULE",           "Search module enabled (true/false)"),
+        ("UPDATE_MODULE",           "Update module enabled (true/false)"),
+        ("UPDATE_WITH_CONNECTION",  "Update with connection (true/false)"),
+        ("ONLY_UPDATE_SPOOFABLE",   "Only update spoofable servers (true/false)"),
+        ("RUST_LOG",                "Worker log level (info/debug)"),
     ]
 
-    changed = False
-    for key, label in fields:
-        current = env.get(key, "")
-        new_val = ask(label, current)
-        if new_val != current:
-            if new_val == "":
-                env.pop(key, None)  # remove key entirely when cleared
+    def run(self) -> None:
+        header("CHANGE SETTINGS")
+
+        raw = load_raw_env()
+        if not raw:
+            warn(".env not found or empty — starting from scratch.")
+
+        print("  Press Enter to keep the current value.\n")
+
+        changed = False
+        for key, label in self.FIELDS:
+            current = raw.get(key, "")
+            new_val = ask(label, current)
+            if new_val != current:
+                if new_val == "":
+                    raw.pop(key, None)
+                else:
+                    raw[key] = new_val
+                changed = True
+
+        if not changed:
+            print("\n  No changes made.")
+            return
+
+        cfg = AppConfig.from_env(raw)
+        save_env(cfg)
+        inject_database_url(cfg)
+
+        # Regenerate compose only if it already exists and user agrees
+        if COMPOSE_FILE.exists() and ask_yes("Regenerate docker-compose.yml to reflect new settings?", default=False):
+            services = ComposeBuilder.active_services()
+            if services:
+                ComposeBuilder(services).save()
             else:
-                env[key] = new_val
-            changed = True
+                warn("Could not determine active services — compose file not updated.")
 
-    if not changed:
-        print("\n  No changes made.")
-        return
+        if ask_yes("\nRestart services to apply new settings?", default=True):
+            Checks.docker()
+            run(["docker", "compose", "up", "-d"])
+            success("Services restarted with new settings.")
 
-    save_env(env)
-
-    # Regenerate docker-compose so embedded URLs reflect the new values
-    if COMPOSE_FILE.exists():
-        with open(COMPOSE_FILE, encoding="utf-8") as f:
-            existing = yaml.safe_load(f) or {}
-        services = list(existing.get("services", {}).keys())
-        if services:
-            save_compose(build_compose(services, env))
-
-    if ask_yes("\nRestart services to apply new settings?", default=True):
-        check_docker()
-        run(["docker", "compose", "up", "-d"])
-        success("Services restarted with new settings.")
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def main():
+def main() -> None:
     print(f"\n{BOLD}{CYAN}  mine_search  —  Setup Script{RESET}")
+
+    modes: dict[str, type] = {
+        "install":  InstallMode,
+        "i":        InstallMode,
+        "update":   UpdateMode,
+        "u":        UpdateMode,
+        "settings": SettingsMode,
+        "s":        SettingsMode,
+    }
 
     if len(sys.argv) > 1:
         arg = sys.argv[1].lower()
-        dispatch = {
-            "i": mode_install,  "install":  mode_install,
-            "u": mode_update,   "update":   mode_update,
-            "s": mode_settings, "settings": mode_settings,
-        }
-        fn = dispatch.get(arg)
-        if fn:
-            fn()
+        cls = modes.get(arg)
+        if cls:
+            cls().run()
             return
         error(f"Unknown argument '{arg}'. Valid: install (i), update (u), settings (s)")
         sys.exit(1)
@@ -512,8 +768,8 @@ def main():
         "Settings — change .env values and restart",
         "Exit",
     ])
+    [InstallMode, UpdateMode, SettingsMode, type("_Exit", (), {"run": staticmethod(lambda: print("  Bye!\n"))})][choice]().run()
 
-    [mode_install, mode_update, mode_settings, lambda: print("  Bye!\n")][choice]()
 
 if __name__ == "__main__":
     main()
