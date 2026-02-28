@@ -89,7 +89,7 @@ async fn main() {
             let mut password_mutex = BACKEND_PASSWORD.lock().await;
             let mut secret_mutex = BACKEND_SECRET.lock().await;
             *password_mutex = t;
-            *secret_mutex = generate_random_string(32);
+            *secret_mutex = env::var("BACKEND_JWT_SECRET").unwrap_or_else(|_| generate_random_string(32));
         }
         Err(_) => {
             eprintln!("[-] You must set BACKEND_PASSWORD in .env");

@@ -14,6 +14,7 @@ Architecture note:
 from __future__ import annotations
 
 import os
+import secrets
 import sys
 import time
 import shutil
@@ -182,6 +183,7 @@ class AppConfig:
     backend_password: str               = "CHANGE_THIS"
     worker:           WorkerConfig      = field(default_factory=WorkerConfig)
     services:         list[str]         = field(default_factory=list)
+    jwt_secret:       str               = field(default_factory=lambda: secrets.token_hex(16))
 
     # ── .env serialisation ────────────────────────────────────────────────────
 
@@ -192,6 +194,7 @@ class AppConfig:
             "POSTGRES_DB":              self.db.db,
             "POSTGRES_PORT":            self.db.port,
             "BACKEND_PASSWORD":         self.backend_password,
+            "BACKEND_JWT_SECRET":       self.jwt_secret,
             "THREADS":                  self.worker.threads,
             "SEARCH_MODULE":            self.worker.search_module,
             "UPDATE_MODULE":            self.worker.update_module,
@@ -220,7 +223,12 @@ class AppConfig:
             rust_log               = raw.get("RUST_LOG",               "info"),
             only_update_spoofable  = raw.get("ONLY_UPDATE_SPOOFABLE",  "false"),
         )
-        return cls(db=db, backend_password=raw.get("BACKEND_PASSWORD", "CHANGE_THIS"), worker=worker)
+        return cls(
+            db=db,
+            backend_password=raw.get("BACKEND_PASSWORD", "CHANGE_THIS"),
+            worker=worker,
+            jwt_secret=raw.get("BACKEND_JWT_SECRET") or secrets.token_hex(16),
+        )
 
 
 # ── .env persistence ──────────────────────────────────────────────────────────
@@ -313,8 +321,9 @@ class ComposeBuilder:
         svc: dict[str, Any] = {
             "image": "ghcr.io/kauri-off/mine_search/backend:latest",
             "environment": {
-                "DATABASE_URL":     "${DATABASE_URL}",
-                "BACKEND_PASSWORD": "${BACKEND_PASSWORD}",
+                "DATABASE_URL":       "${DATABASE_URL}",
+                "BACKEND_PASSWORD":   "${BACKEND_PASSWORD}",
+                "BACKEND_JWT_SECRET": "${BACKEND_JWT_SECRET}",
             },
             "networks": [APP_NETWORK],
             "restart":  "unless-stopped",
