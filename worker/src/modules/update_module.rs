@@ -49,12 +49,24 @@ pub async fn updater(
                 false => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
             };
 
-        let servers: Vec<ServerModelMini> = schema::servers::table
-            .filter(spoofable_filter)
-            .select(ServerModelMini::as_select())
-            .load(&mut db.pool.get().await.unwrap())
-            .await
-            .unwrap();
+        let servers: Vec<ServerModelMini> = match db.pool.get().await {
+            Ok(mut conn) => match schema::servers::table
+                .filter(spoofable_filter)
+                .select(ServerModelMini::as_select())
+                .load(&mut conn)
+                .await
+            {
+                Ok(s) => s,
+                Err(e) => {
+                    error!(target: "updater", "DB query failed: {}", e);
+                    continue;
+                }
+            },
+            Err(e) => {
+                error!(target: "updater", "Failed to get DB connection: {}", e);
+                continue;
+            }
+        };
 
         let semaphore = Arc::new(Semaphore::new(50));
 
@@ -66,7 +78,7 @@ pub async fn updater(
 
                 tokio::spawn(async move {
                     let _permit = permit.await;
-                    update_server(value, th_db, with_connection).await;
+                    let _ = update_server(value, th_db, with_connection).await;
                 })
             })
             .collect();
@@ -90,7 +102,7 @@ pub async fn update_server(
     server: ServerModelMini,
     db: Arc<DatabaseWrapper>,
     with_connection: bool,
-) {
+) -> anyhow::Result<()> {
     let (status, ping) = match timeout(
         Duration::from_secs(10),
         get_status(&server.ip, server.port as u16, None),
@@ -102,11 +114,10 @@ pub async fn update_server(
             diesel::update(schema::servers::table)
                 .filter(schema::servers::id.eq(&server.id))
                 .set(schema::servers::is_online.eq(false))
-                .execute(&mut db.pool.get().await.unwrap())
-                .await
-                .unwrap();
+                .execute(&mut db.pool.get().await?)
+                .await?;
 
-            return;
+            return Ok(());
         }
     };
 
@@ -116,13 +127,12 @@ pub async fn update_server(
         players_max: status.players.max as i32,
     };
 
-    let mut conn = db.pool.get().await.unwrap();
+    let mut conn = db.pool.get().await?;
 
     insert_into(schema::player_count_snapshots::table)
         .values(snapshot_insert)
         .execute(&mut conn)
-        .await
-        .unwrap();
+        .await?;
 
     insert_into(schema::players::table)
         .values(
@@ -139,8 +149,7 @@ pub async fn update_server(
         )
         .on_conflict_do_nothing()
         .execute(&mut conn)
-        .await
-        .unwrap();
+        .await?;
 
     let is_forge = status.forge_data.is_some() || status.modinfo.is_some();
     let favicon_ref = status.favicon.as_deref();
@@ -160,8 +169,7 @@ pub async fn update_server(
         .filter(schema::servers::id.eq(server.id))
         .set(server_change)
         .execute(&mut conn)
-        .await
-        .unwrap();
+        .await?;
 
     if with_connection {
         match timeout(
@@ -184,10 +192,11 @@ pub async fn update_server(
                     .filter(schema::servers::id.eq(server.id))
                     .set(server_extra_change)
                     .execute(&mut conn)
-                    .await
-                    .unwrap();
+                    .await?;
             }
             Err(_) | Ok(Err(_)) => debug!("Could not get extra data for {}", server.ip),
         }
     }
+
+    Ok(())
 }

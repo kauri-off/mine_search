@@ -29,7 +29,7 @@ pub async fn check_server(ip: &IpAddr, port: u16) -> anyhow::Result<TcpStream> {
 }
 
 pub async fn search_thread(db: Arc<DatabaseWrapper>, mut pause_watcher: watch::Receiver<bool>) {
-    let mut rng = ChaCha8Rng::try_from_rng(&mut SysRng).unwrap();
+    let mut rng = ChaCha8Rng::try_from_rng(&mut SysRng).expect("Failed to seed RNG from system entropy");
 
     loop {
         if !*pause_watcher.borrow() {

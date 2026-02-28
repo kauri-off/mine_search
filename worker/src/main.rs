@@ -24,7 +24,7 @@ async fn main() {
     let threads: i32 = env::var("THREADS")
         .unwrap_or("150".to_string())
         .parse()
-        .unwrap();
+        .expect("THREADS env var must be a valid i32");
 
     let search_module: bool = env::var("SEARCH_MODULE")
         .unwrap_or("true".to_string())
@@ -51,8 +51,8 @@ async fn main() {
         .with(
             EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| EnvFilter::new("info"))
-                .add_directive("tokio_postgres=warn".parse().unwrap())
-                .add_directive("diesel=warn".parse().unwrap()),
+                .add_directive("tokio_postgres=warn".parse().expect("hardcoded tracing directive is valid"))
+                .add_directive("diesel=warn".parse().expect("hardcoded tracing directive is valid")),
         )
         .init();
 
@@ -64,9 +64,9 @@ async fn main() {
 
     let count: i64 = schema::servers::table
         .select(diesel::dsl::count(schema::servers::id))
-        .first(&mut db.pool.get().await.unwrap())
+        .first(&mut db.pool.get().await.expect("Failed to get DB connection at startup"))
         .await
-        .unwrap();
+        .expect("Failed to count servers at startup");
 
     debug!("Servers in db: {}", count);
 

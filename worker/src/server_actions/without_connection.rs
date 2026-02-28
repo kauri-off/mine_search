@@ -78,7 +78,7 @@ pub async fn get_status(
 
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap()
+        .expect("SystemTime before UNIX_EPOCH")
         .as_millis() as i64;
 
     let ping_request = c2s::PingRequest { timestamp };
@@ -90,7 +90,7 @@ pub async fn get_status(
     if RawPacket::read_async(&mut tcp_stream).await.is_ok() {
         let ping_ms = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .expect("SystemTime before UNIX_EPOCH")
             .as_millis() as i64
             - timestamp;
 

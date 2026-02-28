@@ -39,8 +39,7 @@ pub mod c2s {
         pub fn raw_by_protocol(&self, protocol: i32) -> Result<RawPacket, PacketError> {
             if protocol >= 764 {
                 // 1.20.2+ : name + UUID (always present, no boolean prefix)
-                UncompressedPacket::from_packet(self)
-                    .unwrap()
+                UncompressedPacket::from_packet(self)?
                     .to_raw_packet()
             } else if protocol >= 761 {
                 // 1.19.3 – 1.20.1 : name + has_uuid (bool) + UUID

@@ -103,7 +103,7 @@ fn chat_object_to_html(chat: &ChatObject) -> String {
             if value.is_string() {
                 format!(
                     "<span style=\"color: white;\" >{}</span>",
-                    value.as_str().unwrap()
+                    value.as_str().unwrap_or_default()
                 )
             } else {
                 value.to_string()
