@@ -310,8 +310,9 @@ class ComposeBuilder:
                 "SEARCH_MODULE":          "${SEARCH_MODULE}",
                 "UPDATE_MODULE":          "${UPDATE_MODULE}",
                 "UPDATE_WITH_CONNECTION": "${UPDATE_WITH_CONNECTION}",
-                "RUST_LOG":               "${RUST_LOG}",
                 "ONLY_UPDATE_SPOOFABLE":  "${ONLY_UPDATE_SPOOFABLE}",
+                "ONLY_UPDATE_CRACKED":    "${ONLY_UPDATE_CRACKED}",
+                "RUST_LOG":               "${RUST_LOG}",
             },
             "networks": [APP_NETWORK],
             "restart":  "unless-stopped",
@@ -543,9 +544,9 @@ def prompt_worker(existing: WorkerConfig) -> WorkerConfig:
         search_module          = ask("SEARCH_MODULE",          existing.search_module),
         update_module          = ask("UPDATE_MODULE",          existing.update_module),
         update_with_connection = ask("UPDATE_WITH_CONNECTION", existing.update_with_connection),
-        rust_log               = ask("RUST_LOG (info/debug)",  existing.rust_log),
         only_update_spoofable  = ask("ONLY_UPDATE_SPOOFABLE",  existing.only_update_spoofable),
         only_update_cracked    = ask("ONLY_UPDATE_CRACKED",    existing.only_update_cracked),
+        rust_log               = ask("RUST_LOG (info/debug)",  existing.rust_log),
     )
 
 
