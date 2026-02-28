@@ -10,8 +10,6 @@ tokio = { version = "1.49.0", features = ["full"] }
 
 diesel = { version = "2.3.6", features = ["postgres", "chrono", "serde_json", "postgres_backend"] }
 diesel-async = { version = "0.7.4", features = ["postgres", "deadpool"] }
-pq-sys = { version = "0.7.5", features = ["bundled"] }
-openssl-sys = { version = "0.9.111", features = ["vendored"] } 
 
 tracing-subscriber = "0.3.22"
 tracing = "0.1.44"
@@ -25,3 +23,7 @@ rand = "0.10.0"
 cookie = "0.18.1"
 lazy_static = "1.5.0"
 ts-rs = { version = "12.0.1", features = ["serde-json-impl", "chrono-impl"] }
+
+[target.'cfg(windows)'.dependencies]
+pq-sys = { version = "0.7.5", features = ["bundled"] }
+openssl-sys = { version = "0.9.111", features = ["vendored"] }

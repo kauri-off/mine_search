@@ -14,7 +14,7 @@ RUN cargo generate-lockfile
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
-RUN apt-get update && apt-get install -y cmake
+RUN apt-get update && apt-get install -y libpq-dev libssl-dev pkg-config
 
 WORKDIR /app/backend
 COPY --from=planner /app/backend/recipe.json recipe.json
@@ -34,6 +34,7 @@ RUN cargo build --release
 
 FROM debian:bookworm-slim
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends libpq5 && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/backend/target/release/backend .
 
