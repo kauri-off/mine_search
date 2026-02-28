@@ -175,6 +175,7 @@ class WorkerConfig:
     update_with_connection: str = "false"
     rust_log:               str = "info"
     only_update_spoofable:  str = "false"
+    only_update_cracked:    str = "false"
 
 
 @dataclass
@@ -201,6 +202,7 @@ class AppConfig:
             "UPDATE_WITH_CONNECTION":   self.worker.update_with_connection,
             "RUST_LOG":                 self.worker.rust_log,
             "ONLY_UPDATE_SPOOFABLE":    self.worker.only_update_spoofable,
+            "ONLY_UPDATE_CRACKED":      self.worker.only_update_cracked,
         }
         if self.db.is_remote:
             d["DB_HOST"] = self.db.host
@@ -222,6 +224,7 @@ class AppConfig:
             update_with_connection = raw.get("UPDATE_WITH_CONNECTION", "false"),
             rust_log               = raw.get("RUST_LOG",               "info"),
             only_update_spoofable  = raw.get("ONLY_UPDATE_SPOOFABLE",  "false"),
+            only_update_cracked    = raw.get("ONLY_UPDATE_CRACKED",    "false"),
         )
         return cls(
             db=db,

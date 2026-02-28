@@ -29,6 +29,7 @@ pub async fn updater(
     pause_tx: watch::Sender<bool>,
     search_module: bool,
     only_update_spoofable: bool,
+    only_update_cracked: bool,
 ) {
     loop {
         if search_module {
@@ -49,9 +50,16 @@ pub async fn updater(
                 false => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
             };
 
+        let cracked_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
+            match only_update_cracked {
+                true => Box::new(schema::servers::is_online_mode.eq(false)),
+                false => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+            };
+
         let servers: Vec<ServerModelMini> = match db.pool.get().await {
             Ok(mut conn) => match schema::servers::table
                 .filter(spoofable_filter)
+                .filter(cracked_filter)
                 .select(ServerModelMini::as_select())
                 .load(&mut conn)
                 .await

@@ -46,6 +46,11 @@ async fn main() {
         .parse()
         .unwrap_or(false);
 
+    let only_update_cracked: bool = env::var("ONLY_UPDATE_CRACKED")
+        .unwrap_or("false".to_string())
+        .parse()
+        .unwrap_or(false);
+
     tracing_subscriber::registry()
         .with(fmt::layer())
         .with(
@@ -76,6 +81,7 @@ async fn main() {
     if update_module {
         info!("Update with connection: {:?}", update_with_connection);
         info!("Only update spoofable: {:?}", only_update_spoofable);
+        info!("Only update cracked: {:?}", only_update_cracked);
     }
 
     let (tx, rx) = watch::channel(true);
@@ -96,6 +102,7 @@ async fn main() {
             tx,
             search_module,
             only_update_spoofable,
+            only_update_cracked,
         )));
     }
 
