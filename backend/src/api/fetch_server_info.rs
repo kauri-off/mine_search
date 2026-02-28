@@ -37,6 +37,7 @@ pub struct ServerInfoResponse {
     pub is_crashed: bool,
     pub is_forge: bool,
     pub favicon: Option<String>,
+    pub ping: Option<i64>,
 }
 
 impl From<(ServerModel, SnapshotModel)> for ServerInfoResponse {
@@ -58,6 +59,7 @@ impl From<(ServerModel, SnapshotModel)> for ServerInfoResponse {
             is_crashed: server.is_crashed,
             is_forge: server.is_forge,
             favicon: server.favicon,
+            ping: server.ping,
         }
     }
 }

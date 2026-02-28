@@ -22,6 +22,7 @@ pub struct ServerModel {
     pub created_at: chrono::DateTime<Utc>,
     pub updated_at: chrono::DateTime<Utc>,
     pub favicon: Option<String>,
+    pub ping: Option<i64>,
 }
 
 #[derive(Queryable, Selectable, Identifiable)]
@@ -46,6 +47,7 @@ pub struct ServerInsert<'a> {
     pub disconnect_reason: Option<Value>,
     pub is_forge: bool,
     pub favicon: Option<&'a str>,
+    pub ping: Option<i64>,
 }
 
 #[derive(Insertable, AsChangeset)]
@@ -59,6 +61,7 @@ pub struct ServerUpdate<'a> {
     pub is_online: bool,
     pub is_forge: bool,
     pub favicon: Option<&'a str>,
+    pub ping: Option<i64>,
 }
 
 #[derive(Insertable, AsChangeset)]

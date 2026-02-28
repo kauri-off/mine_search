@@ -64,7 +64,7 @@ pub async fn handle_valid_ip(
     db: Arc<DatabaseWrapper>,
     tcp_stream: Option<TcpStream>,
 ) -> anyhow::Result<()> {
-    let status = get_status(&format!("{}", ip), port, tcp_stream).await?;
+    let (status, ping) = get_status(&format!("{}", ip), port, tcp_stream).await?;
 
     let extra_data =
         get_extra_data(format!("{}", ip), port, status.version.protocol as i32).await?;
@@ -83,6 +83,7 @@ pub async fn handle_valid_ip(
         disconnect_reason: extra_data.disconnect_reason,
         is_forge,
         favicon: favicon_ref,
+        ping,
     };
 
     let mut conn = db.pool.get().await?;

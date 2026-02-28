@@ -91,7 +91,7 @@ pub async fn update_server(
     db: Arc<DatabaseWrapper>,
     with_connection: bool,
 ) {
-    let status = match timeout(
+    let (status, ping) = match timeout(
         Duration::from_secs(10),
         get_status(&server.ip, server.port as u16, None),
     )
@@ -153,6 +153,7 @@ pub async fn update_server(
         is_online: true,
         is_forge,
         favicon: favicon_ref,
+        ping,
     };
 
     diesel::update(schema::servers::table)

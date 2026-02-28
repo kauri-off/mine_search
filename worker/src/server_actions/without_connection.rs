@@ -1,3 +1,5 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use minecraft_protocol::{
     packet::{RawPacket, UncompressedPacket},
     varint::VarInt,
@@ -44,7 +46,7 @@ pub async fn get_status(
     ip: &str,
     port: u16,
     tcp_stream: Option<TcpStream>,
-) -> anyhow::Result<Status> {
+) -> anyhow::Result<(Status, Option<i64>)> {
     let mut tcp_stream = match tcp_stream {
         Some(t) => t,
         None => TcpStream::connect(&format!("{}:{}", ip, port)).await?,
@@ -73,5 +75,27 @@ pub async fn get_status(
         .deserialize_payload()?;
 
     let value: Status = serde_json::from_str(&response.response)?;
-    Ok(value)
+
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+
+    let ping_request = c2s::PingRequest { timestamp };
+
+    let _ = UncompressedPacket::from_packet(&ping_request)?
+        .write_async(&mut tcp_stream)
+        .await;
+
+    if RawPacket::read_async(&mut tcp_stream).await.is_ok() {
+        let ping_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64
+            - timestamp;
+
+        Ok((value, Some(ping_ms)))
+    } else {
+        Ok((value, None))
+    }
 }

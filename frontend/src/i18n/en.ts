@@ -54,6 +54,8 @@ export const en: Translations = {
     checked: "Checked",
     spoofable: "Spoofable",
     crashed: "Crashed",
+    ping: "Ping",
+    ms: "ms",
     reloadingIn: (n) => `Reloading in ${n}s...`,
     choosePingType: "Choose ping type:",
     withConnection: "With Connection",

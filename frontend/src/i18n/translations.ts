@@ -53,6 +53,8 @@ export interface Translations {
     checked: string;
     spoofable: string;
     crashed: string;
+    ping: string;
+    ms: string;
     reloadingIn: (n: number) => string;
     choosePingType: string;
     withConnection: string;

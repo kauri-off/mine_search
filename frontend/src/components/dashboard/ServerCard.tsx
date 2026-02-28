@@ -6,6 +6,20 @@ import { cn } from "@/cn";
 import type { ServerInfoResponse } from "@/types";
 import { useTranslation } from "@/i18n";
 
+function getPingBadgeClass(ping: bigint | null): string {
+  if (ping === null) return "bg-gray-700 text-gray-400";
+  const ms = Number(ping);
+  if (ms < 50) return "bg-green-600/30 text-green-300";
+  if (ms < 100) return "bg-yellow-600/30 text-yellow-300";
+  if (ms < 200) return "bg-orange-600/30 text-orange-300";
+  return "bg-red-600/30 text-red-300";
+}
+
+function formatPing(ping: bigint | null, ms: string): string {
+  if (ping === null) return "N/A";
+  return `${Number(ping)} ${ms}`;
+}
+
 interface ServerCardProps {
   server: ServerInfoResponse;
   cardRef?: React.Ref<HTMLAnchorElement>;
@@ -43,7 +57,7 @@ export const ServerCard = memo(({ server, cardRef }: ServerCardProps) => {
       to={`/server/${server.ip}`}
       className="block p-4 bg-gray-800 hover:bg-gray-750 border border-gray-700 rounded-lg transition hover:shadow-lg hover:border-blue-500"
     >
-      {/* Header: favicon + IP + online dot */}
+      {/* Header: favicon + IP + ping badge + online dot */}
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2 min-w-0">
           {server.favicon ? (
@@ -61,12 +75,22 @@ export const ServerCard = memo(({ server, cardRef }: ServerCardProps) => {
           )}
           <h3 className="font-bold text-lg truncate">{server.ip}</h3>
         </div>
-        <span
-          className={cn(
-            "w-3 h-3 rounded-full flex-shrink-0 mt-1",
-            server.was_online ? "bg-green-500" : "bg-red-500",
-          )}
-        />
+        <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+          <span
+            className={cn(
+              "px-2 py-0.5 rounded text-xs whitespace-nowrap",
+              getPingBadgeClass(server.ping),
+            )}
+          >
+            {formatPing(server.ping, t.serverInfo.ms)}
+          </span>
+          <span
+            className={cn(
+              "w-3 h-3 rounded-full",
+              server.was_online ? "bg-green-500" : "bg-red-500",
+            )}
+          />
+        </div>
       </div>
 
       <div

@@ -54,6 +54,8 @@ export const ru: Translations = {
     checked: "Проверен",
     spoofable: "Без авторизации",
     crashed: "Загриферен",
+    ping: "Пинг",
+    ms: "мс",
     reloadingIn: (n) => `Перезагрузка через ${n}с...`,
     choosePingType: "Тип пинга:",
     withConnection: "С подключением",

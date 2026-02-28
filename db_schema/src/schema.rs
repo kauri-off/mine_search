@@ -63,6 +63,7 @@ diesel::table! {
         disconnect_reason -> Nullable<Jsonb>,
         is_forge -> Bool,
         favicon -> Nullable<Text>,
+        ping -> Nullable<Int8>,
     }
 }
 

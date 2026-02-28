@@ -21,6 +21,12 @@ pub mod c2s {
     #[packet(0x00)]
     pub struct StatusRequest {}
 
+    #[derive(Packet)]
+    #[packet(0x01)]
+    pub struct PingRequest {
+        pub timestamp: i64,
+    }
+
     // ----------- LOGIN -----------
     #[derive(Packet, Debug)]
     #[packet(0x00)]

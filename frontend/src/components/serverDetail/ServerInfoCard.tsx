@@ -5,6 +5,20 @@ import type { ToggleField } from "@/constants/serverDetail";
 import { formatDistanceToNow } from "date-fns";
 import { useTranslation } from "@/i18n";
 
+function getPingTextClass(ping: bigint | null): string {
+  if (ping === null) return "text-gray-400";
+  const ms = Number(ping);
+  if (ms < 50) return "text-green-400";
+  if (ms < 100) return "text-yellow-400";
+  if (ms < 200) return "text-orange-400";
+  return "text-red-400";
+}
+
+function formatPing(ping: bigint | null, ms: string): string {
+  if (ping === null) return "N/A";
+  return `${Number(ping)} ${ms}`;
+}
+
 interface ServerInfoCardProps {
   server: ServerInfoResponse;
   pingCountdown: number | null;
@@ -97,6 +111,11 @@ export const ServerInfoCard = ({
               addSuffix: true,
               locale: t.dateFnsLocale,
             })}
+          </span>
+        </InfoRow>
+        <InfoRow label={t.serverInfo.ping}>
+          <span className={getPingTextClass(server.ping)}>
+            {formatPing(server.ping, t.serverInfo.ms)}
           </span>
         </InfoRow>
       </div>
