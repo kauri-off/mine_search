@@ -6,6 +6,7 @@ export interface Translations {
     title: string;
     all: string;
     cracked: string;
+    loaded: string;
   };
   filters: {
     label: string;
@@ -24,6 +25,8 @@ export interface Translations {
     label: string;
     add: string;
     adding: string;
+    invalidFormat: string;
+    error: string;
   };
   serverGrid: {
     loading: string;
@@ -77,5 +80,6 @@ export interface Translations {
     login: string;
     wrongPassword: string;
     networkError: string;
+    tooManyRequests: string;
   };
 }

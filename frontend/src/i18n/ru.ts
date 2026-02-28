@@ -7,6 +7,7 @@ export const ru: Translations = {
     title: "Дашборд",
     all: "Всего",
     cracked: "Пиратских",
+    loaded: "Загружено",
   },
   filters: {
     label: "Фильтры:",
@@ -25,6 +26,8 @@ export const ru: Translations = {
     label: "Добавить IP:",
     add: "Добавить",
     adding: "Добавляю...",
+    invalidFormat: "Неверный формат. Используйте ip:port (напр. 192.168.1.1)",
+    error: "Не удалось добавить IP. Попробуйте снова.",
   },
   serverGrid: {
     loading: "Загрузка...",
@@ -78,5 +81,6 @@ export const ru: Translations = {
     login: "Войти",
     wrongPassword: "Неверный пароль",
     networkError: "Ошибка сети. Попробуйте позже",
+    tooManyRequests: "Слишком много попыток. Вы заблокированы на 1 час.",
   },
 };

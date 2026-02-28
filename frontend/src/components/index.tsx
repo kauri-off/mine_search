@@ -13,18 +13,7 @@ export const CopyButton = ({ text }: CopyButtonProps) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      // Fallback for older browsers
-      const el = document.createElement("textarea");
-      el.value = text;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-    }
-
+    await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -33,6 +22,7 @@ export const CopyButton = ({ text }: CopyButtonProps) => {
     <button
       onClick={handleCopy}
       title={copied ? "Copied!" : "Copy IP"}
+      aria-label={copied ? "Copied!" : "Copy IP"}
       className={cn(
         "relative inline-flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200",
         copied
@@ -111,6 +101,8 @@ export const ToggleButton = ({
 }: ToggleButtonProps) => (
   <button
     onClick={onClick}
+    aria-pressed={active}
+    aria-label={label}
     className={cn(
       "w-full py-2 px-4 rounded font-medium transition flex justify-between items-center",
       active
@@ -164,6 +156,10 @@ export const StatusBlock = ({
   return (
     <span
       onClick={onClick}
+      role={onClick ? "button" : undefined}
+      aria-label={label}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => e.key === "Enter" && onClick() : undefined}
       className={cn(
         "px-2 py-0.5 rounded border text-xs font-medium transition-colors select-none",
         active

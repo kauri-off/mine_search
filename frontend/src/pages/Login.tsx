@@ -18,8 +18,14 @@ export const Login = () => {
       await authApi.login({ password });
       navigate("/");
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        setError(t.login.wrongPassword);
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 401) {
+          setError(t.login.wrongPassword);
+        } else if (err.response?.status === 429) {
+          setError(t.login.tooManyRequests);
+        } else {
+          setError(t.login.networkError);
+        }
       } else {
         setError(t.login.networkError);
       }

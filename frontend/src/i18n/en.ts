@@ -7,6 +7,7 @@ export const en: Translations = {
     title: "Dashboard",
     all: "All",
     cracked: "Cracked",
+    loaded: "Loaded",
   },
   filters: {
     label: "Filters:",
@@ -25,6 +26,8 @@ export const en: Translations = {
     label: "Add IP:",
     add: "Add",
     adding: "Adding...",
+    invalidFormat: "Invalid format. Use ip:port (e.g. 192.168.1.1)",
+    error: "Failed to add IP. Try again.",
   },
   serverGrid: {
     loading: "Loading...",
@@ -78,5 +81,6 @@ export const en: Translations = {
     login: "Login",
     wrongPassword: "Wrong password",
     networkError: "Network error. Try again later",
+    tooManyRequests: "Too many attempts. You are banned for 1 hour.",
   },
 };

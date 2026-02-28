@@ -10,6 +10,8 @@ interface FilterButtonProps {
 export const FilterButton = ({ label, value, onToggle }: FilterButtonProps) => (
   <button
     onClick={() => onToggle(cycleTriState(value))}
+    aria-pressed={value === null ? "mixed" : value}
+    aria-label={`${label}: ${TRI_STATE_LABEL[String(value)]}`}
     className={cn(
       "px-3 py-1 rounded text-sm font-medium transition",
       value === true && "bg-green-600 text-white",

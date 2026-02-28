@@ -51,7 +51,6 @@ export const Dashboard = () => {
   const addIpMutation = useMutation({
     mutationFn: (ip: string) => serverApi.addServerIp({ ip }),
     onSuccess: () => setIp(""),
-    onError: (err) => console.error(err),
   });
 
   // -- Infinite scroll -------------------------------------------------------
@@ -85,14 +84,15 @@ export const Dashboard = () => {
   const allServers = data?.pages.flat() ?? [];
   const isEmpty = data?.pages[0]?.length === 0;
   const filtersActive = !areFiltersDefault(filters);
+  const addIpError = addIpMutation.isError ? t.addIp.error : null;
 
   // -- Render ----------------------------------------------------------------
 
   return (
     <div className="p-6 max-w-7xl mx-auto text-white">
-      <header className="mb-8 flex justify-between items-center">
+      <header className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <h1 className="text-3xl font-bold">{t.dashboard.title}</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {stats && (
             <div className="flex gap-4 text-sm bg-gray-800 p-3 rounded-lg">
               <span>
@@ -119,9 +119,19 @@ export const Dashboard = () => {
       <AddIpForm
         ip={ip}
         isPending={addIpMutation.isPending}
-        onChange={setIp}
+        error={addIpError}
+        onChange={(val) => {
+          addIpMutation.reset();
+          setIp(val);
+        }}
         onSubmit={() => addIpMutation.mutate(ip)}
       />
+
+      {allServers.length > 0 && (
+        <p className="text-sm text-gray-500 mb-2">
+          {t.dashboard.loaded}: <b className="text-gray-300">{allServers.length}</b>
+        </p>
+      )}
 
       <ServerGrid
         servers={allServers}

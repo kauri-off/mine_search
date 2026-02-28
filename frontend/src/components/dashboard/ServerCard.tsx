@@ -1,5 +1,7 @@
+import { memo } from "react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
+import DOMPurify from "dompurify";
 import { cn } from "@/cn";
 import type { ServerInfoResponse } from "@/types";
 import { useTranslation } from "@/i18n";
@@ -9,7 +11,7 @@ interface ServerCardProps {
   cardRef?: React.Ref<HTMLAnchorElement>;
 }
 
-export const ServerCard = ({ server, cardRef }: ServerCardProps) => {
+export const ServerCard = memo(({ server, cardRef }: ServerCardProps) => {
   const { t } = useTranslation();
 
   return (
@@ -46,7 +48,7 @@ export const ServerCard = ({ server, cardRef }: ServerCardProps) => {
 
       <div
         className="prose prose-invert prose-sm max-w-none bg-gray-900 p-2 rounded mb-2"
-        dangerouslySetInnerHTML={{ __html: server.description_html }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(server.description_html) }}
       />
 
       <div className="flex justify-between items-center text-sm">
@@ -67,4 +69,4 @@ export const ServerCard = ({ server, cardRef }: ServerCardProps) => {
       </div>
     </Link>
   );
-};
+});

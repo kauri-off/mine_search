@@ -35,7 +35,7 @@ export const ServerDetail = () => {
     queryFn: () => serverApi.fetchServerInfo(ip),
   });
 
-  const { data: history } = useQuery({
+  const { data: history, isLoading: isHistoryLoading } = useQuery({
     queryKey: ["serverData", server?.id],
     queryFn: () =>
       serverApi.fetchServerData({ server_id: server!.id, limit: 100 }),
@@ -126,9 +126,10 @@ export const ServerDetail = () => {
 
   const handlePing = (withConnection: boolean) => {
     if (!server || pingCountdown !== null) return;
+    const serverId = server.id;
     setShowPingSplit(false);
     serverApi.pingServer({
-      server_id: server.id,
+      server_id: serverId,
       with_connection: withConnection,
     });
     setPingCountdown(12);
@@ -136,7 +137,9 @@ export const ServerDetail = () => {
       setPingCountdown((prev) => {
         if (prev === null || prev <= 1) {
           clearInterval(interval);
-          window.location.reload();
+          queryClient.invalidateQueries({ queryKey: ["server", ip] });
+          queryClient.invalidateQueries({ queryKey: ["serverData", serverId] });
+          queryClient.invalidateQueries({ queryKey: ["playerList", serverId] });
           return null;
         }
         return prev - 1;
@@ -154,9 +157,10 @@ export const ServerDetail = () => {
     <div className="p-6 max-w-7xl mx-auto text-white">
       <button
         onClick={() => navigate(-1)}
+        aria-label={t.serverDetail.back}
         className="mb-4 text-blue-400 hover:underline flex items-center gap-1"
       >
-        <span>←</span> {t.serverDetail.back}
+        <span aria-hidden="true">←</span> {t.serverDetail.back}
       </button>
 
       {isInfoLoading ? (
@@ -195,7 +199,7 @@ export const ServerDetail = () => {
 
           {/* Right column */}
           <div className="lg:col-span-2 space-y-6">
-            <OnlineGraph data={chartData} />
+            <OnlineGraph data={chartData} isLoading={isHistoryLoading} />
 
             <PlayersTable
               players={players}
