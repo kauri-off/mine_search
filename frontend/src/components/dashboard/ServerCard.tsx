@@ -75,11 +75,11 @@ export const ServerCard = memo(({ server, cardRef }: ServerCardProps) => {
       />
 
       <div className="flex justify-between items-center text-sm">
-        <div className="flex gap-2">
-          <span className="bg-gray-700 px-2 py-0.5 rounded text-white">
+        <div className="flex flex-wrap gap-2">
+          <span className="bg-gray-700 px-2 py-0.5 rounded text-white whitespace-nowrap">
             {server.version_name}
           </span>
-          <span className="bg-gray-700 px-2 py-0.5 rounded text-white">
+          <span className="bg-gray-700 px-2 py-0.5 rounded text-white whitespace-nowrap">
             {t.serverInfo.onlineCount}: {server.online}/{server.max}
           </span>
         </div>

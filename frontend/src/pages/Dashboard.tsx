@@ -89,7 +89,7 @@ export const Dashboard = () => {
   // -- Render ----------------------------------------------------------------
 
   return (
-    <div className="p-6 max-w-7xl mx-auto text-white">
+    <div className="p-6 max-w-screen-2xl mx-auto text-white">
       <header className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <h1 className="text-3xl font-bold">{t.dashboard.title}</h1>
         <div className="flex items-center gap-3 flex-wrap">
