@@ -545,6 +545,7 @@ def prompt_worker(existing: WorkerConfig) -> WorkerConfig:
         update_with_connection = ask("UPDATE_WITH_CONNECTION", existing.update_with_connection),
         rust_log               = ask("RUST_LOG (info/debug)",  existing.rust_log),
         only_update_spoofable  = ask("ONLY_UPDATE_SPOOFABLE",  existing.only_update_spoofable),
+        only_update_cracked    = ask("ONLY_UPDATE_CRACKED",    existing.only_update_cracked),
     )
 
 
