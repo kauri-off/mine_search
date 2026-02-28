@@ -1,7 +1,7 @@
-use minecraft_protocol::{Packet, varint::VarInt};
+use mc_protocol::{Packet, varint::VarInt};
 
 pub mod c2s {
-    use minecraft_protocol::packet::{PacketError, RawPacket, UncompressedPacket};
+    use mc_protocol::packet::{PacketError, RawPacket, UncompressedPacket};
     use uuid::Uuid;
 
     use super::*;
@@ -39,15 +39,14 @@ pub mod c2s {
         pub fn raw_by_protocol(&self, protocol: i32) -> Result<RawPacket, PacketError> {
             if protocol >= 764 {
                 // 1.20.2+ : name + UUID (always present, no boolean prefix)
-                UncompressedPacket::from_packet(self)?
-                    .to_raw_packet()
+                UncompressedPacket::from_packet(self)?.to_raw_packet()
             } else if protocol >= 761 {
                 // 1.19.3 – 1.20.1 : name + has_uuid (bool) + UUID
                 let mut payload = Vec::new();
-                minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload)?;
-                minecraft_protocol::ser::Serialize::serialize(&Some(self.uuid), &mut payload)?;
+                mc_protocol::ser::Serialize::serialize(&self.name, &mut payload)?;
+                mc_protocol::ser::Serialize::serialize(&Some(self.uuid), &mut payload)?;
 
-                minecraft_protocol::packet::UncompressedPacket {
+                mc_protocol::packet::UncompressedPacket {
                     packet_id: Self::PACKET_ID.clone(),
                     payload,
                 }
@@ -55,11 +54,11 @@ pub mod c2s {
             } else if protocol == 760 {
                 // 1.19.1 – 1.19.2 : name + has_sig_data (false) + has_uuid (true) + UUID
                 let mut payload = Vec::new();
-                minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload)?;
-                minecraft_protocol::ser::Serialize::serialize(&false, &mut payload)?; // has_sig_data
-                minecraft_protocol::ser::Serialize::serialize(&Some(self.uuid), &mut payload)?; // has_uuid + UUID
+                mc_protocol::ser::Serialize::serialize(&self.name, &mut payload)?;
+                mc_protocol::ser::Serialize::serialize(&false, &mut payload)?; // has_sig_data
+                mc_protocol::ser::Serialize::serialize(&Some(self.uuid), &mut payload)?; // has_uuid + UUID
 
-                minecraft_protocol::packet::UncompressedPacket {
+                mc_protocol::packet::UncompressedPacket {
                     packet_id: Self::PACKET_ID.clone(),
                     payload,
                 }
@@ -67,10 +66,10 @@ pub mod c2s {
             } else if protocol == 759 {
                 // 1.19 : name + has_uuid (false) — UUID omitted
                 let mut payload = Vec::new();
-                minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload)?;
-                minecraft_protocol::ser::Serialize::serialize(&false, &mut payload)?; // has_uuid
+                mc_protocol::ser::Serialize::serialize(&self.name, &mut payload)?;
+                mc_protocol::ser::Serialize::serialize(&false, &mut payload)?; // has_uuid
 
-                minecraft_protocol::packet::UncompressedPacket {
+                mc_protocol::packet::UncompressedPacket {
                     packet_id: Self::PACKET_ID.clone(),
                     payload,
                 }
@@ -78,9 +77,9 @@ pub mod c2s {
             } else {
                 // < 1.19 : name only
                 let mut payload = Vec::new();
-                minecraft_protocol::ser::Serialize::serialize(&self.name, &mut payload)?;
+                mc_protocol::ser::Serialize::serialize(&self.name, &mut payload)?;
 
-                minecraft_protocol::packet::UncompressedPacket {
+                mc_protocol::packet::UncompressedPacket {
                     packet_id: Self::PACKET_ID.clone(),
                     payload,
                 }

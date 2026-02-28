@@ -4,7 +4,7 @@ version = "1.0.0"
 edition = "2024"
 
 [dependencies]
-minecraft_protocol = { git = "https://github.com/kauri-off/minecraft_protocol.git" }
+mc_protocol = { version = "2.0.0", features = ["async", "compression"], default-features = false}
 db_schema = { path = "../db_schema" }
 tokio = { version = "1.49.0", features = ["full"] }
 

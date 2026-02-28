@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use minecraft_protocol::{
+use mc_protocol::{
     packet::{RawPacket, UncompressedPacket},
     varint::VarInt,
 };
