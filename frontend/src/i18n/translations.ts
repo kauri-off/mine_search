@@ -18,6 +18,7 @@ export interface Translations {
       has_players: string;
       online: string;
       is_forge: string;
+      has_none_players: string;
     };
     reset: string;
   };

@@ -2,7 +2,7 @@ use super::fetch_server_info::ServerInfoResponse;
 use crate::{database::DatabaseWrapper, error::AppError};
 use axum::{Json, extract::State};
 use db_schema::{
-    models::{player_count_snapshots::SnapshotModel, servers::ServerModel},
+    models::{player_count_snapshots::SnapshotModel, players::PlayerStatus, servers::ServerModel},
     schema::*,
 };
 use diesel::prelude::*;
@@ -26,6 +26,7 @@ pub struct ServerListRequest {
     pub has_players: Option<bool>,
     pub online: Option<bool>,
     pub is_forge: Option<bool>,
+    pub has_none_players: Option<bool>,
 }
 
 pub async fn fetch_server_list(
@@ -76,6 +77,21 @@ pub async fn fetch_server_list(
             None => Box::new(sql::<Bool>("TRUE")),
         };
 
+    let has_none_players_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
+        match body.has_none_players {
+            Some(true) => Box::new(diesel::dsl::exists(
+                players::table
+                    .filter(players::server_id.eq(servers::id))
+                    .filter(players::status.eq(PlayerStatus::None)),
+            )),
+            Some(false) => Box::new(diesel::dsl::not(diesel::dsl::exists(
+                players::table
+                    .filter(players::server_id.eq(servers::id))
+                    .filter(players::status.eq(PlayerStatus::None)),
+            ))),
+            None => Box::new(sql::<Bool>("TRUE")),
+        };
+
     let online_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.online {
         Some(online) => Box::new(servers::is_online.eq(online)),
         None => Box::new(sql::<Bool>("TRUE")),
@@ -96,6 +112,7 @@ pub async fn fetch_server_list(
         .filter(spoofable_filter)
         .filter(crashed_filter)
         .filter(has_players_filter)
+        .filter(has_none_players_filter)
         .filter(online_filter)
         .filter(is_forge_filter)
         .order((servers::id.desc(), player_count_snapshots::id.desc()))

@@ -13,6 +13,7 @@ export const DEFAULT_FILTERS: Filters = {
   has_players: null,
   online: null,
   is_forge: null,
+  has_none_players: null,
 };
 
 // Tri-state cycle: null → true → false → null

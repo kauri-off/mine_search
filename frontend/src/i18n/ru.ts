@@ -19,6 +19,7 @@ export const ru: Translations = {
       has_players: "С игроками",
       online: "Онлайн",
       is_forge: "Forge",
+      has_none_players: "Неклассиф.",
     },
     reset: "Сбросить",
   },

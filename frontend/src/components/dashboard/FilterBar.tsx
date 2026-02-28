@@ -10,6 +10,7 @@ const FILTER_FIELD_KEYS = [
   "has_players",
   "online",
   "is_forge",
+  "has_none_players",
 ] as const;
 
 const ResetIcon = () => (

@@ -19,6 +19,7 @@ export const en: Translations = {
       has_players: "Has Players",
       online: "Online",
       is_forge: "Forge",
+      has_none_players: "Unclassified",
     },
     reset: "Reset filters",
   },
