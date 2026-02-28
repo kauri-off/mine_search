@@ -23,11 +23,6 @@ export const cycleTriState = (current: boolean | null): boolean | null => {
   return null;
 };
 
-export const TRI_STATE_LABEL: Record<string, string> = {
-  null: "All",
-  true: "Yes",
-  false: "No",
-};
 
 /** Returns true when every tristate filter is null (i.e. nothing is active) */
 export function areFiltersDefault(filters: Filters): boolean {

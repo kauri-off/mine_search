@@ -21,6 +21,11 @@ export interface Translations {
       has_none_players: string;
     };
     reset: string;
+    triState: {
+      all: string;
+      yes: string;
+      no: string;
+    };
   };
   addIp: {
     label: string;

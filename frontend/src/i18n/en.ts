@@ -22,6 +22,7 @@ export const en: Translations = {
       has_none_players: "Unclassified",
     },
     reset: "Reset filters",
+    triState: { all: "All", yes: "Yes", no: "No" },
   },
   addIp: {
     label: "Add IP:",

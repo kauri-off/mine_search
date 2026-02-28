@@ -22,6 +22,7 @@ export const ru: Translations = {
       has_none_players: "Неклассиф.",
     },
     reset: "Сбросить",
+    triState: { all: "Все", yes: "Да", no: "Нет" },
   },
   addIp: {
     label: "Добавить IP:",
