@@ -25,7 +25,7 @@ pub struct ServerModel {
     pub ping: Option<i64>,
 }
 
-#[derive(Queryable, Selectable, Identifiable)]
+#[derive(Queryable, Selectable, Identifiable, Clone)]
 #[diesel(table_name = crate::schema::servers)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ServerModelMini {

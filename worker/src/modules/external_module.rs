@@ -11,10 +11,10 @@ use crate::{database::DatabaseWrapper, modules::search_module::handle_valid_ip};
 pub async fn process_external_targets(db: Arc<DatabaseWrapper>) -> anyhow::Result<()> {
     let mut conn = db.pool.get().await?;
 
-    let targets: Vec<TargetModel> = schema::scan_targets::table
+    let targets: Vec<TargetModel> = diesel::delete(schema::scan_targets::table)
         .filter(schema::scan_targets::quick.eq(false))
-        .select(TargetModel::as_select())
-        .load(&mut conn)
+        .returning(TargetModel::as_returning())
+        .get_results(&mut conn)
         .await?;
 
     if targets.is_empty() {
@@ -22,11 +22,6 @@ pub async fn process_external_targets(db: Arc<DatabaseWrapper>) -> anyhow::Resul
     }
 
     info!("Processing {} external targets", targets.len());
-
-    diesel::delete(schema::scan_targets::table)
-        .filter(schema::scan_targets::quick.eq(false))
-        .execute(&mut conn)
-        .await?;
 
     drop(conn);
 

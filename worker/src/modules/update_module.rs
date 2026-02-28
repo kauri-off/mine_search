@@ -32,6 +32,7 @@ pub async fn updater(
     only_update_cracked: bool,
 ) {
     loop {
+        tokio::time::sleep(Duration::from_secs(1)).await;
         if search_module {
             info!(target: "updater", "Stopping workers");
             let _ = pause_tx.send(false);

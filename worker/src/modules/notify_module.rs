@@ -1,4 +1,4 @@
-use std::{net::IpAddr, sync::Arc, time::Duration};
+use std::{collections::HashMap, net::IpAddr, sync::Arc, time::Duration};
 
 use db_schema::{
     models::{ping_requests::ServerPingModel, scan_targets::TargetModel, servers::ServerModelMini},
@@ -26,25 +26,31 @@ pub async fn notify_listener(db: Arc<DatabaseWrapper>) {
 async fn notify_batch(db: &Arc<DatabaseWrapper>) -> anyhow::Result<()> {
     let mut conn = db.pool.get().await?;
 
-    let servers: Vec<(ServerModelMini, ServerPingModel)> = ping_requests::table
-        .inner_join(servers::table.on(ping_requests::server_id.eq(servers::id)))
-        .select((ServerModelMini::as_select(), ServerPingModel::as_select()))
+    let deleted_pings: Vec<ServerPingModel> = diesel::delete(ping_requests::table)
+        .returning(ServerPingModel::as_returning())
+        .get_results(&mut conn)
+        .await?;
+
+    let server_ids: Vec<i32> = deleted_pings.iter().map(|p| p.server_id).collect();
+
+    let server_map: HashMap<i32, ServerModelMini> = servers::table
+        .filter(servers::id.eq_any(&server_ids))
+        .select(ServerModelMini::as_select())
         .load(&mut conn)
-        .await?;
+        .await?
+        .into_iter()
+        .map(|s: ServerModelMini| (s.id, s))
+        .collect();
 
-    diesel::delete(ping_requests::table)
-        .execute(&mut conn)
-        .await?;
+    let servers: Vec<(ServerModelMini, ServerPingModel)> = deleted_pings
+        .into_iter()
+        .filter_map(|ping| server_map.get(&ping.server_id).cloned().map(|s| (s, ping)))
+        .collect();
 
-    let targets: Vec<TargetModel> = scan_targets::table
+    let targets: Vec<TargetModel> = diesel::delete(scan_targets::table)
         .filter(scan_targets::quick.eq(true))
-        .select(TargetModel::as_select())
-        .load(&mut conn)
-        .await?;
-
-    diesel::delete(scan_targets::table)
-        .filter(scan_targets::quick.eq(true))
-        .execute(&mut conn)
+        .returning(TargetModel::as_returning())
+        .get_results(&mut conn)
         .await?;
 
     drop(conn);
