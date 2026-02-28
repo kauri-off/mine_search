@@ -157,7 +157,7 @@ export const ServerDetail = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto text-white">
       <button
-        onClick={() => navigate(-1)}
+        onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}
         aria-label={t.serverDetail.back}
         className="mb-4 text-blue-400 hover:underline flex items-center gap-1"
       >
