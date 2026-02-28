@@ -11,6 +11,29 @@ interface ServerCardProps {
   cardRef?: React.Ref<HTMLAnchorElement>;
 }
 
+export const SkeletonCard = () => (
+  <div className="block p-4 bg-gray-800 border border-gray-700 rounded-lg animate-pulse">
+    <div className="flex justify-between items-start mb-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="w-8 h-8 rounded flex-shrink-0 bg-gray-700" />
+        <div className="h-5 w-32 bg-gray-700 rounded" />
+      </div>
+      <div className="w-3 h-3 rounded-full flex-shrink-0 mt-1 bg-gray-700" />
+    </div>
+    <div className="bg-gray-900 p-2 rounded mb-2 space-y-1.5">
+      <div className="h-3 bg-gray-700 rounded w-full" />
+      <div className="h-3 bg-gray-700 rounded w-3/4" />
+    </div>
+    <div className="flex justify-between items-center">
+      <div className="flex gap-2">
+        <div className="h-5 w-16 bg-gray-700 rounded" />
+        <div className="h-5 w-24 bg-gray-700 rounded" />
+      </div>
+      <div className="h-3 w-20 bg-gray-700 rounded" />
+    </div>
+  </div>
+);
+
 export const ServerCard = memo(({ server, cardRef }: ServerCardProps) => {
   const { t } = useTranslation();
 

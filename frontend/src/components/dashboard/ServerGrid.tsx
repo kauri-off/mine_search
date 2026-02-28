@@ -1,6 +1,7 @@
 import type { ServerInfoResponse } from "@/types";
 import { useTranslation } from "@/i18n";
-import { ServerCard } from "./ServerCard";
+import { Spinner } from "@/components";
+import { ServerCard, SkeletonCard } from "./ServerCard";
 
 interface ServerGridProps {
   servers: ServerInfoResponse[];
@@ -23,8 +24,10 @@ export const ServerGrid = ({
 
   if (isLoading) {
     return (
-      <div className="text-white text-center mt-20">
-        <div className="animate-pulse">{t.serverGrid.loading}</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <SkeletonCard key={i} />
+        ))}
       </div>
     );
   }
@@ -48,8 +51,8 @@ export const ServerGrid = ({
       </div>
 
       {isFetchingNextPage && (
-        <div className="text-center py-4 text-gray-400">
-          {t.serverGrid.loading}
+        <div className="flex justify-center py-4">
+          <Spinner />
         </div>
       )}
 

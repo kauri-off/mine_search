@@ -16,6 +16,7 @@ import { ServerInfoCard } from "@/components/serverDetail/ServerInfoCard";
 import { HtmlCard } from "@/components/serverDetail/HtmlCard";
 import { OnlineGraph } from "@/components/serverDetail/OnlineGraph";
 import { PlayersTable } from "@/components/serverDetail/PlayersTable";
+import { Spinner } from "@/components";
 
 export const ServerDetail = () => {
   const { t } = useTranslation();
@@ -164,8 +165,8 @@ export const ServerDetail = () => {
       </button>
 
       {isInfoLoading ? (
-        <div className="text-white text-center mt-20">
-          <div className="animate-pulse">{t.serverDetail.loading}</div>
+        <div className="flex items-center justify-center mt-20">
+          <Spinner className="w-10 h-10" />
         </div>
       ) : !server ? (
         <div className="text-white text-center mt-20">{t.serverDetail.notFound}</div>

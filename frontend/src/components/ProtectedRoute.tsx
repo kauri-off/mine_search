@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { serverApi } from "@/api/client";
+import { Spinner } from "@/components";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -15,7 +16,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-white">Loading...</div>
+        <Spinner className="w-10 h-10" />
       </div>
     );
   }

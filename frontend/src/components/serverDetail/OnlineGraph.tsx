@@ -27,8 +27,17 @@ export const OnlineGraph = ({ data, isLoading }: OnlineGraphProps) => {
     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 h-96">
       <h3 className="font-bold mb-4">{t.onlineGraph.title}</h3>
       {isLoading || data === undefined ? (
-        <div className="flex items-center justify-center h-4/5 text-gray-400 animate-pulse">
-          {t.serverDetail.loading}
+        <div className="flex flex-col justify-end h-4/5 animate-pulse">
+          <div className="flex items-end gap-1 h-full px-2 pb-1">
+            {[35, 55, 40, 70, 50, 85, 45, 75, 60, 90, 55, 65].map((h, i) => (
+              <div
+                key={i}
+                className="flex-1 bg-blue-500/20 rounded-t"
+                style={{ height: `${h}%` }}
+              />
+            ))}
+          </div>
+          <div className="h-px bg-gray-700 mx-2" />
         </div>
       ) : (
         <ResponsiveContainer width="100%" height="100%">

@@ -5,6 +5,7 @@ import { LanguageProvider } from "./i18n";
 import { Login } from "./pages/Login";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { Spinner } from "./components";
 
 const Dashboard = lazy(() =>
   import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })),
@@ -32,7 +33,7 @@ function App() {
               <Suspense
                 fallback={
                   <div className="min-h-screen flex items-center justify-center">
-                    <div className="animate-pulse text-white">Loading...</div>
+                    <Spinner className="w-10 h-10" />
                   </div>
                 }
               >
