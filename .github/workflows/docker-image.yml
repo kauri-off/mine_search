@@ -19,7 +19,7 @@ jobs:
 
       - name: Build and Push Worker image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/worker:latest -f worker.Dockerfile .
+          docker build -t ghcr.io/${{ github.repository }}/worker:latest -f worker.ci.Dockerfile .
           docker push ghcr.io/${{ github.repository }}/worker:latest
 
   build-backend:
@@ -32,7 +32,7 @@ jobs:
 
       - name: Build and Push Backend image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/backend:latest -f backend.Dockerfile .
+          docker build -t ghcr.io/${{ github.repository }}/backend:latest -f backend.ci.Dockerfile .
           docker push ghcr.io/${{ github.repository }}/backend:latest
 
   build-frontend:
