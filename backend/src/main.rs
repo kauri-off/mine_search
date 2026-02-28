@@ -1,10 +1,10 @@
 use std::{env, sync::Arc};
 
 use api::{
-    add_ip::add_ip, add_ips::add_ips, auth::authenticate_user,
-    fetch_server_data::fetch_server_data, fetch_server_info::fetch_server_info,
-    fetch_server_list::fetch_server_list, fetch_stats::fetch_stats, server_delete::server_delete,
-    update_server::update_server,
+    add_target::add_target, add_targets::add_addrs, auth::authenticate_user,
+    fetch_server_info::fetch_server_info, fetch_server_list::fetch_server_list,
+    fetch_server_snapshots::fetch_server_snapshots, fetch_stats::fetch_stats,
+    server_delete::server_delete, update_server::update_server,
 };
 use axum::{
     Router,
@@ -57,14 +57,14 @@ async fn main() {
     let protected_routes = Router::new()
         .route("/server/info", post(fetch_server_info))
         .route("/server/update", post(update_server))
-        .route("/server/data", post(fetch_server_data))
+        .route("/server/snapshots", post(fetch_server_snapshots))
         .route("/server/list", post(fetch_server_list))
         .route("/server/delete", post(server_delete))
         .route("/server/ping", post(ping_server))
         .route("/player/list", post(fetch_players_list))
         .route("/player/update", post(update_player))
-        .route("/ip/add", post(add_ip))
-        .route("/ip/add_list", post(add_ips))
+        .route("/target/add", post(add_target))
+        .route("/target/add_list", post(add_addrs))
         .route("/stats", post(fetch_stats))
         .layer(middleware::from_fn(api_middleware::middleware_check))
         .layer(DefaultBodyLimit::disable());
@@ -89,7 +89,8 @@ async fn main() {
             let mut password_mutex = BACKEND_PASSWORD.lock().await;
             let mut secret_mutex = BACKEND_SECRET.lock().await;
             *password_mutex = t;
-            *secret_mutex = env::var("BACKEND_JWT_SECRET").unwrap_or_else(|_| generate_random_string(32));
+            *secret_mutex =
+                env::var("BACKEND_JWT_SECRET").unwrap_or_else(|_| generate_random_string(32));
         }
         Err(_) => {
             eprintln!("[-] You must set BACKEND_PASSWORD in .env");

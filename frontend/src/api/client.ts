@@ -2,11 +2,11 @@ import axios from 'axios';
 import type {
   AuthBody,
   StatsResponse,
-  ServerDataRequest,
+  ServerSnapshotsRequest,
   ServerListRequest,
   ServerInfoResponse,
-  ServerDataResponse,
-  AddIpRequest,
+  ServerSnapshotsResponse,
+  AddAddrRequest,
   ServerDeleteRequest,
   UpdateServerRequest,
   PlayerResponse,
@@ -54,14 +54,14 @@ export const serverApi = {
     return data;
   },
 
-  fetchServerData: async (body: ServerDataRequest): Promise<ServerDataResponse[]> => {
-    const { data } = await api.post<ServerDataResponse[]>('/server/data', body);
+  fetchServerSnapshots: async (body: ServerSnapshotsRequest): Promise<ServerSnapshotsResponse[]> => {
+    const { data } = await api.post<ServerSnapshotsResponse[]>('/server/snapshots', body);
     return data;
   },
 
   updateServer: (body: UpdateServerRequest) => api.post('/server/update', body),
 
-  addServerIp: (body: AddIpRequest) => api.post('/ip/add', body),
+  addTarget: (body: AddAddrRequest) => api.post('/target/add', body),
 
   deleteServer: (body: ServerDeleteRequest) => api.post('/server/delete', body),
 

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{Json, extract::State};
 use chrono::Utc;
-use db_schema::{models::data::DataModel, schema::data};
+use db_schema::{models::player_count_snapshots::SnapshotModel, schema::player_count_snapshots};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
@@ -12,7 +12,7 @@ use crate::{database::DatabaseWrapper, error::AppError};
 
 #[derive(Deserialize, TS)]
 #[ts(export)]
-pub struct ServerDataRequest {
+pub struct ServerSnapshotsRequest {
     pub server_id: i32,
     #[ts(type = "number")]
     pub limit: i64,
@@ -20,39 +20,39 @@ pub struct ServerDataRequest {
 
 #[derive(Serialize, TS)]
 #[ts(export)]
-pub struct ServerDataResponse {
+pub struct ServerSnapshotsResponse {
     pub server_id: i32,
-    pub online: i32,
-    pub max: i32,
-    pub timestamp: chrono::DateTime<Utc>,
+    pub players_online: i32,
+    pub players_max: i32,
+    pub recorded_at: chrono::DateTime<Utc>,
 }
 
-impl TryFrom<DataModel> for ServerDataResponse {
+impl TryFrom<SnapshotModel> for ServerSnapshotsResponse {
     type Error = AppError;
 
-    fn try_from(value: DataModel) -> Result<Self, Self::Error> {
-        Ok(ServerDataResponse {
+    fn try_from(value: SnapshotModel) -> Result<Self, Self::Error> {
+        Ok(ServerSnapshotsResponse {
             server_id: value.server_id,
-            online: value.online,
-            max: value.max,
-            timestamp: value.timestamp,
+            players_online: value.players_online,
+            players_max: value.players_max,
+            recorded_at: value.recorded_at,
         })
     }
 }
 
-pub async fn fetch_server_data(
+pub async fn fetch_server_snapshots(
     State(db): State<Arc<DatabaseWrapper>>,
-    Json(body): Json<ServerDataRequest>,
-) -> Result<Json<Vec<ServerDataResponse>>, AppError> {
+    Json(body): Json<ServerSnapshotsRequest>,
+) -> Result<Json<Vec<ServerSnapshotsResponse>>, AppError> {
     let mut conn = db
         .pool
         .get()
         .await
         .map_err(|e| AppError::db("Failed to acquire DB connection in fetch_server_data", e))?;
 
-    let results: Vec<DataModel> = data::table
-        .filter(data::server_id.eq(body.server_id))
-        .order(data::id.desc())
+    let results: Vec<SnapshotModel> = player_count_snapshots::table
+        .filter(player_count_snapshots::server_id.eq(body.server_id))
+        .order(player_count_snapshots::id.desc())
         .limit(body.limit)
         .load(&mut conn)
         .await
@@ -60,7 +60,7 @@ pub async fn fetch_server_data(
 
     let responses = results
         .into_iter()
-        .map(ServerDataResponse::try_from)
+        .map(ServerSnapshotsResponse::try_from)
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(Json(responses))

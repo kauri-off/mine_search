@@ -17,6 +17,9 @@ pub enum AppError {
     /// The caller has exceeded the allowed request rate.
     RateLimited,
 
+    /// The request body or parameters are invalid.
+    BadRequest(String),
+
     /// A database / pool operation failed.
     Database(String),
 
@@ -36,6 +39,11 @@ impl AppError {
         tracing::error!("{context}: {err}");
         Self::Internal(context.to_string())
     }
+
+    /// Convenience constructor for bad request errors.
+    pub fn bad_request(msg: impl std::fmt::Display) -> Self {
+        Self::BadRequest(msg.to_string())
+    }
 }
 
 impl IntoResponse for AppError {
@@ -43,6 +51,7 @@ impl IntoResponse for AppError {
         let status = match &self {
             AppError::Unauthorized => StatusCode::UNAUTHORIZED,
             AppError::RateLimited => StatusCode::TOO_MANY_REQUESTS,
+            AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
             AppError::Database(_) | AppError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
         status.into_response()

@@ -1,0 +1,1 @@
+ALTER TABLE scan_targets ADD COLUMN quick BOOLEAN NOT NULL;

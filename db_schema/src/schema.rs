@@ -7,20 +7,20 @@ pub mod sql_types {
 }
 
 diesel::table! {
-    data (id) {
-        id -> Int8,
+    ping_requests (id) {
+        id -> Int4,
         server_id -> Int4,
-        online -> Int4,
-        max -> Int4,
-        timestamp -> Timestamptz,
+        with_connection -> Bool,
     }
 }
 
 diesel::table! {
-    ips (id) {
-        id -> Int4,
-        ip -> Text,
-        port -> Int4,
+    player_count_snapshots (id) {
+        id -> Int8,
+        server_id -> Int4,
+        players_online -> Int4,
+        players_max -> Int4,
+        recorded_at -> Timestamptz,
     }
 }
 
@@ -37,10 +37,11 @@ diesel::table! {
 }
 
 diesel::table! {
-    server_ping (id) {
+    scan_targets (id) {
         id -> Int4,
-        server_id -> Int4,
-        with_connection -> Bool,
+        ip -> Text,
+        port -> Int4,
+        quick -> Bool,
     }
 }
 
@@ -52,21 +53,27 @@ diesel::table! {
         version_name -> Varchar,
         protocol -> Int4,
         description -> Jsonb,
-        license -> Bool,
-        checked -> Bool,
-        spoofable -> Nullable<Bool>,
-        crashed -> Bool,
-        was_online -> Bool,
-        created -> Timestamptz,
-        updated -> Timestamptz,
+        is_online_mode -> Bool,
+        is_checked -> Bool,
+        is_spoofable -> Nullable<Bool>,
+        is_crashed -> Bool,
+        is_online -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         disconnect_reason -> Nullable<Jsonb>,
         is_forge -> Bool,
         favicon -> Nullable<Text>,
     }
 }
 
-diesel::joinable!(data -> servers (server_id));
+diesel::joinable!(ping_requests -> servers (server_id));
+diesel::joinable!(player_count_snapshots -> servers (server_id));
 diesel::joinable!(players -> servers (server_id));
-diesel::joinable!(server_ping -> servers (server_id));
 
-diesel::allow_tables_to_appear_in_same_query!(data, ips, players, server_ping, servers,);
+diesel::allow_tables_to_appear_in_same_query!(
+    ping_requests,
+    player_count_snapshots,
+    players,
+    scan_targets,
+    servers,
+);

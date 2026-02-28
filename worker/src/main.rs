@@ -10,7 +10,7 @@ use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberI
 use crate::{
     database::DatabaseWrapper,
     modules::{
-        ping_module::server_ping_listener, search_module::search_thread, update_module::updater,
+        notify_module::notify_listener, search_module::search_thread, update_module::updater,
     },
 };
 
@@ -99,7 +99,7 @@ async fn main() {
         )));
     }
 
-    tasks.push(tokio::spawn(server_ping_listener(db.clone())));
+    tasks.push(tokio::spawn(notify_listener(db.clone())));
 
     for task in tasks {
         let _ = task.await;

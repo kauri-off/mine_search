@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -39,7 +40,7 @@ export const ServerDetail = () => {
   const { data: history, isLoading: isHistoryLoading } = useQuery({
     queryKey: ["serverData", server?.id],
     queryFn: () =>
-      serverApi.fetchServerData({ server_id: server!.id, limit: 100 }),
+      serverApi.fetchServerSnapshots({ server_id: server!.id, limit: 100 }),
     enabled: !!server?.id,
   });
 
@@ -65,9 +66,11 @@ export const ServerDetail = () => {
         if (!old) return old;
         return {
           ...old,
-          ...(body.checked !== null && { checked: body.checked }),
-          ...(body.spoofable !== null && { spoofable: body.spoofable }),
-          ...(body.crashed !== null && { crashed: body.crashed }),
+          ...(body.is_checked !== null && { is_checked: body.is_checked }),
+          ...(body.is_spoofable !== null && {
+            is_spoofable: body.is_spoofable,
+          }),
+          ...(body.is_crashed !== null && { is_crashed: body.is_crashed }),
         };
       });
 
@@ -157,7 +160,9 @@ export const ServerDetail = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto text-white">
       <button
-        onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}
+        onClick={() =>
+          window.history.length > 1 ? navigate(-1) : navigate("/")
+        }
         aria-label={t.serverDetail.back}
         className="mb-4 text-blue-400 hover:underline flex items-center gap-1"
       >
@@ -169,7 +174,9 @@ export const ServerDetail = () => {
           <Spinner className="w-10 h-10" />
         </div>
       ) : !server ? (
-        <div className="text-white text-center mt-20">{t.serverDetail.notFound}</div>
+        <div className="text-white text-center mt-20">
+          {t.serverDetail.notFound}
+        </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column */}

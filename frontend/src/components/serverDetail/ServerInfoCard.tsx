@@ -63,8 +63,12 @@ export const ServerInfoCard = ({
       {/* Info rows */}
       <div className="space-y-3">
         <InfoRow label={t.serverInfo.status}>
-          <span className={server.was_online ? "text-green-400" : "text-red-400"}>
-            {server.was_online ? t.serverInfo.statusOnline : t.serverInfo.statusOffline}
+          <span
+            className={server.was_online ? "text-green-400" : "text-red-400"}
+          >
+            {server.was_online
+              ? t.serverInfo.statusOnline
+              : t.serverInfo.statusOffline}
           </span>
         </InfoRow>
         <InfoRow label={t.serverInfo.onlineCount}>
@@ -99,21 +103,23 @@ export const ServerInfoCard = ({
 
       {/* Management toggles */}
       <div className="mt-6 space-y-2">
-        <h3 className="font-semibold mb-2 text-gray-300">{t.serverInfo.management}</h3>
+        <h3 className="font-semibold mb-2 text-gray-300">
+          {t.serverInfo.management}
+        </h3>
         <ToggleButton
           label={t.serverInfo.checked}
-          active={!!server.checked}
-          onClick={() => onToggle("checked")}
+          active={!!server.is_checked}
+          onClick={() => onToggle("is_checked")}
         />
         <ToggleButton
           label={t.serverInfo.spoofable}
-          active={!!server.spoofable}
-          onClick={() => onToggle("spoofable")}
+          active={!!server.is_spoofable}
+          onClick={() => onToggle("is_spoofable")}
         />
         <ToggleButton
           label={t.serverInfo.crashed}
-          active={!!server.crashed}
-          onClick={() => onToggle("crashed")}
+          active={!!server.is_crashed}
+          onClick={() => onToggle("is_crashed")}
           color="red"
         />
       </div>
@@ -130,7 +136,9 @@ export const ServerInfoCard = ({
           </button>
         ) : showPingSplit ? (
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-gray-400 text-center">{t.serverInfo.choosePingType}</p>
+            <p className="text-xs text-gray-400 text-center">
+              {t.serverInfo.choosePingType}
+            </p>
             <button
               onClick={() => onPing(true)}
               className="w-full py-2 px-4 rounded font-medium transition bg-blue-900 hover:bg-blue-800 text-blue-300 hover:text-white flex items-center justify-center gap-2"

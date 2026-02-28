@@ -12,15 +12,15 @@ pub struct ServerModel {
     pub version_name: String,
     pub protocol: i32,
     pub description: Value,
-    pub license: bool,
+    pub is_online_mode: bool,
     pub disconnect_reason: Option<Value>,
-    pub checked: bool,
-    pub spoofable: Option<bool>,
-    pub crashed: bool,
-    pub was_online: bool,
+    pub is_checked: bool,
+    pub is_spoofable: Option<bool>,
+    pub is_crashed: bool,
+    pub is_online: bool,
     pub is_forge: bool,
-    pub created: chrono::DateTime<Utc>,
-    pub updated: chrono::DateTime<Utc>,
+    pub created_at: chrono::DateTime<Utc>,
+    pub updated_at: chrono::DateTime<Utc>,
     pub favicon: Option<String>,
 }
 
@@ -42,7 +42,7 @@ pub struct ServerInsert<'a> {
     pub version_name: &'a str,
     pub protocol: i32,
     pub description: &'a Value,
-    pub license: bool,
+    pub is_online_mode: bool,
     pub disconnect_reason: Option<Value>,
     pub is_forge: bool,
     pub favicon: Option<&'a str>,
@@ -55,8 +55,8 @@ pub struct ServerUpdate<'a> {
     pub version_name: &'a str,
     pub protocol: i32,
     pub description: &'a serde_json::Value,
-    pub updated: chrono::DateTime<Utc>,
-    pub was_online: bool,
+    pub updated_at: chrono::DateTime<Utc>,
+    pub is_online: bool,
     pub is_forge: bool,
     pub favicon: Option<&'a str>,
 }
@@ -65,6 +65,6 @@ pub struct ServerUpdate<'a> {
 #[diesel(table_name = crate::schema::servers)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ServerExtraUpdate {
-    pub license: bool,
+    pub is_online_mode: bool,
     pub disconnect_reason: Option<Value>,
 }

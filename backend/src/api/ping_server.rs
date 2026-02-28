@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{Json, extract::State, http::StatusCode};
-use db_schema::{models::server_ping::ServerPingInsert, schema::server_ping};
+use db_schema::{models::ping_requests::ServerPingInsert, schema::ping_requests};
 use diesel::dsl::insert_into;
 use diesel_async::RunQueryDsl;
 use serde::Deserialize;
@@ -31,7 +31,7 @@ pub async fn ping_server(
         with_connection: body.with_connection,
     };
 
-    insert_into(server_ping::table)
+    insert_into(ping_requests::table)
         .values(&ping_insert)
         .execute(&mut conn)
         .await

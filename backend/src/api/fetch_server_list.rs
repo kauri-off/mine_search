@@ -2,7 +2,7 @@ use super::fetch_server_info::ServerInfoResponse;
 use crate::{database::DatabaseWrapper, error::AppError};
 use axum::{Json, extract::State};
 use db_schema::{
-    models::{data::DataModel, servers::ServerModel},
+    models::{player_count_snapshots::SnapshotModel, servers::ServerModel},
     schema::*,
 };
 use diesel::prelude::*;
@@ -46,22 +46,22 @@ pub async fn fetch_server_list(
         };
 
     let license_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.licensed {
-        Some(license) => Box::new(servers::license.eq(license)),
+        Some(license) => Box::new(servers::is_online_mode.eq(license)),
         None => Box::new(sql::<Bool>("TRUE")),
     };
 
     let checked_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.checked {
-        Some(checked) => Box::new(servers::checked.assume_not_null().eq(checked)),
+        Some(checked) => Box::new(servers::is_checked.assume_not_null().eq(checked)),
         None => Box::new(sql::<Bool>("TRUE")),
     };
 
     let spoofable_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.spoofable {
-        Some(spoofable) => Box::new(servers::spoofable.assume_not_null().eq(spoofable)),
+        Some(spoofable) => Box::new(servers::is_spoofable.assume_not_null().eq(spoofable)),
         None => Box::new(sql::<Bool>("TRUE")),
     };
 
     let crashed_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.crashed {
-        Some(crashed) => Box::new(servers::crashed.assume_not_null().eq(crashed)),
+        Some(crashed) => Box::new(servers::is_crashed.assume_not_null().eq(crashed)),
         None => Box::new(sql::<Bool>("TRUE")),
     };
 
@@ -77,7 +77,7 @@ pub async fn fetch_server_list(
         };
 
     let online_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.online {
-        Some(online) => Box::new(servers::was_online.eq(online)),
+        Some(online) => Box::new(servers::is_online.eq(online)),
         None => Box::new(sql::<Bool>("TRUE")),
     };
 
@@ -87,7 +87,9 @@ pub async fn fetch_server_list(
     };
 
     let results = servers::table
-        .inner_join(data::table.on(data::server_id.eq(servers::id)))
+        .inner_join(
+            player_count_snapshots::table.on(player_count_snapshots::server_id.eq(servers::id)),
+        )
         .filter(pagination_filter)
         .filter(license_filter)
         .filter(checked_filter)
@@ -96,11 +98,11 @@ pub async fn fetch_server_list(
         .filter(has_players_filter)
         .filter(online_filter)
         .filter(is_forge_filter)
-        .order((servers::id.desc(), data::id.desc()))
+        .order((servers::id.desc(), player_count_snapshots::id.desc()))
         .distinct_on(servers::id)
-        .select((ServerModel::as_select(), DataModel::as_select()))
+        .select((ServerModel::as_select(), SnapshotModel::as_select()))
         .limit(body.limit)
-        .load::<(ServerModel, DataModel)>(&mut conn)
+        .load::<(ServerModel, SnapshotModel)>(&mut conn)
         .await
         .map_err(|e| AppError::db("Failed to load server list", e))?;
 

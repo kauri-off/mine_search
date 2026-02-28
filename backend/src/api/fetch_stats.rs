@@ -34,7 +34,7 @@ pub async fn fetch_stats(
         .map_err(|e| AppError::db("Failed to count total servers", e))?;
 
     let cracked_servers = servers::dsl::servers
-        .filter(servers::dsl::license.eq(false))
+        .filter(servers::dsl::is_online_mode.eq(false))
         .count()
         .get_result::<i64>(&mut conn)
         .await

@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use db_schema::{models::ip::IpModel, schema};
+use db_schema::{models::scan_targets::TargetModel, schema};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use tokio::{sync::Semaphore, time::timeout};
@@ -8,21 +8,23 @@ use tracing::info;
 
 use crate::{database::DatabaseWrapper, modules::search_module::handle_valid_ip};
 
-pub async fn process_external_ips(db: Arc<DatabaseWrapper>) -> anyhow::Result<()> {
+pub async fn process_external_targets(db: Arc<DatabaseWrapper>) -> anyhow::Result<()> {
     let mut conn = db.pool.get().await?;
 
-    let ips: Vec<IpModel> = schema::ips::table
-        .select(IpModel::as_select())
+    let targets: Vec<TargetModel> = schema::scan_targets::table
+        .filter(schema::scan_targets::quick.eq(false))
+        .select(TargetModel::as_select())
         .load(&mut conn)
         .await?;
 
-    if ips.is_empty() {
+    if targets.is_empty() {
         return Ok(());
     }
 
-    info!("Processing {} external ips", ips.len());
+    info!("Processing {} external targets", targets.len());
 
-    diesel::delete(schema::ips::table)
+    diesel::delete(schema::scan_targets::table)
+        .filter(schema::scan_targets::quick.eq(false))
         .execute(&mut conn)
         .await?;
 
@@ -30,7 +32,7 @@ pub async fn process_external_ips(db: Arc<DatabaseWrapper>) -> anyhow::Result<()
 
     let semaphore = Arc::new(Semaphore::new(50));
 
-    let handles: Vec<_> = ips
+    let handles: Vec<_> = targets
         .into_iter()
         .map(|value| {
             let permit = semaphore.clone().acquire_owned();

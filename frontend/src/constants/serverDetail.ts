@@ -9,5 +9,5 @@ export const PLAYER_STATUS_COLOR: Record<PlayerStatus, string> = {
 };
 
 /** Fields that are mutually exclusive when toggling server flags. */
-export const EXCLUSIVE_TOGGLE_FIELDS = ["checked", "spoofable", "crashed"] as const;
+export const EXCLUSIVE_TOGGLE_FIELDS = ["is_checked", "is_spoofable", "is_crashed"] as const;
 export type ToggleField = (typeof EXCLUSIVE_TOGGLE_FIELDS)[number];

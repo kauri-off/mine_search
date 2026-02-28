@@ -11,7 +11,7 @@ import {
 } from "@/constants/dashboardFilters";
 import { clearFilters, loadFilters, saveFilters } from "@/utils/filterStorage";
 import { FilterBar } from "@/components/dashboard/FilterBar";
-import { AddIpForm } from "@/components/dashboard/AddIpForm";
+import { AddTargetForm } from "@/components/dashboard/AddTargetForm";
 import { ServerGrid } from "@/components/dashboard/ServerGrid";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useTranslation } from "@/i18n";
@@ -48,8 +48,8 @@ export const Dashboard = () => {
 
   // -- Mutations -------------------------------------------------------------
 
-  const addIpMutation = useMutation({
-    mutationFn: (ip: string) => serverApi.addServerIp({ ip }),
+  const addTargetMutation = useMutation({
+    mutationFn: (ip: string) => serverApi.addTarget({ addr: ip, quick: true }),
     onSuccess: () => setIp(""),
   });
 
@@ -84,7 +84,7 @@ export const Dashboard = () => {
   const allServers = data?.pages.flat() ?? [];
   const isEmpty = data?.pages[0]?.length === 0;
   const filtersActive = !areFiltersDefault(filters);
-  const addIpError = addIpMutation.isError ? t.addIp.error : null;
+  const addTargetError = addTargetMutation.isError ? t.addIp.error : null;
 
   // -- Render ----------------------------------------------------------------
 
@@ -116,20 +116,21 @@ export const Dashboard = () => {
         onReset={resetFilters}
       />
 
-      <AddIpForm
+      <AddTargetForm
         ip={ip}
-        isPending={addIpMutation.isPending}
-        error={addIpError}
+        isPending={addTargetMutation.isPending}
+        error={addTargetError}
         onChange={(val) => {
-          addIpMutation.reset();
+          addTargetMutation.reset();
           setIp(val);
         }}
-        onSubmit={() => addIpMutation.mutate(ip)}
+        onSubmit={() => addTargetMutation.mutate(ip)}
       />
 
       {allServers.length > 0 && (
         <p className="text-sm text-gray-500 mb-2">
-          {t.dashboard.loaded}: <b className="text-gray-300">{allServers.length}</b>
+          {t.dashboard.loaded}:{" "}
+          <b className="text-gray-300">{allServers.length}</b>
         </p>
       )}
 

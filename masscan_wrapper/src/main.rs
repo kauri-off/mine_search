@@ -76,8 +76,11 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let add_url = format!("{}/api/v1/ip/add_list", args.endpoint);
-    let body: Vec<Value> = ips.into_iter().map(|ip| json!({ "ip": ip })).collect();
+    let add_url = format!("{}/api/v1/target/add_list", args.endpoint);
+    let body: Vec<Value> = ips
+        .into_iter()
+        .map(|ip| json!({ "ip": ip, "quick": false }))
+        .collect();
     client.post(&add_url).json(&body).send().await?;
 
     println!("[*] Done.");

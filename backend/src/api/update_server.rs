@@ -14,25 +14,25 @@ use crate::{database::DatabaseWrapper, error::AppError};
 #[ts(export)]
 pub struct UpdateServerRequest {
     pub server_ip: String,
-    pub checked: Option<bool>,
-    pub spoofable: Option<bool>,
-    pub crashed: Option<bool>,
+    pub is_checked: Option<bool>,
+    pub is_spoofable: Option<bool>,
+    pub is_crashed: Option<bool>,
 }
 
 #[derive(AsChangeset)]
 #[diesel(table_name = servers)]
 pub struct Options {
-    pub checked: Option<bool>,
-    pub spoofable: Option<bool>,
-    pub crashed: Option<bool>,
+    pub is_checked: Option<bool>,
+    pub is_spoofable: Option<bool>,
+    pub is_crashed: Option<bool>,
 }
 
 impl From<UpdateServerRequest> for Options {
     fn from(value: UpdateServerRequest) -> Self {
         Options {
-            checked: value.checked,
-            spoofable: value.spoofable,
-            crashed: value.crashed,
+            is_checked: value.is_checked,
+            is_spoofable: value.is_spoofable,
+            is_crashed: value.is_crashed,
         }
     }
 }

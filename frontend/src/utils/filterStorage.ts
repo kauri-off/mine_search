@@ -38,6 +38,7 @@ export function loadFilters(): Filters {
 export function saveFilters(filters: Filters): void {
   try {
     // Exclude `limit` from persistence
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { limit: _limit, ...persistable } = filters;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
   } catch {

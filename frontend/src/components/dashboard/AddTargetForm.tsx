@@ -4,7 +4,7 @@ const IP_PORT_REGEX = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/;
 
 const isValidIp = (value: string) => IP_PORT_REGEX.test(value.trim());
 
-interface AddIpFormProps {
+interface AddTargetFormProps {
   ip: string;
   isPending: boolean;
   error?: string | null;
@@ -12,13 +12,13 @@ interface AddIpFormProps {
   onSubmit: () => void;
 }
 
-export const AddIpForm = ({
+export const AddTargetForm = ({
   ip,
   isPending,
   error,
   onChange,
   onSubmit,
-}: AddIpFormProps) => {
+}: AddTargetFormProps) => {
   const { t } = useTranslation();
   const showFormatError = ip.trim() !== "" && !isValidIp(ip);
 

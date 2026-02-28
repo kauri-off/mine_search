@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{Json, extract::State};
 use chrono::{DateTime, Utc};
-use db_schema::models::{data::DataModel, servers::ServerModel};
+use db_schema::models::{player_count_snapshots::SnapshotModel, servers::ServerModel};
 use db_schema::schema::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
@@ -32,30 +32,30 @@ pub struct ServerInfoResponse {
     pub updated: DateTime<Utc>,
     pub description_html: String,
     pub was_online: bool,
-    pub checked: bool,
-    pub spoofable: Option<bool>,
-    pub crashed: bool,
+    pub is_checked: bool,
+    pub is_spoofable: Option<bool>,
+    pub is_crashed: bool,
     pub is_forge: bool,
     pub favicon: Option<String>,
 }
 
-impl From<(ServerModel, DataModel)> for ServerInfoResponse {
-    fn from((server, data): (ServerModel, DataModel)) -> Self {
+impl From<(ServerModel, SnapshotModel)> for ServerInfoResponse {
+    fn from((server, data): (ServerModel, SnapshotModel)) -> Self {
         Self {
             id: server.id,
             ip: server.ip,
-            online: data.online,
-            max: data.max,
+            online: data.players_online,
+            max: data.players_max,
             version_name: server.version_name,
             protocol: server.protocol,
-            license: server.license,
+            license: server.is_online_mode,
             disconnect_reason_html: server.disconnect_reason.map(parse_html),
-            updated: server.updated,
+            updated: server.updated_at,
             description_html: parse_html(server.description),
-            was_online: server.was_online,
-            checked: server.checked,
-            spoofable: server.spoofable,
-            crashed: server.crashed,
+            was_online: server.is_online,
+            is_checked: server.is_checked,
+            is_spoofable: server.is_spoofable,
+            is_crashed: server.is_crashed,
             is_forge: server.is_forge,
             favicon: server.favicon,
         }
@@ -73,11 +73,13 @@ pub async fn fetch_server_info(
         .map_err(|e| AppError::db("Failed to acquire DB connection in fetch_server_info", e))?;
 
     let (server, data) = servers::table
-        .inner_join(data::table.on(data::server_id.eq(servers::id)))
+        .inner_join(
+            player_count_snapshots::table.on(player_count_snapshots::server_id.eq(servers::id)),
+        )
         .filter(servers::ip.eq(&body.ip))
-        .order_by(data::id.desc())
-        .select((ServerModel::as_select(), DataModel::as_select()))
-        .first::<(ServerModel, DataModel)>(&mut conn)
+        .order_by(player_count_snapshots::id.desc())
+        .select((ServerModel::as_select(), SnapshotModel::as_select()))
+        .first::<(ServerModel, SnapshotModel)>(&mut conn)
         .await
         .map_err(|e| AppError::db(format!("Server '{}' not found", body.ip), e))?;
 

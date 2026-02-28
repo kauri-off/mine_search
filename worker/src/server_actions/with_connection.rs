@@ -10,7 +10,7 @@ use crate::packets::*;
 
 #[derive(Debug)]
 pub struct ExtraData {
-    pub license: bool,
+    pub is_online_mode: bool,
     pub disconnect_reason: Option<Value>,
 }
 
@@ -49,19 +49,19 @@ pub async fn get_extra_data(ip: String, port: u16, protocol: i32) -> anyhow::Res
             s2c::LoginDisconnect::PACKET_ID => {
                 let reason: String = packet.deserialize_payload::<s2c::LoginDisconnect>()?.reason;
                 return Ok(ExtraData {
-                    license: false,
+                    is_online_mode: false,
                     disconnect_reason: Some(serde_json::from_str::<Value>(&reason)?),
                 });
             }
             s2c::EncryptionRequest::PACKET_ID => {
                 return Ok(ExtraData {
-                    license: true,
+                    is_online_mode: true,
                     disconnect_reason: None,
                 });
             }
             s2c::LoginFinished::PACKET_ID => {
                 return Ok(ExtraData {
-                    license: false,
+                    is_online_mode: false,
                     disconnect_reason: None,
                 });
             }

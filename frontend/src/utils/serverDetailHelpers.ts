@@ -21,13 +21,13 @@ export function buildToggleUpdate(
 }
 
 export function buildChartData(
-  history: Array<{ timestamp: string; online: number }>,
+  history: Array<{ recorded_at: string; players_online: number }>,
 ) {
   return history
     .map((d) => ({
-      time: d.timestamp,
-      online: d.online,
-      formattedTime: new Date(d.timestamp).toLocaleTimeString("en-GB", {
+      time: d.recorded_at,
+      online: d.players_online,
+      formattedTime: new Date(d.recorded_at).toLocaleTimeString("en-GB", {
         hour: "2-digit",
         minute: "2-digit",
       }),

@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use chrono::Utc;
 use db_schema::{
     models::{
-        data::DataInsert,
+        player_count_snapshots::SnapshotInsert,
         players::PlayerInsert,
         servers::{ServerExtraUpdate, ServerModelMini, ServerUpdate},
     },
@@ -19,7 +19,7 @@ use tracing::{debug, error, info};
 
 use crate::{
     database::DatabaseWrapper,
-    modules::external_module::process_external_ips,
+    modules::external_module::process_external_targets,
     server_actions::{with_connection::get_extra_data, without_connection::get_status},
 };
 
@@ -37,7 +37,7 @@ pub async fn updater(
             tokio::time::sleep(Duration::from_secs(20)).await;
         }
 
-        if let Err(e) = process_external_ips(db.clone()).await {
+        if let Err(e) = process_external_targets(db.clone()).await {
             error!(target: "updater", "Error processing external IPs: {}", e);
         }
 
@@ -45,7 +45,7 @@ pub async fn updater(
 
         let spoofable_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
             match only_update_spoofable {
-                true => Box::new(schema::servers::spoofable.assume_not_null().eq(true)),
+                true => Box::new(schema::servers::is_spoofable.assume_not_null().eq(true)),
                 false => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
             };
 
@@ -101,7 +101,7 @@ pub async fn update_server(
         Err(_) | Ok(_) => {
             diesel::update(schema::servers::table)
                 .filter(schema::servers::id.eq(&server.id))
-                .set(schema::servers::was_online.eq(false))
+                .set(schema::servers::is_online.eq(false))
                 .execute(&mut db.pool.get().await.unwrap())
                 .await
                 .unwrap();
@@ -110,16 +110,16 @@ pub async fn update_server(
         }
     };
 
-    let data_insert = DataInsert {
+    let snapshot_insert = SnapshotInsert {
         server_id: server.id,
-        online: status.players.online as i32,
-        max: status.players.max as i32,
+        players_online: status.players.online as i32,
+        players_max: status.players.max as i32,
     };
 
     let mut conn = db.pool.get().await.unwrap();
 
-    insert_into(schema::data::table)
-        .values(data_insert)
+    insert_into(schema::player_count_snapshots::table)
+        .values(snapshot_insert)
         .execute(&mut conn)
         .await
         .unwrap();
@@ -149,8 +149,8 @@ pub async fn update_server(
         version_name: &status.version.name,
         protocol: status.version.protocol as i32,
         description: &status.description,
-        updated: Utc::now(),
-        was_online: true,
+        updated_at: Utc::now(),
+        is_online: true,
         is_forge,
         favicon: favicon_ref,
     };
@@ -175,7 +175,7 @@ pub async fn update_server(
         {
             Ok(Ok(extra_data)) => {
                 let server_extra_change = ServerExtraUpdate {
-                    license: extra_data.license,
+                    is_online_mode: extra_data.is_online_mode,
                     disconnect_reason: extra_data.disconnect_reason,
                 };
 

@@ -3,7 +3,7 @@ use std::{net::IpAddr, sync::Arc, time::Duration};
 use chrono::Utc;
 use db_schema::{
     models::{
-        data::DataInsert,
+        player_count_snapshots::SnapshotInsert,
         players::PlayerInsert,
         servers::{ServerInsert, ServerModel},
     },
@@ -79,7 +79,7 @@ pub async fn handle_valid_ip(
         version_name: &status.version.name,
         protocol: status.version.protocol as i32,
         description: &status.description,
-        license: extra_data.license,
+        is_online_mode: extra_data.is_online_mode,
         disconnect_reason: extra_data.disconnect_reason,
         is_forge,
         favicon: favicon_ref,
@@ -92,22 +92,22 @@ pub async fn handle_valid_ip(
         .on_conflict(schema::servers::ip)
         .do_update()
         .set((
-            schema::servers::updated.eq(Utc::now()),
-            schema::servers::was_online.eq(true),
+            schema::servers::updated_at.eq(Utc::now()),
+            schema::servers::is_online.eq(true),
             schema::servers::favicon.eq(favicon_ref),
         ))
         .returning(ServerModel::as_returning())
         .get_result(&mut conn)
         .await?;
 
-    let data_insert = DataInsert {
+    let snapshot_insert = SnapshotInsert {
         server_id: server.id,
-        online: status.players.online as i32,
-        max: status.players.max as i32,
+        players_online: status.players.online as i32,
+        players_max: status.players.max as i32,
     };
 
-    insert_into(schema::data::table)
-        .values(data_insert)
+    insert_into(schema::player_count_snapshots::table)
+        .values(snapshot_insert)
         .execute(&mut conn)
         .await?;
 
@@ -135,7 +135,7 @@ pub async fn handle_valid_ip(
         version = %status.version.name,
         online = status.players.online,
         max = status.players.max,
-        license = extra_data.license,
+        licensed = extra_data.is_online_mode,
         desc = %description_to_str(status.description).unwrap_or_default(),
         has_favicon = status.favicon.is_some(),
         "New server detected"
