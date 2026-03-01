@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use axum::{Json, extract::State};
+use chrono::{DateTime, Utc};
 use db_schema::{
     models::{self, players::PlayerModel},
     schema::players,
@@ -53,6 +54,8 @@ pub struct PlayerResponse {
     pub server_id: i32,
     pub name: String,
     pub status: PlayerStatus,
+    #[ts(type = "string")]
+    pub last_seen_at: DateTime<Utc>,
 }
 
 impl From<PlayerModel> for PlayerResponse {
@@ -62,6 +65,7 @@ impl From<PlayerModel> for PlayerResponse {
             server_id: value.server_id,
             name: value.name,
             status: value.status.into(),
+            last_seen_at: value.last_seen_at,
         }
     }
 }

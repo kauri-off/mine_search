@@ -32,7 +32,10 @@ export const PlayersTable = ({
                 <tr key={player.id} className="group">
                   <td className="py-2.5 pr-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-white">{player.name}</span>
+                      <span
+                        className="text-white"
+                        title={new Date(player.last_seen_at).toLocaleString()}
+                      >{player.name}</span>
                       <span className="opacity-0 group-hover:opacity-100 transition-opacity">
                         <CopyButton text={player.name} />
                       </span>
