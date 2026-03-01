@@ -156,7 +156,9 @@ pub async fn update_server(
                 })
                 .collect::<Vec<_>>(),
         )
-        .on_conflict_do_nothing()
+        .on_conflict((schema::players::server_id, schema::players::name))
+        .do_update()
+        .set(schema::players::last_seen_at.eq(Utc::now()))
         .execute(&mut conn)
         .await?;
 

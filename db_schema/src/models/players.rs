@@ -1,3 +1,4 @@
+use chrono::Utc;
 use diesel::prelude::*;
 
 #[derive(diesel_derive_enum::DbEnum, Debug)]
@@ -16,13 +17,7 @@ pub struct PlayerModel {
     pub server_id: i32,
     pub name: String,
     pub status: PlayerStatus,
-}
-
-#[derive(Queryable, Selectable)]
-#[diesel(table_name = crate::schema::players)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct PlayerModelMini {
-    pub name: String,
+    pub last_seen_at: chrono::DateTime<Utc>,
 }
 
 #[derive(Insertable)]

@@ -79,6 +79,7 @@ pub async fn fetch_players_list(
     let result = players::table
         .filter(players::server_id.eq(body.server_id))
         .select(PlayerModel::as_select())
+        .order(players::last_seen_at.desc())
         .load(&mut conn)
         .await
         .map_err(|e| AppError::db("Failed to load server data", e))?;

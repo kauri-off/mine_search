@@ -33,6 +33,7 @@ diesel::table! {
         server_id -> Int4,
         name -> Varchar,
         status -> PlayerStatus,
+        last_seen_at -> Timestamptz,
     }
 }
 
