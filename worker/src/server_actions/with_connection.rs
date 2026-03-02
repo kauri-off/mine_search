@@ -1,7 +1,4 @@
-use mc_protocol::{
-    packet::{RawPacket, UncompressedPacket},
-    varint::VarInt,
-};
+use mc_protocol::prelude::*;
 use serde_json::Value;
 use tokio::net::TcpStream;
 use uuid::Uuid;
