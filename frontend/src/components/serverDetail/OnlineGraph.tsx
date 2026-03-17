@@ -51,6 +51,7 @@ export const OnlineGraph = ({ data, isLoading }: OnlineGraphProps) => {
             stroke="#3b82f6"
             fillOpacity={1}
             fill="url(#colorOnline)"
+            isAnimationActive={false}
           />
         </AreaChart>
       </ResponsiveContainer>
