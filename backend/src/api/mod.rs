@@ -1,6 +1,8 @@
 pub mod add_target;
 pub mod add_targets;
 pub mod auth;
+pub mod cleanup_favicons;
+pub mod cleanup_snapshots;
 pub mod fetch_players_list;
 pub mod fetch_server_info;
 pub mod fetch_server_list;

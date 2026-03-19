@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   PieChart,
@@ -44,12 +45,36 @@ function StatCard({
   );
 }
 
+function formatMb(mb: number): string {
+  return `${mb.toFixed(2)} MB`;
+}
+
 export const Stats = () => {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ["stats"],
     queryFn: serverApi.fetchStats,
+  });
+
+  const [snapshotResult, setSnapshotResult] = useState<number | null>(null);
+  const [faviconResult, setFaviconResult] = useState<number | null>(null);
+
+  const cleanSnapshotsMutation = useMutation({
+    mutationFn: serverApi.cleanSnapshots,
+    onSuccess: (data) => {
+      setSnapshotResult(data.deleted);
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+
+  const cleanFaviconsMutation = useMutation({
+    mutationFn: serverApi.cleanFavicons,
+    onSuccess: (data) => {
+      setFaviconResult(data.deleted);
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
   });
 
   if (isLoading || !stats) {
@@ -74,11 +99,6 @@ export const Stats = () => {
       name: t.stats.offline,
       value: stats.total_servers - stats.online_servers,
     },
-  ];
-
-  const playerData = [
-    { name: t.stats.admin, value: stats.admin_players },
-    { name: t.stats.other, value: stats.total_players - stats.admin_players },
   ];
 
   const versionData = stats.version_distribution.map((v) => ({
@@ -148,10 +168,20 @@ export const Stats = () => {
           value={avgPingDisplay}
           color="text-indigo-400"
         />
+        <StatCard
+          label={t.stats.dbSize}
+          value={formatMb(stats.db_size_mb)}
+          color="text-teal-400"
+        />
+        <StatCard
+          label={t.stats.faviconSize}
+          value={formatMb(stats.favicon_size_mb)}
+          color="text-lime-400"
+        />
       </section>
 
       {/* Charts row */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
         {/* Licensed vs Cracked */}
         <div className="bg-gray-800 rounded-xl p-5">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
@@ -227,49 +257,11 @@ export const Stats = () => {
             </PieChart>
           </ResponsiveContainer>
         </div>
-
-        {/* Player breakdown */}
-        <div className="bg-gray-800 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
-            {t.stats.playerBreakdown}
-          </h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie
-                data={playerData}
-                cx="50%"
-                cy="50%"
-                innerRadius={55}
-                outerRadius={85}
-                dataKey="value"
-                isAnimationActive={false}
-              >
-                <Cell fill="#f472b6" />
-                <Cell fill="#6b7280" />
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#1f2937",
-                  border: "none",
-                  borderRadius: 8,
-                }}
-                itemStyle={{ color: "#e5e7eb" }}
-              />
-              <Legend
-                formatter={(value) => (
-                  <span style={{ color: "#9ca3af", fontSize: 12 }}>
-                    {value}
-                  </span>
-                )}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
       </section>
 
       {/* Top versions bar chart */}
       {versionData.length > 0 && (
-        <div className="bg-gray-800 rounded-xl p-5">
+        <div className="bg-gray-800 rounded-xl p-5 mb-10">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
             {t.stats.topVersions}
           </h2>
@@ -315,6 +307,54 @@ export const Stats = () => {
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* Maintenance */}
+      <div className="bg-gray-800 rounded-xl p-5">
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
+          {t.stats.maintenance}
+        </h2>
+        <div className="flex flex-wrap gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setSnapshotResult(null);
+                cleanSnapshotsMutation.mutate();
+              }}
+              disabled={cleanSnapshotsMutation.isPending}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
+            >
+              {cleanSnapshotsMutation.isPending
+                ? t.stats.cleaning
+                : t.stats.cleanSnapshots}
+            </button>
+            {snapshotResult !== null && (
+              <span className="text-sm text-gray-400">
+                {t.stats.cleanedRows(snapshotResult)}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setFaviconResult(null);
+                cleanFaviconsMutation.mutate();
+              }}
+              disabled={cleanFaviconsMutation.isPending}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
+            >
+              {cleanFaviconsMutation.isPending
+                ? t.stats.cleaning
+                : t.stats.cleanFavicons}
+            </button>
+            {faviconResult !== null && (
+              <span className="text-sm text-gray-400">
+                {t.stats.cleanedRows(faviconResult)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

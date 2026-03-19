@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type {
   AuthBody,
+  CleanupResponse,
   StatsResponse,
   ServerSnapshotsRequest,
   ServerListRequest,
@@ -72,5 +73,15 @@ export const serverApi = {
 
   updatePlayer: (body: UpdatePlayerRequest) => api.post('/player/update', body),
 
-  pingServer: (body: PingServerRequest) => api.post('/server/ping', body),  
+  pingServer: (body: PingServerRequest) => api.post('/server/ping', body),
+
+  cleanSnapshots: async (): Promise<CleanupResponse> => {
+    const { data } = await api.post<CleanupResponse>('/maintenance/cleanup-snapshots', {});
+    return data;
+  },
+
+  cleanFavicons: async (): Promise<CleanupResponse> => {
+    const { data } = await api.post<CleanupResponse>('/maintenance/cleanup-favicons', {});
+    return data;
+  },
 };

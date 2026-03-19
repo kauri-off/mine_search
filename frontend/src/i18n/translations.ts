@@ -94,6 +94,8 @@ export interface Translations {
     totalPlayers: string;
     adminPlayers: string;
     avgPing: string;
+    dbSize: string;
+    faviconSize: string;
     licensedVsCracked: string;
     onlineVsOffline: string;
     playerBreakdown: string;
@@ -102,6 +104,11 @@ export interface Translations {
     offline: string;
     admin: string;
     other: string;
+    maintenance: string;
+    cleanSnapshots: string;
+    cleanFavicons: string;
+    cleaning: string;
+    cleanedRows: (n: number) => string;
   };
   login: {
     title: string;

@@ -6,7 +6,7 @@ use db_schema::{
     schema::{players, servers},
 };
 use diesel::prelude::*;
-use diesel::sql_types::{Double, Nullable};
+use diesel::sql_types::{BigInt, Double, Nullable};
 use diesel_async::RunQueryDsl;
 use serde::Serialize;
 use ts_rs::TS;
@@ -42,6 +42,8 @@ pub struct StatsResponse {
     pub admin_players: i64,
     pub avg_ping: Option<f64>,
     pub version_distribution: Vec<VersionStat>,
+    pub db_size_mb: f64,
+    pub favicon_size_mb: f64,
 }
 
 pub async fn fetch_stats(
@@ -127,6 +129,20 @@ pub async fn fetch_stats(
         .map(|(version, count)| VersionStat { version, count })
         .collect();
 
+    let db_size_bytes = diesel::dsl::sql::<BigInt>(
+        "SELECT pg_database_size(current_database())",
+    )
+    .get_result::<i64>(&mut conn)
+    .await
+    .map_err(|e| AppError::db("Failed to get DB size", e))?;
+
+    let favicon_size_bytes = diesel::dsl::sql::<BigInt>(
+        "SELECT COALESCE(SUM(octet_length(favicon)), 0) FROM servers WHERE favicon IS NOT NULL",
+    )
+    .get_result::<i64>(&mut conn)
+    .await
+    .map_err(|e| AppError::db("Failed to get favicon size", e))?;
+
     Ok(Json(StatsResponse {
         total_servers,
         cracked_servers,
@@ -138,5 +154,7 @@ pub async fn fetch_stats(
         admin_players,
         avg_ping,
         version_distribution,
+        db_size_mb: db_size_bytes as f64 / 1_048_576.0,
+        favicon_size_mb: favicon_size_bytes as f64 / 1_048_576.0,
     }))
 }

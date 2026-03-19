@@ -3,6 +3,7 @@
 
 export type { AddAddrRequest } from "./AddAddrRequest";
 export type { AuthBody } from "./AuthBody";
+export type { CleanupResponse } from "./CleanupResponse";
 export type { PlayerListRequest } from "./PlayerListRequest";
 export type { PlayerResponse } from "./PlayerResponse";
 export type { PlayerStatus } from "./PlayerStatus";
