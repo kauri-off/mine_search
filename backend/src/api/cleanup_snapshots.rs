@@ -25,15 +25,14 @@ pub async fn cleanup_snapshots(
 
     // Delete all but the latest 100 snapshots per server
     let deleted = diesel::sql_query(
-        "DELETE FROM player_count_snapshots
-         WHERE id IN (
-             SELECT id FROM (
-                 SELECT id,
-                        ROW_NUMBER() OVER (PARTITION BY server_id ORDER BY recorded_at DESC) AS rn
-                 FROM player_count_snapshots
-             ) ranked
-             WHERE rn > 100
-         )",
+        "DELETE FROM player_count_snapshots p
+         USING (
+             SELECT id,
+                    ROW_NUMBER() OVER (PARTITION BY server_id ORDER BY recorded_at DESC) AS rn
+             FROM player_count_snapshots
+         ) ranked
+         WHERE p.id = ranked.id
+           AND ranked.rn > 100",
     )
     .execute(&mut conn)
     .await
