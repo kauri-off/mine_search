@@ -13,6 +13,9 @@ const Dashboard = lazy(() =>
 const ServerDetail = lazy(() =>
   import("./pages/ServerDetail").then((m) => ({ default: m.ServerDetail })),
 );
+const Stats = lazy(() =>
+  import("./pages/Stats").then((m) => ({ default: m.Stats })),
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +55,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <ServerDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/stats"
+                    element={
+                      <ProtectedRoute>
+                        <Stats />
                       </ProtectedRoute>
                     }
                   />

@@ -82,6 +82,27 @@ export interface Translations {
   onlineGraph: {
     title: string;
   };
+  stats: {
+    title: string;
+    back: string;
+    totalServers: string;
+    online: string;
+    cracked: string;
+    crashed: string;
+    forge: string;
+    spoofable: string;
+    totalPlayers: string;
+    adminPlayers: string;
+    avgPing: string;
+    licensedVsCracked: string;
+    onlineVsOffline: string;
+    playerBreakdown: string;
+    topVersions: string;
+    licensed: string;
+    offline: string;
+    admin: string;
+    other: string;
+  };
   login: {
     title: string;
     token: string;

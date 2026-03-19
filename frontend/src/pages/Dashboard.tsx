@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
-import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
 import type { ServerInfoResponse } from "@/types";
 import { serverApi } from "@/api/client";
@@ -22,11 +23,6 @@ export const Dashboard = () => {
   const [filters, setFilters] = useState<Filters>(loadFilters);
 
   // -- Queries ---------------------------------------------------------------
-
-  const { data: stats } = useQuery({
-    queryKey: ["stats"],
-    queryFn: serverApi.fetchStats,
-  });
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useInfiniteQuery<
@@ -93,18 +89,12 @@ export const Dashboard = () => {
       <header className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <h1 className="text-3xl font-bold">{t.dashboard.title}</h1>
         <div className="flex items-center gap-3 flex-wrap">
-          {stats && (
-            <div className="flex gap-4 text-sm bg-gray-800 p-3 rounded-lg">
-              <span>
-                {t.dashboard.all}:{" "}
-                <b className="text-blue-400">{stats.total_servers}</b>
-              </span>
-              <span>
-                {t.dashboard.cracked}:{" "}
-                <b className="text-orange-400">{stats.cracked_servers}</b>
-              </span>
-            </div>
-          )}
+          <Link
+            to="/stats"
+            className="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg transition-colors"
+          >
+            {t.stats.title}
+          </Link>
           <LanguageSwitcher />
         </div>
       </header>

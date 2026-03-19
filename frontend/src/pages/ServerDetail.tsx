@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   PlayerStatus,
@@ -159,15 +159,12 @@ export const ServerDetail = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto text-white">
-      <button
-        onClick={() =>
-          window.history.length > 1 ? navigate(-1) : navigate("/")
-        }
-        aria-label={t.serverDetail.back}
-        className="mb-4 text-blue-400 hover:underline flex items-center gap-1"
+      <Link
+        to="/"
+        className="mb-4 inline-block text-sm text-gray-400 hover:text-gray-200 transition-colors"
       >
-        <span aria-hidden="true">←</span> {t.serverDetail.back}
-      </button>
+        ← {t.serverDetail.back}
+      </Link>
 
       {isInfoLoading ? (
         <div className="flex items-center justify-center mt-20">
