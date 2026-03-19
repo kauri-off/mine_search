@@ -14,7 +14,7 @@ import {
   Legend,
 } from "recharts";
 import { serverApi } from "@/api/client";
-import { Spinner } from "@/components";
+import { Spinner as PageSpinner } from "@/components";
 import { useTranslation } from "@/i18n";
 
 const COLORS = [
@@ -45,6 +45,65 @@ function StatCard({
   );
 }
 
+function Spinner() {
+  return (
+    <svg
+      className="animate-spin h-4 w-4"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+      />
+    </svg>
+  );
+}
+
+function CleanButton({
+  label,
+  loadingLabel,
+  isPending,
+  onClick,
+}: {
+  label: string;
+  loadingLabel: string;
+  isPending: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className="relative inline-flex">
+      {isPending && (
+        <span className="absolute inset-0 rounded-lg animate-ping bg-blue-500 opacity-20" />
+      )}
+      <button
+        onClick={onClick}
+        disabled={isPending}
+        className="relative flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
+      >
+        {isPending ? (
+          <>
+            <Spinner />
+            {loadingLabel}
+          </>
+        ) : (
+          label
+        )}
+      </button>
+    </div>
+  );
+}
+
 function formatMb(mb: number): string {
   return `${mb.toFixed(2)} MB`;
 }
@@ -56,6 +115,7 @@ export const Stats = () => {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["stats"],
     queryFn: serverApi.fetchStats,
+    staleTime: Infinity,
   });
 
   const [snapshotResult, setSnapshotResult] = useState<number | null>(null);
@@ -80,7 +140,7 @@ export const Stats = () => {
   if (isLoading || !stats) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Spinner className="w-10 h-10" />
+        <PageSpinner className="w-10 h-10" />
       </div>
     );
   }
@@ -315,18 +375,15 @@ export const Stats = () => {
         </h2>
         <div className="flex flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <button
+            <CleanButton
+              label={t.stats.cleanSnapshots}
+              loadingLabel={t.stats.cleaning}
+              isPending={cleanSnapshotsMutation.isPending}
               onClick={() => {
                 setSnapshotResult(null);
                 cleanSnapshotsMutation.mutate();
               }}
-              disabled={cleanSnapshotsMutation.isPending}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
-            >
-              {cleanSnapshotsMutation.isPending
-                ? t.stats.cleaning
-                : t.stats.cleanSnapshots}
-            </button>
+            />
             {snapshotResult !== null && (
               <span className="text-sm text-gray-400">
                 {t.stats.cleanedRows(snapshotResult)}
@@ -335,18 +392,15 @@ export const Stats = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
+            <CleanButton
+              label={t.stats.cleanFavicons}
+              loadingLabel={t.stats.cleaning}
+              isPending={cleanFaviconsMutation.isPending}
               onClick={() => {
                 setFaviconResult(null);
                 cleanFaviconsMutation.mutate();
               }}
-              disabled={cleanFaviconsMutation.isPending}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
-            >
-              {cleanFaviconsMutation.isPending
-                ? t.stats.cleaning
-                : t.stats.cleanFavicons}
-            </button>
+            />
             {faviconResult !== null && (
               <span className="text-sm text-gray-400">
                 {t.stats.cleanedRows(faviconResult)}

@@ -38,6 +38,16 @@ pub async fn cleanup_snapshots(
     .await
     .map_err(|e| AppError::db("Failed to clean snapshots", e))?;
 
+    // Run VACUUM in background so the HTTP response returns immediately
+    let db2 = Arc::clone(&db);
+    tokio::spawn(async move {
+        if let Ok(mut conn) = db2.pool.get().await {
+            let _ = diesel::sql_query("VACUUM player_count_snapshots")
+                .execute(&mut conn)
+                .await;
+        }
+    });
+
     Ok(Json(CleanupResponse {
         deleted: deleted as i64,
     }))
