@@ -1,4 +1,5 @@
 pub mod add_target;
+pub mod me;
 pub mod add_targets;
 pub mod auth;
 pub mod cleanup_favicons;

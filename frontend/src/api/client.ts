@@ -40,6 +40,11 @@ export const authApi = {
 };
 
 export const serverApi = {
+  fetchMe: async (): Promise<null> => {
+    await api.post('/auth/me');
+    return null;
+  },
+
   fetchStats: async (): Promise<StatsResponse> => {
     const { data } = await api.post<StatsResponse>('/stats', {});
     return data;

@@ -8,8 +8,9 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { isLoading, isError } = useQuery({
-    queryKey: ["stats"],
-    queryFn: serverApi.fetchStats,
+    queryKey: ["auth"],
+    queryFn: serverApi.fetchMe,
+    staleTime: Infinity,
     retry: false,
   });
 

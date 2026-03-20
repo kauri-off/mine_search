@@ -5,7 +5,7 @@ use api::{
     cleanup_favicons::cleanup_favicons, cleanup_snapshots::cleanup_snapshots,
     fetch_server_info::fetch_server_info, fetch_server_list::fetch_server_list,
     fetch_server_snapshots::fetch_server_snapshots, fetch_stats::fetch_stats,
-    server_delete::server_delete, update_server::update_server,
+    me::me, server_delete::server_delete, update_server::update_server,
 };
 use axum::{
     Router,
@@ -66,6 +66,7 @@ async fn main() {
         .route("/player/update", post(update_player))
         .route("/target/add", post(add_target))
         .route("/target/add_list", post(add_addrs))
+        .route("/auth/me", post(me))
         .route("/stats", post(fetch_stats))
         .route("/maintenance/cleanup-snapshots", post(cleanup_snapshots))
         .route("/maintenance/cleanup-favicons", post(cleanup_favicons))
