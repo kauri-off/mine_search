@@ -143,19 +143,19 @@ pub async fn update_server(
         .execute(&mut conn)
         .await?;
 
+    let sample = status.players.sample.unwrap_or_default();
+    let mut seen = std::collections::HashSet::new();
+    let player_inserts: Vec<_> = sample
+        .iter()
+        .filter(|t| seen.insert(&t.name))
+        .map(|t| PlayerInsert {
+            server_id: server.id,
+            name: &t.name,
+        })
+        .collect();
+
     insert_into(schema::players::table)
-        .values(
-            status
-                .players
-                .sample
-                .unwrap_or_default()
-                .iter()
-                .map(|t| PlayerInsert {
-                    server_id: server.id,
-                    name: &t.name,
-                })
-                .collect::<Vec<_>>(),
-        )
+        .values(player_inserts)
         .on_conflict((schema::players::server_id, schema::players::name))
         .do_update()
         .set(schema::players::last_seen_at.eq(Utc::now()))
