@@ -33,8 +33,8 @@ impl TryFrom<SnapshotModel> for ServerSnapshotsResponse {
     fn try_from(value: SnapshotModel) -> Result<Self, Self::Error> {
         Ok(ServerSnapshotsResponse {
             server_id: value.server_id,
-            players_online: value.players_online,
-            players_max: value.players_max,
+            players_online: value.players_online.into(),
+            players_max: value.players_max.into(),
             recorded_at: value.recorded_at,
         })
     }
@@ -52,7 +52,7 @@ pub async fn fetch_server_snapshots(
 
     let results: Vec<SnapshotModel> = player_count_snapshots::table
         .filter(player_count_snapshots::server_id.eq(body.server_id))
-        .order(player_count_snapshots::id.desc())
+        .order(player_count_snapshots::recorded_at.desc())
         .limit(body.limit)
         .load(&mut conn)
         .await

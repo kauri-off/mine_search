@@ -132,8 +132,8 @@ pub async fn update_server(
 
     let snapshot_insert = SnapshotInsert {
         server_id: server.id,
-        players_online: status.players.online as i32,
-        players_max: status.players.max as i32,
+        players_online: status.players.online as i16,
+        players_max: status.players.max as i16,
     };
 
     let mut conn = db.pool.get().await?;

@@ -103,8 +103,8 @@ pub async fn handle_valid_ip(
 
     let snapshot_insert = SnapshotInsert {
         server_id: server.id,
-        players_online: status.players.online as i32,
-        players_max: status.players.max as i32,
+        players_online: status.players.online as i16,
+        players_max: status.players.max as i16,
     };
 
     insert_into(schema::player_count_snapshots::table)

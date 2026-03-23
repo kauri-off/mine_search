@@ -45,8 +45,8 @@ impl From<(ServerModel, SnapshotModel)> for ServerInfoResponse {
         Self {
             id: server.id,
             ip: server.ip,
-            online: data.players_online,
-            max: data.players_max,
+            online: data.players_online.into(),
+            max: data.players_max.into(),
             version_name: server.version_name,
             protocol: server.protocol,
             license: server.is_online_mode,
@@ -79,7 +79,7 @@ pub async fn fetch_server_info(
             player_count_snapshots::table.on(player_count_snapshots::server_id.eq(servers::id)),
         )
         .filter(servers::ip.eq(&body.ip))
-        .order_by(player_count_snapshots::id.desc())
+        .order_by(player_count_snapshots::recorded_at.desc())
         .select((ServerModel::as_select(), SnapshotModel::as_select()))
         .first::<(ServerModel, SnapshotModel)>(&mut conn)
         .await

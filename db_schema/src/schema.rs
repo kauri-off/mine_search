@@ -15,11 +15,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    player_count_snapshots (id) {
-        id -> Int8,
+    player_count_snapshots (server_id, recorded_at) {
         server_id -> Int4,
-        players_online -> Int4,
-        players_max -> Int4,
+        players_online -> Int2,
+        players_max -> Int2,
         recorded_at -> Timestamptz,
     }
 }

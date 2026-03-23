@@ -115,7 +115,7 @@ pub async fn fetch_server_list(
         .filter(has_none_players_filter)
         .filter(online_filter)
         .filter(is_forge_filter)
-        .order((servers::id.desc(), player_count_snapshots::id.desc()))
+        .order((servers::id.desc(), player_count_snapshots::recorded_at.desc()))
         .distinct_on(servers::id)
         .select((ServerModel::as_select(), SnapshotModel::as_select()))
         .limit(body.limit)
