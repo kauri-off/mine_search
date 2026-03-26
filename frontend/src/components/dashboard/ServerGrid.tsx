@@ -24,8 +24,8 @@ export const ServerGrid = ({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        {Array.from({ length: 9 }).map((_, i) => (
           <SkeletonCard key={i} />
         ))}
       </div>
@@ -34,7 +34,7 @@ export const ServerGrid = ({
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         {servers.map((server, index) => (
           <ServerCard
             key={server.id}
@@ -44,20 +44,20 @@ export const ServerGrid = ({
         ))}
 
         {isEmpty && (
-          <div className="col-span-full text-center text-gray-500">
+          <div className="col-span-full py-20 text-center text-slate-600">
             {t.serverGrid.empty}
           </div>
         )}
       </div>
 
       {isFetchingNextPage && (
-        <div className="flex justify-center py-4">
-          <Spinner />
+        <div className="flex justify-center py-6">
+          <Spinner className="w-6 h-6 text-indigo-500" />
         </div>
       )}
 
-      {!hasNextPage && !isEmpty && (
-        <div className="mt-8 p-4 text-center border-t border-gray-800 text-gray-500 italic">
+      {!hasNextPage && !isEmpty && servers.length > 0 && (
+        <div className="mt-10 py-4 text-center border-t border-[#1a1a24] text-slate-600 text-sm">
           {t.serverGrid.end}
         </div>
       )}

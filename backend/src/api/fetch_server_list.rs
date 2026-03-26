@@ -27,6 +27,7 @@ pub struct ServerListRequest {
     pub online: Option<bool>,
     pub is_forge: Option<bool>,
     pub has_none_players: Option<bool>,
+    pub ip_contains: Option<String>,
 }
 
 pub async fn fetch_server_list(
@@ -102,6 +103,12 @@ pub async fn fetch_server_list(
         None => Box::new(sql::<Bool>("TRUE")),
     };
 
+    let ip_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
+        match body.ip_contains {
+            Some(ref s) if !s.is_empty() => Box::new(servers::ip.like(format!("%{}%", s))),
+            _ => Box::new(sql::<Bool>("TRUE")),
+        };
+
     let results = servers::table
         .inner_join(
             player_count_snapshots::table.on(player_count_snapshots::server_id.eq(servers::id)),
@@ -115,6 +122,7 @@ pub async fn fetch_server_list(
         .filter(has_none_players_filter)
         .filter(online_filter)
         .filter(is_forge_filter)
+        .filter(ip_filter)
         .order((servers::id.desc(), player_count_snapshots::recorded_at.desc()))
         .distinct_on(servers::id)
         .select((ServerModel::as_select(), SnapshotModel::as_select()))

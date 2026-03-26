@@ -3,9 +3,10 @@ use std::{env, sync::Arc};
 use api::{
     add_target::add_target, add_targets::add_addrs, auth::authenticate_user,
     cleanup_favicons::cleanup_favicons, cleanup_snapshots::cleanup_snapshots,
-    fetch_server_info::fetch_server_info, fetch_server_list::fetch_server_list,
-    fetch_server_snapshots::fetch_server_snapshots, fetch_stats::fetch_stats,
-    me::me, server_delete::server_delete, update_server::update_server,
+    delete_player::delete_player, fetch_server_info::fetch_server_info,
+    fetch_server_list::fetch_server_list, fetch_server_snapshots::fetch_server_snapshots,
+    fetch_stats::fetch_stats, me::me, overwrite_server::overwrite_server,
+    server_delete::server_delete, update_server::update_server,
 };
 use axum::{
     Router,
@@ -64,6 +65,8 @@ async fn main() {
         .route("/server/ping", post(ping_server))
         .route("/player/list", post(fetch_players_list))
         .route("/player/update", post(update_player))
+        .route("/player/delete", post(delete_player))
+        .route("/server/overwrite", post(overwrite_server))
         .route("/target/add", post(add_target))
         .route("/target/add_list", post(add_addrs))
         .route("/auth/me", post(me))

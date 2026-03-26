@@ -1,20 +1,19 @@
 import { DEFAULT_FILTERS, STORAGE_KEY } from "@/constants/dashboardFilters";
 import type { Filters } from "@/constants/dashboardFilters";
 
-/**
- * Merge stored filters with the current DEFAULT_FILTERS shape.
- * - Keys in storage that no longer exist in defaults are silently dropped.
- * - Keys that exist in defaults but not in storage get their default value.
- * - `limit` is always taken from defaults (never persisted).
- */
 function mergeWithDefaults(stored: Record<string, unknown>): Filters {
   const merged = { ...DEFAULT_FILTERS };
 
   for (const key of Object.keys(DEFAULT_FILTERS) as (keyof Filters)[]) {
     if (key === "limit") continue;
-    if (key in stored) {
-      const val = stored[key];
-      // Only accept boolean | null — guards against corrupt data
+    if (!(key in stored)) continue;
+
+    const val = stored[key];
+    if (key === "ip_contains") {
+      if (typeof val === "string" || val === null) {
+        (merged as Record<string, unknown>)[key] = val;
+      }
+    } else {
       if (val === null || val === true || val === false) {
         (merged as Record<string, unknown>)[key] = val;
       }
@@ -37,7 +36,6 @@ export function loadFilters(): Filters {
 
 export function saveFilters(filters: Filters): void {
   try {
-    // Exclude `limit` from persistence
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { limit: _limit, ...persistable } = filters;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));

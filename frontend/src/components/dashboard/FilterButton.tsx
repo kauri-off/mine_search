@@ -1,6 +1,11 @@
 import { cn } from "@/cn";
-import { cycleTriState } from "@/constants/dashboardFilters";
 import { useTranslation } from "@/i18n";
+
+function cycleTriState(current: boolean | null): boolean | null {
+  if (current === null) return true;
+  if (current === true) return false;
+  return null;
+}
 
 interface FilterButtonProps {
   label: string;

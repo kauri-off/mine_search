@@ -1,4 +1,6 @@
 pub mod add_target;
+pub mod delete_player;
+pub mod overwrite_server;
 pub mod me;
 pub mod add_targets;
 pub mod auth;

@@ -2,6 +2,7 @@ import { useTranslation } from "@/i18n";
 import type { Language } from "@/i18n";
 import { useState, useRef, useEffect } from "react";
 import ReactCountryFlag from "react-country-flag";
+import { cn } from "@/cn";
 
 const LANGUAGES: { code: Language; label: string; countryCode: string }[] = [
   { code: "en", label: "English", countryCode: "GB" },
@@ -29,31 +30,48 @@ export const LanguageSwitcher = () => {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded bg-gray-700 text-gray-200 hover:bg-gray-600 transition-colors text-sm font-medium"
+        className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-transparent hover:bg-white/5 text-slate-400 hover:text-slate-200 transition-colors text-sm"
       >
-        <ReactCountryFlag countryCode={current.countryCode} svg style={{ width: "1.25rem", height: "auto" }} />
+        <ReactCountryFlag
+          countryCode={current.countryCode}
+          svg
+          style={{ width: "1rem", height: "auto" }}
+        />
         <span>{current.label}</span>
         <svg
-          className={`w-3 h-3 ml-1 transition-transform ${open ? "rotate-180" : ""}`}
+          className={cn("w-3 h-3 ml-auto transition-transform", open && "rotate-180")}
           viewBox="0 0 10 6"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
         >
-          <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M1 1l4 4 4-4"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1 w-40 rounded bg-gray-800 border border-gray-700 shadow-lg z-50">
+        <div className="absolute bottom-full left-0 mb-1 w-full rounded-lg bg-[#1a1a24] border border-[#2a2a3a] shadow-xl z-50">
           {LANGUAGES.map(({ code, label, countryCode }) => (
             <button
               key={code}
-              onClick={() => { setLang(code); setOpen(false); }}
-              className={`flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-700 transition-colors ${
-                lang === code ? "text-blue-400 font-semibold" : "text-gray-200"
-              }`}
+              onClick={() => {
+                setLang(code);
+                setOpen(false);
+              }}
+              className={cn(
+                "flex items-center gap-2 w-full px-3 py-2 text-sm rounded-lg hover:bg-white/5 transition-colors",
+                lang === code ? "text-indigo-300" : "text-slate-400",
+              )}
             >
-              <ReactCountryFlag countryCode={countryCode} svg style={{ width: "1.25rem", height: "auto" }} />
+              <ReactCountryFlag
+                countryCode={countryCode}
+                svg
+                style={{ width: "1rem", height: "auto" }}
+              />
               <span>{label}</span>
             </button>
           ))}

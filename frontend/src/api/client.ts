@@ -13,7 +13,9 @@ import type {
   PlayerResponse,
   PlayerListRequest,
   UpdatePlayerRequest,
-  PingServerRequest
+  PingServerRequest,
+  DeletePlayerRequest,
+  OverwriteServerRequest,
 } from '@/types';
 
 const API_URL = '/api/v1';
@@ -77,6 +79,12 @@ export const serverApi = {
   },
 
   updatePlayer: (body: UpdatePlayerRequest) => api.post('/player/update', body),
+
+  deletePlayer: (body: DeletePlayerRequest) => api.post('/player/delete', body),
+
+  overwriteServer: (body: OverwriteServerRequest) => api.post('/server/overwrite', body),
+
+  addTargetList: (body: AddAddrRequest[]) => api.post('/target/add_list', body),
 
   pingServer: (body: PingServerRequest) => api.post('/server/ping', body),
 

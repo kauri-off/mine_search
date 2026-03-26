@@ -7,6 +7,9 @@ export interface Translations {
     all: string;
     cracked: string;
     loaded: string;
+    addTarget: string;
+    bulkImport: string;
+    searchPlaceholder: string;
   };
   filters: {
     label: string;
@@ -33,6 +36,17 @@ export interface Translations {
     adding: string;
     invalidFormat: string;
     error: string;
+  };
+  bulkImport: {
+    title: string;
+    placeholder: string;
+    parse: string;
+    importN: (n: number) => string;
+    importing: string;
+    success: (n: number) => string;
+    error: string;
+    invalidLines: (n: number) => string;
+    quickMode: string;
   };
   serverGrid: {
     loading: string;
@@ -72,12 +86,27 @@ export interface Translations {
     deleting: string;
     confirm: string;
     deleteServer: string;
+    editServer: string;
+    saveChanges: string;
+    cancelEdit: string;
+    port: string;
+    protocol: string;
+    versionName: string;
+    isOnline: string;
+    favicon: string;
+    editSuccess: string;
+    editError: string;
   };
   playersTable: {
     title: string;
     name: string;
     status: string;
     empty: string;
+    deletePlayer: string;
+    deleteConfirm: string;
+    deleteYes: string;
+    deleteNo: string;
+    lastSeen: string;
   };
   onlineGraph: {
     title: string;

@@ -18,3 +18,5 @@ export type { VersionStat } from "./VersionStat";
 export type { UpdatePlayerRequest } from "./UpdatePlayerRequest";
 export type { UpdateServerRequest } from "./UpdateServerRequest";
 export type { PingServerRequest } from "./PingServerRequest";
+export type { DeletePlayerRequest } from "./DeletePlayerRequest";
+export type { OverwriteServerRequest } from "./OverwriteServerRequest";

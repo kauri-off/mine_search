@@ -14,20 +14,15 @@ export const DEFAULT_FILTERS: Filters = {
   online: null,
   is_forge: null,
   has_none_players: null,
+  ip_contains: null,
 };
 
-// Tri-state cycle: null → true → false → null
-export const cycleTriState = (current: boolean | null): boolean | null => {
-  if (current === null) return true;
-  if (current === true) return false;
-  return null;
-};
-
-
-/** Returns true when every tristate filter is null (i.e. nothing is active) */
+/** Returns true when every filter is at its default value. */
 export function areFiltersDefault(filters: Filters): boolean {
-  const triStateKeys = Object.keys(DEFAULT_FILTERS).filter(
-    (k) => k !== "limit",
-  ) as (keyof Omit<Filters, "limit">)[];
-  return triStateKeys.every((k) => filters[k] === null);
+  const boolKeys = Object.keys(DEFAULT_FILTERS).filter(
+    (k) => k !== "limit" && k !== "ip_contains",
+  ) as (keyof Omit<Filters, "limit" | "ip_contains">)[];
+  const boolsDefault = boolKeys.every((k) => filters[k] === null);
+  const ipDefault = !filters.ip_contains;
+  return boolsDefault && ipDefault;
 }
