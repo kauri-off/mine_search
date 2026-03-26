@@ -78,17 +78,13 @@ export const AppShell = ({ children }: AppShellProps) => {
       </aside>
 
       {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/60 md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-          <aside className="fixed inset-y-0 left-0 z-50 w-56 bg-[#111118] border-r border-[#2a2a3a] flex flex-col md:hidden">
-            {sidebarContent(() => setSidebarOpen(false))}
-          </aside>
-        </>
-      )}
+      <div
+        className={`fixed inset-0 z-40 bg-black/60 md:hidden transition-opacity duration-200 ${sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+      <aside className={`fixed inset-y-0 left-0 z-50 w-56 bg-[#111118] border-r border-[#2a2a3a] flex flex-col md:hidden transition-transform duration-200 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        {sidebarContent(() => setSidebarOpen(false))}
+      </aside>
 
       {/* Main content */}
       <main className="flex-1 overflow-hidden flex flex-col min-w-0">
