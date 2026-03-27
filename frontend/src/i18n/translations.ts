@@ -110,6 +110,7 @@ export interface Translations {
   };
   onlineGraph: {
     title: string;
+    online: string;
   };
   stats: {
     title: string;

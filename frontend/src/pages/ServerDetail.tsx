@@ -39,6 +39,7 @@ export const ServerDetail = () => {
   const { data: server, isLoading: isInfoLoading } = useQuery({
     queryKey: ["server", ip],
     queryFn: () => serverApi.fetchServerInfo(ip),
+    staleTime: 10 * 60 * 1000,
   });
 
   const { data: history, isLoading: isHistoryLoading } = useQuery({
@@ -46,12 +47,14 @@ export const ServerDetail = () => {
     queryFn: () =>
       serverApi.fetchServerSnapshots({ server_id: server!.id, limit: 100 }),
     enabled: !!server?.id,
+    staleTime: 10 * 60 * 1000,
   });
 
   const { data: players } = useQuery({
     queryKey: ["playerList", server?.id],
     queryFn: () => serverApi.fetchPlayerList({ server_id: server!.id }),
     enabled: !!server?.id,
+    staleTime: 10 * 60 * 1000,
   });
 
   // -- Mutations -------------------------------------------------------------

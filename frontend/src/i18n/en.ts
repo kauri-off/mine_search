@@ -107,6 +107,7 @@ export const en: Translations = {
   },
   onlineGraph: {
     title: "Player count",
+    online: "Online",
   },
   stats: {
     title: "Statistics",

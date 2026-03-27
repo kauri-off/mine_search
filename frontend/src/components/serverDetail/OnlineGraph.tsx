@@ -24,10 +24,13 @@ export const OnlineGraph = ({ data, isLoading }: OnlineGraphProps) => {
   const { t } = useTranslation();
 
   return (
-    <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5 h-80">
+    <div
+      className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5 h-80 select-none"
+      onMouseDown={(e) => e.preventDefault()}
+    >
       <h3 className="text-sm font-semibold text-slate-300 mb-4">{t.onlineGraph.title}</h3>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={isLoading || data === undefined ? [] : data}>
+        <AreaChart data={isLoading || data === undefined ? [] : data} style={{ userSelect: "none" }}>
           <defs>
             <linearGradient id="colorOnline" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
@@ -49,6 +52,7 @@ export const OnlineGraph = ({ data, isLoading }: OnlineGraphProps) => {
           <Area
             type="monotone"
             dataKey="online"
+            name={t.onlineGraph.online}
             stroke="#6366f1"
             strokeWidth={1.5}
             fillOpacity={1}

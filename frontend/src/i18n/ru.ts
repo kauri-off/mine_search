@@ -107,6 +107,7 @@ export const ru: Translations = {
   },
   onlineGraph: {
     title: "График онлайна",
+    online: "Онлайн",
   },
   stats: {
     title: "Статистика",
