@@ -69,7 +69,7 @@ services:
   watchtower:
     image: containrrr/watchtower
     environment:
-      - WATCHTOWER_POLL_INTERVAL=60
+      - WATCHTOWER_POLL_INTERVAL=3600
       - WATCHTOWER_CLEANUP=true
       - DOCKER_API_VERSION=1.44
     volumes:
