@@ -19,45 +19,19 @@
 
 ## Prerequisites
 
-Ensure you have **Python 3** installed. Download it from [python.org](https://www.python.org/downloads/).
+- [Docker](https://docs.docker.com/get-docker/) with Docker Compose
 
-## 1. Create a Virtual Environment
+## 1. Configure environment
 
-Create a `.venv` in the project root:
+Edit the `.env` file in the project root and set your values.
 
-```bash
-python -m venv .venv
-```
-
-## 2. Activate the Virtual Environment
-
-**Windows:**
+## 2. Start
 
 ```bash
-.venv\Scripts\activate
+docker compose up -d
 ```
 
-**macOS / Linux:**
-
-```bash
-source .venv/bin/activate
-```
-
-## 3. Install Dependencies
-
-Install the required packages:
-
-```bash
-pip install -r requirements.txt
-```
-
-## 4. Run Setup
-
-```bash
-python setup.py
-```
-
-> 💡 To deactivate the virtual environment when you're done, simply run `deactivate`.
+The backend automatically runs any pending database migrations on startup. The app will be available at `http://localhost:8080`.
 
 ## Screenshots
 

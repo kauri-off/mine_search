@@ -8,9 +8,9 @@ COPY db_schema/src db_schema/src
 COPY db_schema/Cargo.toml db_schema/
 COPY backend/src backend/src
 COPY backend/Cargo.toml backend/
+COPY backend/Cargo.lock backend/
 
 WORKDIR /app/backend
-RUN cargo generate-lockfile
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
@@ -21,6 +21,7 @@ COPY --from=planner /app/backend/recipe.json recipe.json
 COPY --from=planner /app/backend/Cargo.lock Cargo.lock
 
 COPY db_schema/src /app/db_schema/src
+COPY db_schema/migrations /app/db_schema/migrations
 COPY db_schema/Cargo.toml /app/db_schema/
 
 RUN cargo chef cook --release --recipe-path recipe.json

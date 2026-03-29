@@ -4,9 +4,11 @@ WORKDIR /app
 
 COPY db_schema/src db_schema/src
 COPY db_schema/Cargo.toml db_schema/
+COPY db_schema/migrations db_schema/migrations
 
 COPY worker/src worker/src
 COPY worker/Cargo.toml worker/Cargo.toml
+COPY worker/Cargo.lock worker/Cargo.lock
 
 WORKDIR /app/worker
 RUN cargo build --release

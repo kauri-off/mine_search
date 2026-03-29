@@ -1,5 +1,10 @@
 use std::{env, sync::Arc};
 
+use diesel::{Connection, PgConnection};
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../db_schema/migrations");
+
 use db_schema::schema;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
@@ -63,6 +68,13 @@ async fn main() {
 
     info!("mine_search starting");
     info!("Threads: {}", threads);
+
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let mut migration_conn = PgConnection::establish(&database_url)
+        .expect("Failed to connect to database for migrations");
+    migration_conn
+        .run_pending_migrations(MIGRATIONS)
+        .expect("Failed to run database migrations");
 
     let db = Arc::new(DatabaseWrapper::establish());
     debug!("Connection to database established");

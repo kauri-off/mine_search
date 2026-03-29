@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres
+    container_name: postgres-container
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    restart: unless-stopped
+  worker:
+    image: ghcr.io/kauri-off/mine_search/worker:latest
+    environment:
+      THREADS: ${THREADS}
+      DATABASE_URL: ${DATABASE_URL}
+      SEARCH_MODULE: ${SEARCH_MODULE}
+      UPDATE_MODULE: ${UPDATE_MODULE}
+      UPDATE_WITH_CONNECTION: ${UPDATE_WITH_CONNECTION}
+      RUST_LOG: ${RUST_LOG}
+      ONLY_UPDATE_SPOOFABLE: ${ONLY_UPDATE_SPOOFABLE}
+    networks:
+      - app-network
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+  backend:
+    image: ghcr.io/kauri-off/mine_search/backend:latest
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      BACKEND_PASSWORD: ${BACKEND_PASSWORD}
+      BACKEND_JWT_SECRET: ${BACKEND_JWT_SECRET}
+    networks:
+      - app-network
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+  frontend:
+    image: ghcr.io/kauri-off/mine_search/frontend:latest
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - 8080:80
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - app-network
+    restart: unless-stopped
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+networks:
+  app-network:
+volumes:
+  postgres-data:
