@@ -37,6 +37,7 @@ The backend automatically runs any pending database migrations on startup. The a
 
 ![Dashboard](dashboard.png)
 ![Server Details](server.png)
+![Stats](stats.png)
 
 ## masscan_wrapper
 
