@@ -22,7 +22,7 @@ services:
     image: ghcr.io/kauri-off/mine_search/worker:latest
     environment:
       THREADS: ${THREADS}
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
       SEARCH_MODULE: ${SEARCH_MODULE}
       UPDATE_MODULE: ${UPDATE_MODULE}
       UPDATE_WITH_CONNECTION: ${UPDATE_WITH_CONNECTION}
@@ -37,7 +37,7 @@ services:
   backend:
     image: ghcr.io/kauri-off/mine_search/backend:latest
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
       BACKEND_PASSWORD: ${BACKEND_PASSWORD}
       BACKEND_JWT_SECRET: ${BACKEND_JWT_SECRET}
     networks:
@@ -68,6 +68,10 @@ services:
     restart: unless-stopped
   watchtower:
     image: containrrr/watchtower
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=60
+      - WATCHTOWER_CLEANUP=true
+      - DOCKER_API_VERSION=1.44
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped

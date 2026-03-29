@@ -23,7 +23,7 @@
 
 ## 1. Configure environment
 
-Edit the `.env` file in the project root and set your values.
+Copy .env.example to .env and edit the `.env` file in the project root and set your values.
 
 ## 2. Start
 
@@ -79,13 +79,14 @@ Replace `<range>` with the IP range you want to scan, e.g. `10.0.0.0/8`.
   --file output.txt
 ```
 
-| Flag | Short | Description |
-|------|-------|-------------|
-| `--endpoint` | `-e` | Base URL of the mine_search API (e.g. `https://example.com`) |
-| `--password` | `-p` | API login password |
-| `--file` | `-f` | Path to the masscan `-oG` output file |
+| Flag         | Short | Description                                                  |
+| ------------ | ----- | ------------------------------------------------------------ |
+| `--endpoint` | `-e`  | Base URL of the mine_search API (e.g. `https://example.com`) |
+| `--password` | `-p`  | API login password                                           |
+| `--file`     | `-f`  | Path to the masscan `-oG` output file                        |
 
 The tool will:
+
 1. Log in to the API using the provided password.
 2. Parse the masscan output file and extract all discovered IPs.
 3. Show you how many IPs were found and prompt for confirmation before importing.
@@ -108,7 +109,6 @@ Add these 42 IP(s) to https://example.com? [y/N] y
 - The wrapper expects masscan output in **grepable format** (`-oG`). Other output formats (JSON, XML, binary) are not supported.
 - Masscan must be run as **root** (or with `sudo`) because it requires raw socket access.
 - Rate (`--rate`) controls packets per second — adjust based on your network and target. High rates may trigger network alarms or cause packet loss.
-
 
 ## License
 
