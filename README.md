@@ -23,7 +23,7 @@
 
 ## 1. Configure environment
 
-Copy .env.example to .env and edit the `.env` file in the project root and set your values.
+Copy `.env.example` to `.env` and edit the `.env`
 
 ## 2. Start
 
