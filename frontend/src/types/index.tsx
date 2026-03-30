@@ -20,3 +20,5 @@ export type { UpdateServerRequest } from "./UpdateServerRequest";
 export type { PingServerRequest } from "./PingServerRequest";
 export type { DeletePlayerRequest } from "./DeletePlayerRequest";
 export type { OverwriteServerRequest } from "./OverwriteServerRequest";
+export type { PlayerSearchRequest } from "./PlayerSearchRequest";
+export type { PlayerSearchResponse } from "./PlayerSearchResponse";

@@ -34,7 +34,10 @@ use tower_http::{
 use tracing::Level;
 
 use crate::api::{
-    fetch_players_list::fetch_players_list, ping_server::ping_server, update_player::update_player,
+    fetch_players_list::fetch_players_list,
+    ping_server::ping_server,
+    search_players::search_players,
+    update_player::update_player,
 };
 
 lazy_static! {
@@ -76,6 +79,7 @@ async fn main() {
         .route("/server/delete", post(server_delete))
         .route("/server/ping", post(ping_server))
         .route("/player/list", post(fetch_players_list))
+        .route("/player/search", post(search_players))
         .route("/player/update", post(update_player))
         .route("/player/delete", post(delete_player))
         .route("/server/overwrite", post(overwrite_server))

@@ -17,6 +17,9 @@ const ServerDetail = lazy(() =>
 const Stats = lazy(() =>
   import("./pages/Stats").then((m) => ({ default: m.Stats })),
 );
+const Players = lazy(() =>
+  import("./pages/Players").then((m) => ({ default: m.Players })),
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +55,7 @@ function App() {
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/server/:ip" element={<ServerDetail />} />
                             <Route path="/stats" element={<Stats />} />
+                            <Route path="/players" element={<Players />} />
                           </Routes>
                         </Suspense>
                       </AppShell>

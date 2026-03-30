@@ -11,3 +11,7 @@ Types in `frontend/src/types/` are generated from Rust structs — **never edit 
 ## Type checking for frontend
 
 Always use `npx tsc -b --noEmit` (not `npx tsc --noEmit`)
+
+## Database schema
+
+`db_schema/src/schema.rs`

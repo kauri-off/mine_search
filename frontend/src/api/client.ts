@@ -16,6 +16,8 @@ import type {
   PingServerRequest,
   DeletePlayerRequest,
   OverwriteServerRequest,
+  PlayerSearchRequest,
+  PlayerSearchResponse,
 } from '@/types';
 
 const API_URL = '/api/v1';
@@ -87,6 +89,11 @@ export const serverApi = {
   addTargetList: (body: AddAddrRequest[]) => api.post('/target/add_list', body),
 
   pingServer: (body: PingServerRequest) => api.post('/server/ping', body),
+
+  searchPlayers: async (body: PlayerSearchRequest): Promise<PlayerSearchResponse[]> => {
+    const { data } = await api.post<PlayerSearchResponse[]>('/player/search', body);
+    return data;
+  },
 
   cleanSnapshots: async (): Promise<CleanupResponse> => {
     const { data } = await api.post<CleanupResponse>('/maintenance/cleanup-snapshots', {});

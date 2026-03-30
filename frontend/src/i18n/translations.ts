@@ -140,6 +140,21 @@ export interface Translations {
     cleaning: string;
     cleanedRows: (n: number) => string;
   };
+  players: {
+    title: string;
+    searchPlaceholder: string;
+    statusAll: string;
+    licensed: string;
+    cracked: string;
+    licenseAll: string;
+    loaded: string;
+    empty: string;
+    end: string;
+    server: string;
+    name: string;
+    status: string;
+    lastSeen: string;
+  };
   login: {
     title: string;
     token: string;

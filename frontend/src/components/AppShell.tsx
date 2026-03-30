@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, BarChart3, Menu, X } from "lucide-react";
+import { LayoutDashboard, BarChart3, Users, Menu, X } from "lucide-react";
 import { cn } from "@/cn";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useTranslation } from "@/i18n";
@@ -47,6 +47,10 @@ export const AppShell = ({ children }: AppShellProps) => {
         <NavLink to="/stats" className={navLinkClass} onClick={onNav}>
           <BarChart3 className="w-4 h-4 flex-shrink-0" />
           {t.stats.title}
+        </NavLink>
+        <NavLink to="/players" className={navLinkClass} onClick={onNav}>
+          <Users className="w-4 h-4 flex-shrink-0" />
+          {t.players.title}
         </NavLink>
       </nav>
 

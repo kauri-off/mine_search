@@ -12,6 +12,7 @@ pub mod fetch_server_list;
 pub mod fetch_server_snapshots;
 pub mod fetch_stats;
 pub mod ping_server;
+pub mod search_players;
 pub mod server_delete;
 pub mod update_player;
 pub mod update_server;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import type {
@@ -179,13 +179,13 @@ export const ServerDetail = () => {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="px-3 py-3 sm:px-6 sm:py-5 max-w-7xl mx-auto">
-        <Link
-          to="/"
+        <button
+          onClick={() => navigate(-1)}
           className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 transition-colors mb-5"
         >
           <ArrowLeft className="w-4 h-4" />
           {t.serverDetail.back}
-        </Link>
+        </button>
 
         {isInfoLoading ? (
           <div className="flex items-center justify-center mt-20">
