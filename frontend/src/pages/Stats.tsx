@@ -1,5 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   PieChart,
   Pie,
@@ -23,7 +22,6 @@ import {
   Activity,
   Database,
   Image,
-  Zap,
 } from "lucide-react";
 import { serverApi } from "@/api/client";
 import { Spinner } from "@/components";
@@ -66,33 +64,6 @@ function StatCard({
   );
 }
 
-function CleanButton({
-  label,
-  loadingLabel,
-  isPending,
-  onClick,
-}: {
-  label: string;
-  loadingLabel: string;
-  isPending: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={isPending}
-      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#1a1a24] border border-[#2a2a3a] text-slate-400 hover:text-slate-200 hover:border-[#3a3a4a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-    >
-      {isPending ? (
-        <Spinner className="w-3.5 h-3.5 text-indigo-400" />
-      ) : (
-        <Wrench className="w-3.5 h-3.5" />
-      )}
-      {isPending ? loadingLabel : label}
-    </button>
-  );
-}
-
 function formatMb(mb: number): string {
   return `${mb.toFixed(2)} MB`;
 }
@@ -109,31 +80,11 @@ const tooltipStyle = {
 
 export const Stats = () => {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ["stats"],
     queryFn: serverApi.fetchStats,
     staleTime: Infinity,
-  });
-
-  const [snapshotResult, setSnapshotResult] = useState<number | null>(null);
-  const [faviconResult, setFaviconResult] = useState<number | null>(null);
-
-  const cleanSnapshotsMutation = useMutation({
-    mutationFn: serverApi.cleanSnapshots,
-    onSuccess: (data) => {
-      setSnapshotResult(data.deleted);
-      queryClient.invalidateQueries({ queryKey: ["stats"] });
-    },
-  });
-
-  const cleanFaviconsMutation = useMutation({
-    mutationFn: serverApi.cleanFavicons,
-    onSuccess: (data) => {
-      setFaviconResult(data.deleted);
-      queryClient.invalidateQueries({ queryKey: ["stats"] });
-    },
   });
 
   if (isLoading || !stats) {
@@ -238,50 +189,6 @@ export const Stats = () => {
           </div>
         )}
 
-        {/* Maintenance */}
-        <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5">
-          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
-            <span className="flex items-center gap-2">
-              <Zap className="w-3.5 h-3.5" />
-              {t.stats.maintenance}
-            </span>
-          </h2>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <CleanButton
-                label={t.stats.cleanSnapshots}
-                loadingLabel={t.stats.cleaning}
-                isPending={cleanSnapshotsMutation.isPending}
-                onClick={() => {
-                  setSnapshotResult(null);
-                  cleanSnapshotsMutation.mutate();
-                }}
-              />
-              {snapshotResult !== null && (
-                <span className="text-sm text-slate-500">
-                  {t.stats.cleanedRows(snapshotResult)}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3">
-              <CleanButton
-                label={t.stats.cleanFavicons}
-                loadingLabel={t.stats.cleaning}
-                isPending={cleanFaviconsMutation.isPending}
-                onClick={() => {
-                  setFaviconResult(null);
-                  cleanFaviconsMutation.mutate();
-                }}
-              />
-              {faviconResult !== null && (
-                <span className="text-sm text-slate-500">
-                  {t.stats.cleanedRows(faviconResult)}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

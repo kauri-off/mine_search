@@ -131,11 +131,6 @@ export const ru: Translations = {
     offline: "Оффлайн",
     admin: "Админ",
     other: "Другие",
-    maintenance: "Обслуживание",
-    cleanSnapshots: "Очистить старые снапшоты",
-    cleanFavicons: "Очистить иконки",
-    cleaning: "Очищаю...",
-    cleanedRows: (n) => `Удалено ${n} записей`,
   },
   players: {
     title: "Игроки",

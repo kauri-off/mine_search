@@ -7,7 +7,6 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../db_schema/migra
 
 use api::{
     add_target::add_target, add_targets::add_addrs, auth::authenticate_user,
-    cleanup_favicons::cleanup_favicons, cleanup_snapshots::cleanup_snapshots,
     delete_player::delete_player, fetch_server_info::fetch_server_info,
     fetch_server_list::fetch_server_list, fetch_server_snapshots::fetch_server_snapshots,
     fetch_stats::fetch_stats, me::me, overwrite_server::overwrite_server,
@@ -89,8 +88,6 @@ async fn main() {
         .route("/target/add_list", post(add_addrs))
         .route("/auth/me", post(me))
         .route("/stats", post(fetch_stats))
-        .route("/maintenance/cleanup-snapshots", post(cleanup_snapshots))
-        .route("/maintenance/cleanup-favicons", post(cleanup_favicons))
         .layer(middleware::from_fn(api_middleware::middleware_check))
         .layer(DefaultBodyLimit::disable());
 

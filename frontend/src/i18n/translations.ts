@@ -134,11 +134,6 @@ export interface Translations {
     offline: string;
     admin: string;
     other: string;
-    maintenance: string;
-    cleanSnapshots: string;
-    cleanFavicons: string;
-    cleaning: string;
-    cleanedRows: (n: number) => string;
   };
   players: {
     title: string;

@@ -1,7 +1,6 @@
 import axios from 'axios';
 import type {
   AuthBody,
-  CleanupResponse,
   StatsResponse,
   ServerSnapshotsRequest,
   ServerListRequest,
@@ -95,13 +94,4 @@ export const serverApi = {
     return data;
   },
 
-  cleanSnapshots: async (): Promise<CleanupResponse> => {
-    const { data } = await api.post<CleanupResponse>('/maintenance/cleanup-snapshots', {});
-    return data;
-  },
-
-  cleanFavicons: async (): Promise<CleanupResponse> => {
-    const { data } = await api.post<CleanupResponse>('/maintenance/cleanup-favicons', {});
-    return data;
-  },
 };

@@ -131,11 +131,6 @@ export const en: Translations = {
     offline: "Offline",
     admin: "Admin",
     other: "Other",
-    maintenance: "Maintenance",
-    cleanSnapshots: "Clean Old Snapshots",
-    cleanFavicons: "Clean Favicons",
-    cleaning: "Cleaning...",
-    cleanedRows: (n) => `Cleaned ${n} rows`,
   },
   players: {
     title: "Players",
