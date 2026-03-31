@@ -1,5 +1,8 @@
 [database]
 url = "postgres://user:change_me@postgres-container/mine_search_db"
+# Format: postgres://<POSTGRES_USER>:<POSTGRES_PASSWORD>@postgres-container/<POSTGRES_DB>
+# If you change user or password here, update the matching variables in docker-compose.yml:
+#   POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
 
 [backend]
 password   = "change_me"

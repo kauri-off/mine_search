@@ -23,7 +23,19 @@
 
 ## 1. Configure environment
 
-Copy `config.example.toml` to `config.toml` and edit the `config.toml`
+Copy `config.example.toml` to `config.toml` and fill in your values:
+
+```bash
+cp config.example.toml config.toml
+```
+
+Edit `config.toml` — at minimum set `[database].url`, `[backend].password`, and the postgres credentials.
+
+> [!IMPORTANT]
+> The `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` values in `docker-compose.yml` are only applied **on first container creation**. If you change the password after the database volume already exists, you must update it manually inside the container:
+> ```sql
+> ALTER ROLE <user> WITH PASSWORD 'new_password';
+> ```
 
 ## 2. Start
 

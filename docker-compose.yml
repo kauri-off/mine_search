@@ -3,6 +3,8 @@ services:
     image: postgres
     container_name: postgres-container
     environment:
+      # These vars only apply on first container creation.
+      # To change them on an existing DB, connect manually and run ALTER ROLE / ALTER DATABASE.
       POSTGRES_USER: user
       POSTGRES_PASSWORD: change_me
       POSTGRES_DB: mine_search_db
