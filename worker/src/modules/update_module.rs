@@ -143,6 +143,20 @@ pub async fn update_server(
         .execute(&mut conn)
         .await?;
 
+    diesel::sql_query(
+        "DELETE FROM player_count_snapshots \
+         WHERE server_id = $1 \
+         AND recorded_at < ( \
+             SELECT recorded_at FROM player_count_snapshots \
+             WHERE server_id = $1 \
+             ORDER BY recorded_at DESC \
+             LIMIT 1 OFFSET 99 \
+         )",
+    )
+    .bind::<diesel::sql_types::Integer, _>(server.id)
+    .execute(&mut conn)
+    .await?;
+
     let sample = status.players.sample.unwrap_or_default();
     let mut seen = std::collections::HashSet::new();
     let player_inserts: Vec<_> = sample
