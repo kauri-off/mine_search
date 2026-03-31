@@ -1,0 +1,15 @@
+[database]
+url = "postgres://user:change_me@postgres-container/mine_search_db"
+
+[backend]
+password   = "change_me"
+jwt_secret = ""          # auto-generated if empty
+
+[worker]
+threads                = 500
+search_module          = true
+update_module          = true
+update_with_connection = false
+only_update_spoofable  = false
+only_update_cracked    = false
+log_level              = "info"

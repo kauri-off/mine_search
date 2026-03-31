@@ -1,4 +1,4 @@
-use std::{env, sync::Arc};
+use std::sync::Arc;
 
 use diesel::{Connection, PgConnection};
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
@@ -26,41 +26,20 @@ mod server_actions;
 
 #[tokio::main]
 async fn main() {
-    let threads: i32 = env::var("THREADS")
-        .unwrap_or("150".to_string())
-        .parse()
-        .expect("THREADS env var must be a valid i32");
+    let config = db_schema::config::Config::load().expect("Failed to load config.toml");
+    let worker_cfg = config.worker.expect("Missing [worker] section in config.toml");
 
-    let search_module: bool = env::var("SEARCH_MODULE")
-        .unwrap_or("true".to_string())
-        .parse()
-        .unwrap_or(true);
-
-    let update_module: bool = env::var("UPDATE_MODULE")
-        .unwrap_or("true".to_string())
-        .parse()
-        .unwrap_or(true);
-
-    let update_with_connection: bool = env::var("UPDATE_WITH_CONNECTION")
-        .unwrap_or("false".to_string())
-        .parse()
-        .unwrap_or(false);
-
-    let only_update_spoofable: bool = env::var("ONLY_UPDATE_SPOOFABLE")
-        .unwrap_or("false".to_string())
-        .parse()
-        .unwrap_or(false);
-
-    let only_update_cracked: bool = env::var("ONLY_UPDATE_CRACKED")
-        .unwrap_or("false".to_string())
-        .parse()
-        .unwrap_or(false);
+    let threads = worker_cfg.threads;
+    let search_module = worker_cfg.search_module;
+    let update_module = worker_cfg.update_module;
+    let update_with_connection = worker_cfg.update_with_connection;
+    let only_update_spoofable = worker_cfg.only_update_spoofable;
+    let only_update_cracked = worker_cfg.only_update_cracked;
 
     tracing_subscriber::registry()
         .with(fmt::layer())
         .with(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("info"))
+            EnvFilter::new(worker_cfg.log_level.as_deref().unwrap_or("info"))
                 .add_directive("tokio_postgres=warn".parse().expect("hardcoded tracing directive is valid"))
                 .add_directive("diesel=warn".parse().expect("hardcoded tracing directive is valid")),
         )
@@ -69,14 +48,13 @@ async fn main() {
     info!("mine_search starting");
     info!("Threads: {}", threads);
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let mut migration_conn = PgConnection::establish(&database_url)
+    let mut migration_conn = PgConnection::establish(&config.database.url)
         .expect("Failed to connect to database for migrations");
     migration_conn
         .run_pending_migrations(MIGRATIONS)
         .expect("Failed to run database migrations");
 
-    let db = Arc::new(DatabaseWrapper::establish());
+    let db = Arc::new(DatabaseWrapper::establish(&config.database.url));
     debug!("Connection to database established");
 
     let count: i64 = schema::servers::table

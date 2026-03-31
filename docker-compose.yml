@@ -3,13 +3,13 @@ services:
     image: postgres
     container_name: postgres-container
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: change_me
+      POSTGRES_DB: mine_search_db
     healthcheck:
       test:
         - CMD-SHELL
-        - pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+        - pg_isready -U user -d mine_search_db
       interval: 5s
       timeout: 5s
       retries: 5
@@ -20,14 +20,8 @@ services:
     restart: unless-stopped
   worker:
     image: ghcr.io/kauri-off/mine_search/worker:latest
-    environment:
-      THREADS: ${THREADS}
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
-      SEARCH_MODULE: ${SEARCH_MODULE}
-      UPDATE_MODULE: ${UPDATE_MODULE}
-      UPDATE_WITH_CONNECTION: ${UPDATE_WITH_CONNECTION}
-      RUST_LOG: ${RUST_LOG}
-      ONLY_UPDATE_SPOOFABLE: ${ONLY_UPDATE_SPOOFABLE}
+    volumes:
+      - ./config.toml:/app/config.toml:ro
     networks:
       - app-network
     restart: unless-stopped
@@ -36,10 +30,8 @@ services:
         condition: service_healthy
   backend:
     image: ghcr.io/kauri-off/mine_search/backend:latest
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-container/${POSTGRES_DB}
-      BACKEND_PASSWORD: ${BACKEND_PASSWORD}
-      BACKEND_JWT_SECRET: ${BACKEND_JWT_SECRET}
+    volumes:
+      - ./config.toml:/app/config.toml:ro
     networks:
       - app-network
     restart: unless-stopped

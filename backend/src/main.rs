@@ -1,4 +1,4 @@
-use std::{env, sync::Arc};
+use std::sync::Arc;
 
 use diesel::{Connection, PgConnection};
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
@@ -62,14 +62,16 @@ async fn main() {
         .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
         .on_response(trace::DefaultOnResponse::new().level(Level::INFO));
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let mut migration_conn = PgConnection::establish(&database_url)
+    let config = db_schema::config::Config::load().expect("Failed to load config.toml");
+    let backend_cfg = config.backend.expect("Missing [backend] section in config.toml");
+
+    let mut migration_conn = PgConnection::establish(&config.database.url)
         .expect("Failed to connect to database for migrations");
     migration_conn
         .run_pending_migrations(MIGRATIONS)
         .expect("Failed to run database migrations");
 
-    let db = Arc::new(DatabaseWrapper::establish());
+    let db = Arc::new(DatabaseWrapper::establish(&config.database.url));
 
     let protected_routes = Router::new()
         .route("/server/info", post(fetch_server_info))
@@ -107,18 +109,14 @@ async fn main() {
         .layer(logging)
         .with_state(db);
 
-    match env::var("BACKEND_PASSWORD") {
-        Ok(t) => {
-            let mut password_mutex = BACKEND_PASSWORD.lock().await;
-            let mut secret_mutex = BACKEND_SECRET.lock().await;
-            *password_mutex = t;
-            *secret_mutex =
-                env::var("BACKEND_JWT_SECRET").unwrap_or_else(|_| generate_random_string(32));
-        }
-        Err(_) => {
-            eprintln!("[-] You must set BACKEND_PASSWORD in .env");
-            return;
-        }
+    {
+        let mut password_mutex = BACKEND_PASSWORD.lock().await;
+        let mut secret_mutex = BACKEND_SECRET.lock().await;
+        *password_mutex = backend_cfg.password;
+        *secret_mutex = backend_cfg
+            .jwt_secret
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| generate_random_string(32));
     }
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")

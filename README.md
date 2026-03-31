@@ -23,7 +23,7 @@
 
 ## 1. Configure environment
 
-Copy `.env.example` to `.env` and edit the `.env`
+Copy `config.example.toml` to `config.toml` and edit the `config.toml`
 
 ## 2. Start
 
