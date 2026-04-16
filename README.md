@@ -7,21 +7,20 @@
 > [!CAUTION]
 > RUNNING THE WORKER MAY RESULT IN YOUR SERVER BEING BLOCKED DUE TO ABUSIVE SCANNING ACTIVITIES. MAKE SURE YOU UNDERSTAND THE RISKS INVOLVED.
 
-## Tech Stack
-
-| Layer    | Technology                                                         |
-| -------- | ------------------------------------------------------------------ |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS, TanStack Query, Recharts |
-| Backend  | Rust, Axum, Diesel, PostgreSQL                                     |
-| Worker   | Rust, Tokio, Diesel, PostgreSQL                                    |
-
 # Installation
 
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) with Docker Compose
 
-## 1. Configure environment
+## 1. Clone the repository
+
+```bash
+git clone https://github.com/kauri-off/mine_search.git
+cd mine_search
+```
+
+## 2. Configure environment
 
 Copy `config.example.toml` to `config.toml` and fill in your values:
 
@@ -37,7 +36,7 @@ Edit `config.toml` — at minimum set `[database].url`, `[backend].password`, an
 > ALTER ROLE <user> WITH PASSWORD 'new_password';
 > ```
 
-## 2. Start
+## 3. Start
 
 ```bash
 docker compose up -d
