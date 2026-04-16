@@ -7,7 +7,6 @@ use crate::BACKEND_SECRET;
 pub struct Claims {
     pub exp: usize, // Required (validate_exp defaults to true in validation). Expiration time (as UTC timestamp)
     pub iat: usize, // Optional. Issued at (as UTC timestamp)
-    pub ip: String,
 }
 
 pub enum JwtError {

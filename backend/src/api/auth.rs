@@ -105,7 +105,7 @@ pub async fn authenticate_user(
     let exp: usize = (now + expire).timestamp() as usize;
     let iat: usize = now.timestamp() as usize;
 
-    let my_claims = Claims { exp, iat, ip };
+    let my_claims = Claims { exp, iat };
 
     let jwt = jwt_encode(my_claims)
         .await
