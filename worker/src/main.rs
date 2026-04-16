@@ -27,7 +27,9 @@ mod server_actions;
 #[tokio::main]
 async fn main() {
     let config = db_schema::config::Config::load().expect("Failed to load config.toml");
-    let worker_cfg = config.worker.expect("Missing [worker] section in config.toml");
+    let worker_cfg = config
+        .worker
+        .expect("Missing [worker] section in config.toml");
 
     let threads = worker_cfg.threads;
     let search_module = worker_cfg.search_module;
@@ -40,8 +42,16 @@ async fn main() {
         .with(fmt::layer())
         .with(
             EnvFilter::new(worker_cfg.log_level.as_deref().unwrap_or("info"))
-                .add_directive("tokio_postgres=warn".parse().expect("hardcoded tracing directive is valid"))
-                .add_directive("diesel=warn".parse().expect("hardcoded tracing directive is valid")),
+                .add_directive(
+                    "tokio_postgres=warn"
+                        .parse()
+                        .expect("hardcoded tracing directive is valid"),
+                )
+                .add_directive(
+                    "diesel=warn"
+                        .parse()
+                        .expect("hardcoded tracing directive is valid"),
+                ),
         )
         .init();
 
@@ -59,7 +69,13 @@ async fn main() {
 
     let count: i64 = schema::servers::table
         .select(diesel::dsl::count(schema::servers::id))
-        .first(&mut db.pool.get().await.expect("Failed to get DB connection at startup"))
+        .first(
+            &mut db
+                .pool
+                .get()
+                .await
+                .expect("Failed to get DB connection at startup"),
+        )
         .await
         .expect("Failed to count servers at startup");
 
