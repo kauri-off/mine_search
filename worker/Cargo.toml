@@ -6,9 +6,9 @@ edition = "2024"
 [dependencies]
 mc_protocol = { version = "2.1.0"}
 db_schema = { path = "../db_schema" }
-tokio = { version = "1.50.0", features = ["full"] }
+tokio = { version = "1.52.0", features = ["full"] }
 
-rand = "0.10.0"
+rand = "0.10.1"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 
@@ -21,8 +21,8 @@ anyhow = "1.0.102"
 rand_chacha = "0.10.0"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
-uuid = "1.23.0"
+uuid = "1.23.1"
 
 [target.'cfg(windows)'.dependencies]
 pq-sys = { version = "0.7.5", features = ["bundled"] }
-openssl-sys = { version = "0.9.112", features = ["vendored"] }
+openssl-sys = { version = "0.9.113", features = ["vendored"] }
