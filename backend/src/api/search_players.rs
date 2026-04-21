@@ -55,11 +55,10 @@ pub async fn search_players(
             Box::new(sql::<Bool>("TRUE"))
         };
 
-    let name_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
-        match body.name_contains {
-            Some(ref s) if !s.is_empty() => Box::new(players::name.ilike(format!("%{}%", s))),
-            _ => Box::new(sql::<Bool>("TRUE")),
-        };
+    let name_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.name_contains {
+        Some(ref s) if !s.is_empty() => Box::new(players::name.ilike(format!("%{}%", s))),
+        _ => Box::new(sql::<Bool>("TRUE")),
+    };
 
     use db_schema::models::players::PlayerStatus as DbPlayerStatus;
     let status_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.status {

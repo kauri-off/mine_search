@@ -129,12 +129,10 @@ pub async fn fetch_stats(
         .map(|(version, count)| VersionStat { version, count })
         .collect();
 
-    let db_size_bytes = diesel::dsl::sql::<BigInt>(
-        "SELECT pg_database_size(current_database())",
-    )
-    .get_result::<i64>(&mut conn)
-    .await
-    .map_err(|e| AppError::db("Failed to get DB size", e))?;
+    let db_size_bytes = diesel::dsl::sql::<BigInt>("SELECT pg_database_size(current_database())")
+        .get_result::<i64>(&mut conn)
+        .await
+        .map_err(|e| AppError::db("Failed to get DB size", e))?;
 
     let favicon_size_bytes = diesel::dsl::sql::<BigInt>(
         "SELECT COALESCE(SUM(octet_length(favicon)), 0) FROM servers WHERE favicon IS NOT NULL",

@@ -1,14 +1,14 @@
 pub mod add_target;
-pub mod delete_player;
-pub mod overwrite_server;
-pub mod me;
 pub mod add_targets;
 pub mod auth;
+pub mod delete_player;
 pub mod fetch_players_list;
 pub mod fetch_server_info;
 pub mod fetch_server_list;
 pub mod fetch_server_snapshots;
 pub mod fetch_stats;
+pub mod me;
+pub mod overwrite_server;
 pub mod ping_server;
 pub mod search_players;
 pub mod server_delete;

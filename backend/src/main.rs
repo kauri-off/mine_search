@@ -33,10 +33,8 @@ use tower_http::{
 use tracing::Level;
 
 use crate::api::{
-    fetch_players_list::fetch_players_list,
-    ping_server::ping_server,
-    search_players::search_players,
-    update_player::update_player,
+    fetch_players_list::fetch_players_list, ping_server::ping_server,
+    search_players::search_players, update_player::update_player,
 };
 
 lazy_static! {
@@ -62,7 +60,9 @@ async fn main() {
         .on_response(trace::DefaultOnResponse::new().level(Level::INFO));
 
     let config = db_schema::config::Config::load().expect("Failed to load config.toml");
-    let backend_cfg = config.backend.expect("Missing [backend] section in config.toml");
+    let backend_cfg = config
+        .backend
+        .expect("Missing [backend] section in config.toml");
 
     let mut migration_conn = PgConnection::establish(&config.database.url)
         .expect("Failed to connect to database for migrations");
