@@ -147,7 +147,6 @@ export interface Translations {
     end: string;
     server: string;
     name: string;
-    status: string;
     lastSeen: string;
   };
   login: {

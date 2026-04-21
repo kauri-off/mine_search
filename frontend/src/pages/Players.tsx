@@ -21,38 +21,44 @@ export const Players = () => {
 
   const [nameInput, setNameInput] = useState("");
   const [nameDebounced, setNameDebounced] = useState("");
-  const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [debounceTimer, setDebounceTimer] = useState<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const [statusFilter, setStatusFilter] = useState<PlayerStatus | null>(null);
   const [licenseFilter, setLicenseFilter] = useState<LicenseFilter>(null);
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery<
-    PlayerSearchResponse[],
-    Error,
-    InfiniteData<PlayerSearchResponse[]>,
-    [string, string, PlayerStatus | null, LicenseFilter],
-    number | null
-  >({
-    queryKey: ["players", nameDebounced, statusFilter, licenseFilter],
-    queryFn: ({ pageParam = null }) =>
-      serverApi.searchPlayers({
-        limit: LIMIT,
-        offset_id: pageParam,
-        name_contains: nameDebounced || null,
-        status: statusFilter,
-        licensed: licenseFilter,
-      }),
-    getNextPageParam: (lastPage) => {
-      if (!lastPage || lastPage.length < LIMIT) return undefined;
-      return lastPage.at(-1)!.id;
-    },
-    initialPageParam: null,
-  });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useInfiniteQuery<
+      PlayerSearchResponse[],
+      Error,
+      InfiniteData<PlayerSearchResponse[]>,
+      [string, string, PlayerStatus | null, LicenseFilter],
+      number | null
+    >({
+      queryKey: ["players", nameDebounced, statusFilter, licenseFilter],
+      queryFn: ({ pageParam = null }) =>
+        serverApi.searchPlayers({
+          limit: LIMIT,
+          offset_id: pageParam,
+          name_contains: nameDebounced || null,
+          status: statusFilter,
+          licensed: licenseFilter,
+        }),
+      getNextPageParam: (lastPage) => {
+        if (!lastPage || lastPage.length < LIMIT) return undefined;
+        return lastPage.at(-1)!.id;
+      },
+      initialPageParam: null,
+    });
 
   const onEndReached = useCallback(() => {
     if (hasNextPage) fetchNextPage();
   }, [hasNextPage, fetchNextPage]);
 
-  const lastRowRef = useIntersectionRef(onEndReached, !isLoading && !isFetchingNextPage);
+  const lastRowRef = useIntersectionRef(
+    onEndReached,
+    !isLoading && !isFetchingNextPage,
+  );
 
   const handleNameChange = (value: string) => {
     setNameInput(value);
@@ -75,7 +81,9 @@ export const Players = () => {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="px-3 py-3 sm:px-6 sm:py-5 max-w-screen-xl mx-auto">
-        <h1 className="text-xl font-bold text-slate-100 mb-5">{t.players.title}</h1>
+        <h1 className="text-xl font-bold text-slate-100 mb-5">
+          {t.players.title}
+        </h1>
 
         <div className="flex flex-col gap-3 mb-5">
           {/* Search input */}
@@ -119,13 +127,17 @@ export const Players = () => {
                 {t.players.licenseAll}
               </button>
               <button
-                onClick={() => setLicenseFilter(licenseFilter === true ? null : true)}
+                onClick={() =>
+                  setLicenseFilter(licenseFilter === true ? null : true)
+                }
                 className={filterBtnClass(licenseFilter === true)}
               >
                 {t.players.licensed}
               </button>
               <button
-                onClick={() => setLicenseFilter(licenseFilter === false ? null : false)}
+                onClick={() =>
+                  setLicenseFilter(licenseFilter === false ? null : false)
+                }
                 className={filterBtnClass(licenseFilter === false)}
               >
                 {t.players.cracked}
@@ -137,7 +149,9 @@ export const Players = () => {
         {allPlayers.length > 0 && (
           <p className="text-sm text-slate-500 mb-3">
             {t.players.loaded}:{" "}
-            <span className="text-slate-300 font-medium">{allPlayers.length}</span>
+            <span className="text-slate-300 font-medium">
+              {allPlayers.length}
+            </span>
           </p>
         )}
 
@@ -146,16 +160,21 @@ export const Players = () => {
             <Spinner className="w-8 h-8 text-indigo-500" />
           </div>
         ) : isEmpty ? (
-          <p className="text-sm text-slate-600 py-10 text-center">{t.players.empty}</p>
+          <p className="text-sm text-slate-600 py-10 text-center">
+            {t.players.empty}
+          </p>
         ) : (
           <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-full">
                 <thead>
                   <tr className="border-b border-[#2a2a3a] text-slate-500 text-left">
-                    <th className="pb-2.5 pt-3 pl-5 text-xs font-medium">{t.players.name}</th>
-                    <th className="pb-2.5 pt-3 px-3 text-xs font-medium">{t.players.status}</th>
-                    <th className="pb-2.5 pt-3 px-3 text-xs font-medium">{t.players.server}</th>
+                    <th className="pb-2.5 pt-3 pl-5 text-xs font-medium">
+                      {t.players.name}
+                    </th>
+                    <th className="pb-2.5 pt-3 px-3 text-xs font-medium">
+                      {t.players.server}
+                    </th>
                     <th className="pb-2.5 pt-3 pr-5 text-xs font-medium text-right">
                       {t.players.lastSeen}
                     </th>
@@ -172,7 +191,14 @@ export const Players = () => {
                       >
                         <td className="py-2.5 pl-5 pr-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-slate-200 font-medium">{player.name}</span>
+                            <StatusBlock
+                              label={player.status}
+                              active={true}
+                              activeColor={PLAYER_STATUS_COLOR[player.status]}
+                            />
+                            <span className="text-slate-200 font-medium">
+                              {player.name}
+                            </span>
                             <a
                               href={`https://namemc.com/profile/${player.name}`}
                               target="_blank"
@@ -185,13 +211,6 @@ export const Players = () => {
                           </div>
                         </td>
                         <td className="py-2.5 px-3">
-                          <StatusBlock
-                            label={player.status}
-                            active={true}
-                            activeColor={PLAYER_STATUS_COLOR[player.status]}
-                          />
-                        </td>
-                        <td className="py-2.5 px-3">
                           <Link
                             to={`/server/${player.server_ip}`}
                             className="text-indigo-400 hover:text-indigo-300 hover:underline text-xs transition-colors"
@@ -201,10 +220,13 @@ export const Players = () => {
                         </td>
                         <td className="py-2.5 pr-5 text-right">
                           <span className="text-xs text-slate-500">
-                            {formatDistanceToNow(new Date(player.last_seen_at), {
-                              addSuffix: true,
-                              locale: t.dateFnsLocale,
-                            })}
+                            {formatDistanceToNow(
+                              new Date(player.last_seen_at),
+                              {
+                                addSuffix: true,
+                                locale: t.dateFnsLocale,
+                              },
+                            )}
                           </span>
                         </td>
                       </tr>
@@ -220,7 +242,9 @@ export const Players = () => {
               </div>
             )}
             {!hasNextPage && allPlayers.length > 0 && (
-              <p className="text-xs text-slate-600 text-center py-3">{t.players.end}</p>
+              <p className="text-xs text-slate-600 text-center py-3">
+                {t.players.end}
+              </p>
             )}
           </div>
         )}

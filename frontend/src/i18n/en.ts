@@ -144,7 +144,6 @@ export const en: Translations = {
     end: "End of list",
     server: "Server",
     name: "Name",
-    status: "Status",
     lastSeen: "Last seen",
   },
   login: {

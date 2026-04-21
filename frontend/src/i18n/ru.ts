@@ -144,7 +144,6 @@ export const ru: Translations = {
     end: "Конец списка",
     server: "Сервер",
     name: "Имя",
-    status: "Статус",
     lastSeen: "Последний онлайн",
   },
   login: {
