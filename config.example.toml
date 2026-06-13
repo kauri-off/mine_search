@@ -6,7 +6,9 @@ url = "postgres://user:change_me@postgres-container/mine_search_db"
 
 [backend]
 password   = "change_me"
-jwt_secret = ""          # auto-generated if empty
+# Set a stable secret for production (e.g. `openssl rand -hex 32`). If left empty a
+# random one is generated at startup, which logs out every user on each restart/redeploy.
+jwt_secret = ""
 
 [worker]
 threads                = 500

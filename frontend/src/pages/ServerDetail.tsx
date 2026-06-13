@@ -32,13 +32,12 @@ export const ServerDetail = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
-  if (!ip) return null;
-
   // -- Queries ---------------------------------------------------------------
 
   const { data: server, isLoading: isInfoLoading } = useQuery({
     queryKey: ["server", ip],
-    queryFn: () => serverApi.fetchServerInfo(ip),
+    queryFn: () => serverApi.fetchServerInfo(ip!),
+    enabled: !!ip,
     staleTime: 10 * 60 * 1000,
   });
 

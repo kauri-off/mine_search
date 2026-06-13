@@ -1,0 +1,25 @@
+[workspace]
+resolver = "3"
+members = ["backend", "worker", "db_schema"]
+# masscan_wrapper stays a standalone crate (its own Cargo.lock/target). It lives
+# under the workspace root, so it must be excluded or Cargo would adopt it.
+exclude = ["masscan_wrapper"]
+
+[workspace.package]
+edition = "2024"
+
+[workspace.dependencies]
+# Shared across two or more members. Declare the base version plus the commonly
+# needed features here; members add extra features alongside `workspace = true`.
+tokio = { version = "1.52.3", features = ["full"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+chrono = { version = "0.4.45", features = ["serde"] }
+diesel = { version = "2.3.10", features = ["postgres", "chrono", "serde_json"] }
+diesel-async = { version = "0.9.1", features = ["postgres", "deadpool"] }
+diesel_migrations = "2.3.2"
+rand = "0.10.1"
+tracing = "0.1.44"
+tracing-subscriber = "0.3.23"
+pq-sys = { version = "0.7.5", features = ["bundled"] }
+openssl-sys = { version = "0.9.117", features = ["vendored"] }

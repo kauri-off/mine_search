@@ -35,7 +35,7 @@ pub async fn ping_server(
         .values(&ping_insert)
         .execute(&mut conn)
         .await
-        .map_err(|e| AppError::db(format!("Failed to insert ping"), e))?;
+        .map_err(|e| AppError::db("Failed to insert ping", e))?;
 
     Ok(StatusCode::OK)
 }

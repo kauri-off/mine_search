@@ -32,6 +32,10 @@ use crate::{
 const MAX_ATTEMPTS: u32 = 5;
 const WINDOW: Duration = Duration::from_secs(60);
 
+/// How long an issued session (JWT + cookie) stays valid. Single source of truth
+/// so the token's `exp` and the cookie's `Max-Age` can never drift apart.
+const SESSION_DURATION_HOURS: i64 = 24;
+
 struct RateLimitEntry {
     attempts: u32,
     window_start: Instant,
@@ -101,7 +105,7 @@ pub async fn authenticate_user(
     }
 
     let now = Utc::now();
-    let expire = chrono::Duration::hours(24);
+    let expire = chrono::Duration::hours(SESSION_DURATION_HOURS);
     let exp: usize = (now + expire).timestamp() as usize;
     let iat: usize = now.timestamp() as usize;
 
@@ -115,7 +119,7 @@ pub async fn authenticate_user(
         .path("/api")
         .http_only(true)
         .same_site(SameSite::Strict)
-        .max_age(time::Duration::days(30));
+        .max_age(time::Duration::hours(SESSION_DURATION_HOURS));
 
     let cookie_str = cookie.to_string();
     let cookie_value = HeaderValue::from_str(&cookie_str)

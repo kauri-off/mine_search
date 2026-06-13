@@ -110,10 +110,17 @@ async fn main() {
         let mut password_mutex = BACKEND_PASSWORD.lock().await;
         let mut secret_mutex = BACKEND_SECRET.lock().await;
         *password_mutex = backend_cfg.password;
-        *secret_mutex = backend_cfg
-            .jwt_secret
-            .filter(|s| !s.is_empty())
-            .unwrap_or_else(|| generate_random_string(32));
+        *secret_mutex = match backend_cfg.jwt_secret.filter(|s| !s.is_empty()) {
+            Some(secret) => secret,
+            None => {
+                tracing::warn!(
+                    "No [backend].jwt_secret configured — generating a random one. \
+                     All sessions will be invalidated on every restart/redeploy. \
+                     Set a stable secret (e.g. `openssl rand -hex 32`) for production."
+                );
+                generate_random_string(32)
+            }
+        };
     }
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")

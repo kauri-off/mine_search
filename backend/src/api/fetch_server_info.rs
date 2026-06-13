@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::{Json, extract::State};
 use chrono::{DateTime, Utc};
+use db_schema::chat::{ChatComponentObject, ChatObject};
 use db_schema::models::{player_count_snapshots::SnapshotModel, servers::ServerModel};
 use db_schema::schema::*;
 use diesel::prelude::*;
@@ -95,18 +96,29 @@ fn parse_html(value: Value) -> String {
     }
 }
 
+/// Escapes HTML-significant characters so attacker-controlled MOTD text from scanned
+/// servers cannot inject markup. The frontend also sanitizes with DOMPurify, but
+/// escaping here keeps the output well-formed and removes the single-barrier risk.
+fn html_escape(input: &str) -> String {
+    input
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
 fn chat_object_to_html(chat: &ChatObject) -> String {
     match chat {
         ChatObject::Object(component) => chat_component_object_to_html(component),
-        ChatObject::Array(array) => array.iter().map(|obj| chat_object_to_html(obj)).collect(),
+        ChatObject::Array(array) => array.iter().map(chat_object_to_html).collect(),
         ChatObject::JsonPrimitive(value) => {
             if value.is_string() {
                 format!(
                     "<span style=\"color: white;\" >{}</span>",
-                    value.as_str().unwrap_or_default()
+                    html_escape(value.as_str().unwrap_or_default())
                 )
             } else {
-                value.to_string()
+                html_escape(&value.to_string())
             }
         }
     }
@@ -116,7 +128,7 @@ fn chat_component_object_to_html(component: &ChatComponentObject) -> String {
     let mut html = String::new();
 
     if let Some(text) = &component.text {
-        let text = text.replace("\n", "<br>");
+        let text = html_escape(text).replace('\n', "<br>");
         let tag = "span";
 
         let mut style = String::new();
@@ -136,7 +148,7 @@ fn chat_component_object_to_html(component: &ChatComponentObject) -> String {
             style.push_str("text-decoration: blink;");
         }
         if let Some(color) = &component.color {
-            style.push_str(&format!("color: {}; ", color));
+            style.push_str(&format!("color: {}; ", html_escape(color)));
         } else {
             style.push_str("color: white; ");
         }
@@ -158,48 +170,4 @@ fn chat_component_object_to_html(component: &ChatComponentObject) -> String {
     }
 
     html
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum ChatObject {
-    Object(ChatComponentObject),
-    Array(Vec<ChatObject>),
-    JsonPrimitive(serde_json::Value),
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ChatComponentObject {
-    pub text: Option<String>,
-    pub translate: Option<String>,
-    pub keybind: Option<String>,
-    pub bold: Option<bool>,
-    pub italic: Option<bool>,
-    pub underlined: Option<bool>,
-    pub strikethrough: Option<bool>,
-    pub obfuscated: Option<bool>,
-    pub font: Option<String>,
-    pub color: Option<String>,
-    pub insertion: Option<String>,
-    #[serde(rename = "clickEvent")]
-    pub click_event: Option<ChatClickEvent>,
-    #[serde(rename = "hoverEvent")]
-    pub hover_event: Option<ChatHoverEvent>,
-    pub extra: Option<Vec<ChatObject>>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ChatClickEvent {
-    pub open_url: Option<String>,
-    pub run_command: Option<String>,
-    pub suggest_command: Option<String>,
-    pub copy_to_clipboard: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ChatHoverEvent {
-    pub show_text: Option<Box<ChatObject>>,
-    pub value: Option<Box<ChatObject>>,
-    pub show_item: Option<String>,
-    pub show_entity: Option<String>,
 }

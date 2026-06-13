@@ -35,7 +35,7 @@ pub async fn update_player(
         .set(&player_update)
         .execute(&mut conn)
         .await
-        .map_err(|e| AppError::db(format!("Failed to update player"), e))?;
+        .map_err(|e| AppError::db("Failed to update player", e))?;
 
     Ok(StatusCode::OK)
 }

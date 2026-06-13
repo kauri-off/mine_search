@@ -27,7 +27,6 @@ export function useIntersectionRef(
 
       observerRef.current.observe(node);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [enabled, onIntersect],
   );
 }

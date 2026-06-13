@@ -2,21 +2,27 @@ FROM rust:1.93.1-trixie AS builder
 RUN apt-get update && apt-get install -y libpq-dev libssl-dev pkg-config
 WORKDIR /app
 
-COPY db_schema/src db_schema/src
+# Workspace root manifest + single lockfile.
+COPY Cargo.toml Cargo.lock ./
+
+# All workspace members must be present so Cargo can parse the workspace graph.
 COPY db_schema/Cargo.toml db_schema/
+COPY db_schema/src db_schema/src
 COPY db_schema/migrations db_schema/migrations
 
+COPY worker/Cargo.toml worker/
 COPY worker/src worker/src
-COPY worker/Cargo.toml worker/Cargo.toml
-COPY worker/Cargo.lock worker/Cargo.lock
 
-WORKDIR /app/worker
-RUN cargo build --release
+COPY backend/Cargo.toml backend/
+COPY backend/src backend/src
+
+# `-p worker` compiles only worker + db_schema, not backend.
+RUN cargo build --release -p worker
 
 FROM debian:bookworm-slim
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends libpq5 && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/worker/target/release/worker .
+COPY --from=builder /app/target/release/worker .
 
 CMD ["./worker"]

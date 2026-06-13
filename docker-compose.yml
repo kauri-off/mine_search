@@ -1,7 +1,12 @@
 services:
   postgres:
-    image: postgres
+    # Pinned major version: a silent `latest` bump to a new major would refuse to
+    # start against a data dir initialized by the previous major. Bump deliberately.
+    image: postgres:16
     container_name: postgres-container
+    # Exclude from watchtower auto-updates so the DB is never upgraded unattended.
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
     environment:
       # These vars only apply on first container creation.
       # To change them on an existing DB, connect manually and run ALTER ROLE / ALTER DATABASE.
@@ -18,7 +23,7 @@ services:
     networks:
       - app-network
     volumes:
-      - postgres-data:/var/lib/postgresql
+      - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
   worker:
     image: ghcr.io/kauri-off/mine_search/worker:latest

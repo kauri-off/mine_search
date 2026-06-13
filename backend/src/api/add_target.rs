@@ -16,16 +16,40 @@ pub struct AddAddrRequest {
     pub quick: bool,
 }
 
+const DEFAULT_PORT: i32 = 25565;
+
+fn parse_port(s: &str) -> Result<i32, AppError> {
+    s.parse::<i32>()
+        .map_err(|_| AppError::bad_request(format!("Invalid port: {s}")))
+}
+
 impl AddAddrRequest {
+    /// Splits the address into `(ip, port)`, supporting:
+    /// - `host` / `1.2.3.4`            -> default port
+    /// - `host:port` / `1.2.3.4:port`  -> explicit port (exactly one colon)
+    /// - `[::1]` / `[::1]:port`         -> bracketed IPv6, optional port
+    /// - `::1` / `2001:db8::1`          -> bare IPv6 (multiple colons), default port
     pub fn to_target_insert<'a>(&'a self) -> Result<TargetInsert<'a>, AppError> {
-        // Check if addr is [ip]:[port]
-        let (ip, port) = if let Some((ip, port_str)) = self.addr.rsplit_once(':') {
-            let port = port_str
-                .parse::<i32>()
-                .map_err(|_| AppError::bad_request(format!("Invalid port: {port_str}")))?;
+        let addr = self.addr.trim();
+
+        let (ip, port) = if let Some(rest) = addr.strip_prefix('[') {
+            // Bracketed IPv6: "[::1]" or "[::1]:25565"
+            let (ip, after) = rest
+                .split_once(']')
+                .ok_or_else(|| AppError::bad_request(format!("Invalid address: {addr}")))?;
+            let port = match after.strip_prefix(':') {
+                Some(p) => parse_port(p)?,
+                None if after.is_empty() => DEFAULT_PORT,
+                None => return Err(AppError::bad_request(format!("Invalid address: {addr}"))),
+            };
             (ip, port)
+        } else if addr.matches(':').count() == 1 {
+            // Exactly one colon: host:port (IPv4 or hostname).
+            let (ip, port_str) = addr.rsplit_once(':').unwrap();
+            (ip, parse_port(port_str)?)
         } else {
-            (self.addr.as_str(), 25565)
+            // No colon (default port) or multiple colons (bare IPv6) -> use as-is.
+            (addr, DEFAULT_PORT)
         };
 
         Ok(TargetInsert {

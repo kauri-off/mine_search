@@ -1,30 +1,30 @@
 [package]
 name = "backend"
 version = "0.1.0"
-edition = "2024"
+edition.workspace = true
 
 [dependencies]
 axum = "0.8.9"
 db_schema = { path = "../db_schema" }
-tokio = { version = "1.52.0", features = ["full"] }
+tokio = { workspace = true }
 
-diesel = { version = "2.3.7", features = ["postgres", "chrono", "serde_json", "postgres_backend"] }
-diesel-async = { version = "0.8.0", features = ["postgres", "deadpool"] }
-diesel_migrations = "2.3.1"
+diesel = { workspace = true, features = ["postgres_backend"] }
+diesel-async = { workspace = true }
+diesel_migrations = { workspace = true }
 
-tracing-subscriber = "0.3.23"
-tracing = "0.1.44"
-tower-http = { version = "0.6.8", features = ["trace", "cors"] }
+tracing-subscriber = { workspace = true }
+tracing = { workspace = true }
+tower-http = { version = "0.6.11", features = ["trace", "cors"] }
 
-chrono = { version = "0.4.44", features = ["serde"] }
-serde_json = "1.0.149"
-serde = { version = "1.0.228", features = ["derive"] }
-jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
-rand = "0.10.1"
+chrono = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+jsonwebtoken = { version = "10.4.0", features = ["rust_crypto"] }
+rand = { workspace = true }
 cookie = "0.18.1"
 lazy_static = "1.5.0"
 ts-rs = { version = "12.0.1", features = ["serde-json-impl", "chrono-impl"] }
 
 [target.'cfg(windows)'.dependencies]
-pq-sys = { version = "0.7.5", features = ["bundled"] }
-openssl-sys = { version = "0.9.113", features = ["vendored"] }
+pq-sys = { workspace = true }
+openssl-sys = { workspace = true }

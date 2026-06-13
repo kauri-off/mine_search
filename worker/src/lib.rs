@@ -1,8 +1,8 @@
 use std::net::Ipv4Addr;
 
+use db_schema::chat::ChatObject;
 use rand::RngExt;
 use rand_chacha::ChaCha8Rng;
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub fn generate_random_ip(rng: &mut ChaCha8Rng) -> Ipv4Addr {
@@ -42,53 +42,4 @@ fn is_reserved_ip(octets: [u8; 4]) -> bool {
 pub fn description_to_str(description: Value) -> Result<String, serde_json::Error> {
     let chat_object: ChatObject = serde_json::from_value(description)?;
     Ok(chat_object.get_motd())
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum ChatObject {
-    Object(ChatComponentObject),
-    Array(Vec<ChatObject>),
-    JsonPrimitive(Value),
-}
-
-impl ChatObject {
-    pub fn get_motd(&self) -> String {
-        match self {
-            ChatObject::Object(chat_component_object) => {
-                let mut result = String::new();
-
-                if let Some(text) = &chat_component_object.text {
-                    result += text.as_str();
-                }
-
-                if let Some(extra) = &chat_component_object.extra {
-                    for object in extra {
-                        result += &object.get_motd();
-                    }
-                }
-
-                result
-            }
-            ChatObject::Array(vec) => {
-                let mut result = String::new();
-
-                for object in vec {
-                    result += &object.get_motd();
-                }
-
-                result
-            }
-            ChatObject::JsonPrimitive(value) => value
-                .as_str()
-                .map(|s| s.to_string())
-                .unwrap_or("".to_string()),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ChatComponentObject {
-    pub text: Option<String>,
-    pub extra: Option<Vec<ChatObject>>,
 }
