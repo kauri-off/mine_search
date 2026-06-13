@@ -2,7 +2,7 @@ services:
   postgres:
     # Pinned major version: a silent `latest` bump to a new major would refuse to
     # start against a data dir initialized by the previous major. Bump deliberately.
-    image: postgres:16
+    image: postgres:18
     container_name: postgres-container
     # Exclude from watchtower auto-updates so the DB is never upgraded unattended.
     labels:
@@ -23,7 +23,9 @@ services:
     networks:
       - app-network
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      # PG18's image uses a versioned PGDATA (/var/lib/postgresql/18/docker), so the
+      # volume must mount the parent dir — NOT /var/lib/postgresql/data (pre-18 layout).
+      - postgres-data:/var/lib/postgresql
     restart: unless-stopped
   worker:
     image: ghcr.io/kauri-off/mine_search/worker:latest

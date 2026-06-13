@@ -36,14 +36,6 @@ Edit `config.toml` — at minimum set `[database].url`, `[backend].password`, an
 > ALTER ROLE <user> WITH PASSWORD 'new_password';
 > ```
 
-> [!WARNING]
-> **Upgrading an existing deployment:** the Postgres data volume now mounts at
-> `/var/lib/postgresql/data` (previously `/var/lib/postgresql`), and the image is
-> pinned to `postgres:16`. A volume created by the old configuration is **not** picked
-> up at the new path. Before pulling these changes on a live database, dump it
-> (`pg_dump`) and restore into a fresh volume, or temporarily revert the mount path to
-> migrate the data. Fresh installs are unaffected.
-
 ## 3. Start
 
 ```bash
