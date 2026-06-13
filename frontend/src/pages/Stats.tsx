@@ -124,7 +124,7 @@ export const Stats = () => {
           <StatCard label={t.stats.online} value={stats.online_servers} icon={Wifi} iconClass="text-green-400" />
           <StatCard label={t.stats.cracked} value={stats.cracked_servers} icon={Unlock} iconClass="text-orange-400" />
           <StatCard label={t.stats.crashed} value={stats.crashed_servers} icon={Skull} iconClass="text-red-400" />
-          <StatCard label={t.stats.forge} value={stats.forge_servers} icon={Wrench} iconClass="text-purple-400" />
+          <StatCard label={t.stats.modsRequired} value={stats.mod_required_servers} icon={Wrench} iconClass="text-purple-400" />
           <StatCard label={t.stats.spoofable} value={stats.spoofable_servers} icon={ShieldCheck} iconClass="text-yellow-400" />
           <StatCard label={t.stats.totalPlayers} value={stats.total_players} icon={Users} iconClass="text-sky-400" />
           <StatCard label={t.stats.adminPlayers} value={stats.admin_players} icon={ShieldCheck} iconClass="text-pink-400" />

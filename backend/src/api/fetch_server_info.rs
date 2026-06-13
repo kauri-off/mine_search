@@ -36,7 +36,7 @@ pub struct ServerInfoResponse {
     pub is_checked: bool,
     pub is_spoofable: Option<bool>,
     pub is_crashed: bool,
-    pub is_forge: bool,
+    pub requires_mods: bool,
     pub favicon: Option<String>,
     pub ping: Option<i64>,
 }
@@ -58,7 +58,7 @@ impl From<(ServerModel, SnapshotModel)> for ServerInfoResponse {
             is_checked: server.is_checked,
             is_spoofable: server.is_spoofable,
             is_crashed: server.is_crashed,
-            is_forge: server.is_forge,
+            requires_mods: server.requires_mods,
             favicon: server.favicon,
             ping: server.ping,
         }

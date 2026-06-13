@@ -53,7 +53,7 @@ export const ServerEditForm = ({
   const [versionName, setVersionName] = useState(server.version_name);
   const [protocol, setProtocol] = useState(String(server.protocol));
   const [isOnlineMode, setIsOnlineMode] = useState(server.license);
-  const [isForge, setIsForge] = useState(server.is_forge);
+  const [requiresMods, setRequiresMods] = useState(server.requires_mods);
   const [isOnline, setIsOnline] = useState(server.was_online);
   const [ping, setPing] = useState(
     server.ping !== null ? String(Number(server.ping)) : "",
@@ -68,7 +68,7 @@ export const ServerEditForm = ({
       version_name: versionName || null,
       protocol: protocol ? parseInt(protocol, 10) : null,
       is_online_mode: isOnlineMode,
-      is_forge: isForge,
+      requires_mods: requiresMods,
       is_online: isOnline,
       // ts-rs maps i64 → bigint but JSON serializes as number; cast is safe
       ping: (pingNum as unknown) as bigint,
@@ -131,9 +131,9 @@ export const ServerEditForm = ({
           onChange={setIsOnlineMode}
         />
         <Toggle
-          label={t.serverInfo.forgeModded}
-          value={isForge}
-          onChange={setIsForge}
+          label={t.serverInfo.modsRequired}
+          value={requiresMods}
+          onChange={setRequiresMods}
         />
         <Toggle
           label={t.serverInfo.isOnline}

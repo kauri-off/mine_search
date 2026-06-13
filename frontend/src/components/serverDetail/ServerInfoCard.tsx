@@ -139,9 +139,9 @@ export const ServerInfoCard = ({
               {server.license ? t.serverInfo.yes : t.serverInfo.no}
             </span>
           </InfoRow>
-          <InfoRow label={t.serverInfo.forgeModded}>
-            <span className={server.is_forge ? "text-purple-400" : "text-slate-500"}>
-              {server.is_forge ? t.serverInfo.yes : t.serverInfo.no}
+          <InfoRow label={t.serverInfo.modsRequired}>
+            <span className={server.requires_mods ? "text-purple-400" : "text-slate-500"}>
+              {server.requires_mods ? t.serverInfo.yes : t.serverInfo.no}
             </span>
           </InfoRow>
           <InfoRow label={t.serverInfo.lastSeen}>

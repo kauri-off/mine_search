@@ -12,7 +12,7 @@ export const DEFAULT_FILTERS: Filters = {
   crashed: null,
   has_players: null,
   online: null,
-  is_forge: null,
+  requires_mods: null,
   has_none_players: null,
   ip_contains: null,
 };

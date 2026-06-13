@@ -9,7 +9,7 @@ const FILTER_FIELD_KEYS = [
   "crashed",
   "has_players",
   "online",
-  "is_forge",
+  "requires_mods",
   "has_none_players",
 ] as const;
 

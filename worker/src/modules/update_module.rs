@@ -157,6 +157,10 @@ pub async fn update_server(
     .execute(&mut conn)
     .await?;
 
+    // Computed before `players.sample` is consumed below, since `requires_mods`
+    // borrows all of `status`.
+    let requires_mods = status.requires_mods();
+
     let sample = status.players.sample.unwrap_or_default();
     let mut seen = std::collections::HashSet::new();
     let player_inserts: Vec<_> = sample
@@ -176,7 +180,6 @@ pub async fn update_server(
         .execute(&mut conn)
         .await?;
 
-    let is_forge = status.forge_data.is_some() || status.modinfo.is_some();
     let favicon_ref = status.favicon.as_deref();
 
     let server_change = ServerUpdate {
@@ -185,7 +188,7 @@ pub async fn update_server(
         description: &status.description,
         updated_at: Utc::now(),
         is_online: true,
-        is_forge,
+        requires_mods,
         favicon: favicon_ref,
         ping,
     };

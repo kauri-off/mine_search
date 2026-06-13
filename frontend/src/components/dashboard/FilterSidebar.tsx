@@ -11,7 +11,7 @@ const BOOL_FILTERS: BoolFilterKey[] = [
   "checked",
   "spoofable",
   "crashed",
-  "is_forge",
+  "requires_mods",
   "has_players",
   "has_none_players",
 ];

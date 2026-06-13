@@ -20,7 +20,7 @@ export interface Translations {
       crashed: string;
       has_players: string;
       online: string;
-      is_forge: string;
+      requires_mods: string;
       has_none_players: string;
     };
     reset: string;
@@ -65,7 +65,7 @@ export interface Translations {
     statusOnline: string;
     statusOffline: string;
     licensed: string;
-    forgeModded: string;
+    modsRequired: string;
     lastSeen: string;
     yes: string;
     no: string;
@@ -119,7 +119,7 @@ export interface Translations {
     online: string;
     cracked: string;
     crashed: string;
-    forge: string;
+    modsRequired: string;
     spoofable: string;
     totalPlayers: string;
     adminPlayers: string;

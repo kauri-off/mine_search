@@ -33,7 +33,7 @@ pub struct StatsResponse {
     #[ts(type = "number")]
     pub crashed_servers: i64,
     #[ts(type = "number")]
-    pub forge_servers: i64,
+    pub mod_required_servers: i64,
     #[ts(type = "number")]
     pub spoofable_servers: i64,
     #[ts(type = "number")]
@@ -82,12 +82,12 @@ pub async fn fetch_stats(
         .await
         .map_err(|e| AppError::db("Failed to count crashed servers", e))?;
 
-    let forge_servers = servers::table
-        .filter(servers::is_forge.eq(true))
+    let mod_required_servers = servers::table
+        .filter(servers::requires_mods.eq(true))
         .count()
         .get_result::<i64>(&mut conn)
         .await
-        .map_err(|e| AppError::db("Failed to count forge servers", e))?;
+        .map_err(|e| AppError::db("Failed to count mod-required servers", e))?;
 
     let spoofable_servers = servers::table
         .filter(servers::is_spoofable.eq(true))
@@ -146,7 +146,7 @@ pub async fn fetch_stats(
         cracked_servers,
         online_servers,
         crashed_servers,
-        forge_servers,
+        mod_required_servers,
         spoofable_servers,
         total_players,
         admin_players,

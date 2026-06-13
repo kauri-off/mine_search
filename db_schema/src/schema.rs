@@ -61,7 +61,7 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         disconnect_reason -> Nullable<Jsonb>,
-        is_forge -> Bool,
+        requires_mods -> Bool,
         favicon -> Nullable<Text>,
         ping -> Nullable<Int8>,
     }

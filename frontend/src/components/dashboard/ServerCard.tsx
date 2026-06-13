@@ -109,9 +109,9 @@ export const ServerCard = memo(({ server, cardRef }: ServerCardProps) => {
           <span className="px-2 py-0.5 rounded-md text-xs bg-[#1a1a24] text-slate-400 border border-[#2a2a3a]">
             {server.online}/{server.max}
           </span>
-          {server.is_forge && (
+          {server.requires_mods && (
             <span className="px-2 py-0.5 rounded-md text-xs bg-purple-950/40 text-purple-300 border border-purple-800/30">
-              Forge
+              Mods
             </span>
           )}
           {!server.license && (

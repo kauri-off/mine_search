@@ -25,7 +25,7 @@ pub struct ServerListRequest {
     pub crashed: Option<bool>,
     pub has_players: Option<bool>,
     pub online: Option<bool>,
-    pub is_forge: Option<bool>,
+    pub requires_mods: Option<bool>,
     pub has_none_players: Option<bool>,
     pub ip_contains: Option<String>,
 }
@@ -98,10 +98,11 @@ pub async fn fetch_server_list(
         None => Box::new(sql::<Bool>("TRUE")),
     };
 
-    let is_forge_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.is_forge {
-        Some(is_forge) => Box::new(servers::is_forge.eq(is_forge)),
-        None => Box::new(sql::<Bool>("TRUE")),
-    };
+    let requires_mods_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
+        match body.requires_mods {
+            Some(requires_mods) => Box::new(servers::requires_mods.eq(requires_mods)),
+            None => Box::new(sql::<Bool>("TRUE")),
+        };
 
     let ip_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.ip_contains {
         Some(ref s) if !s.is_empty() => Box::new(servers::ip.like(format!("%{}%", s))),
@@ -120,7 +121,7 @@ pub async fn fetch_server_list(
         .filter(has_players_filter)
         .filter(has_none_players_filter)
         .filter(online_filter)
-        .filter(is_forge_filter)
+        .filter(requires_mods_filter)
         .filter(ip_filter)
         .order((
             servers::id.desc(),

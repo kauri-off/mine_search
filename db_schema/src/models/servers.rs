@@ -18,7 +18,7 @@ pub struct ServerModel {
     pub is_spoofable: Option<bool>,
     pub is_crashed: bool,
     pub is_online: bool,
-    pub is_forge: bool,
+    pub requires_mods: bool,
     pub created_at: chrono::DateTime<Utc>,
     pub updated_at: chrono::DateTime<Utc>,
     pub favicon: Option<String>,
@@ -45,7 +45,7 @@ pub struct ServerInsert<'a> {
     pub description: &'a Value,
     pub is_online_mode: bool,
     pub disconnect_reason: Option<Value>,
-    pub is_forge: bool,
+    pub requires_mods: bool,
     pub favicon: Option<&'a str>,
     pub ping: Option<i64>,
 }
@@ -59,7 +59,7 @@ pub struct ServerUpdate<'a> {
     pub description: &'a serde_json::Value,
     pub updated_at: chrono::DateTime<Utc>,
     pub is_online: bool,
-    pub is_forge: bool,
+    pub requires_mods: bool,
     pub favicon: Option<&'a str>,
     pub ping: Option<i64>,
 }

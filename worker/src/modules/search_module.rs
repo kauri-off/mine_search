@@ -70,7 +70,7 @@ pub async fn handle_valid_ip(
     let extra_data =
         get_extra_data(format!("{}", ip), port, status.version.protocol as i32).await?;
 
-    let is_forge = status.forge_data.is_some() || status.modinfo.is_some();
+    let requires_mods = status.requires_mods();
 
     let favicon_ref = status.favicon.as_deref();
 
@@ -82,7 +82,7 @@ pub async fn handle_valid_ip(
         description: &status.description,
         is_online_mode: extra_data.is_online_mode,
         disconnect_reason: extra_data.disconnect_reason,
-        is_forge,
+        requires_mods,
         favicon: favicon_ref,
         ping,
     };
