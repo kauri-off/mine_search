@@ -28,6 +28,8 @@ update_module          = true
 update_with_connection = false
 only_update_spoofable  = false
 only_update_cracked    = false
+update_interval_secs   = 600   # seconds between update cycles
+update_concurrency     = 50    # max concurrent re-probes during an update cycle
 log_level              = "info"
 
 # ----- gRPC mode (default build) -----

@@ -57,6 +57,8 @@ fn config_to_proto(c: &WorkerConfig) -> PbConfig {
         update_with_connection: c.update_with_connection,
         only_update_spoofable: c.only_update_spoofable,
         only_update_cracked: c.only_update_cracked,
+        update_interval_secs: c.update_interval_secs,
+        update_concurrency: c.update_concurrency,
     }
 }
 
@@ -68,6 +70,8 @@ fn proto_to_runtime(c: PbConfig) -> RuntimeConfig {
         update_with_connection: c.update_with_connection,
         only_update_spoofable: c.only_update_spoofable,
         only_update_cracked: c.only_update_cracked,
+        update_interval_secs: c.update_interval_secs,
+        update_concurrency: c.update_concurrency,
     }
 }
 
@@ -259,6 +263,7 @@ pub async fn run(cfg: WorkerConfig, worker_id: String) -> anyhow::Result<()> {
 async fn heartbeat(engine: Arc<Engine>, tx: mpsc::Sender<WorkerMessage>) {
     let start = Instant::now();
     let mut prev_scanned = 0u64;
+    let mut prev_update_done = 0u64;
     let period = Duration::from_secs(5);
     let mut interval = tokio::time::interval(period);
 
@@ -267,6 +272,11 @@ async fn heartbeat(engine: Arc<Engine>, tx: mpsc::Sender<WorkerMessage>) {
         let scanned = engine.ips_scanned.load(Ordering::Relaxed);
         let rate = scanned.saturating_sub(prev_scanned) as f64 / period.as_secs_f64();
         prev_scanned = scanned;
+
+        let update_done = engine.update_done.load(Ordering::Relaxed);
+        let update_rate =
+            update_done.saturating_sub(prev_update_done) as f64 / period.as_secs_f64();
+        prev_update_done = update_done;
 
         let cfg = engine.config();
         let searching = engine.searching();
@@ -278,6 +288,10 @@ async fn heartbeat(engine: Arc<Engine>, tx: mpsc::Sender<WorkerMessage>) {
             searching,
             updating: engine.updating.load(Ordering::Relaxed),
             active_threads: if searching { cfg.threads.max(0) as u32 } else { 0 },
+            update_done,
+            update_total: engine.update_total.load(Ordering::Relaxed),
+            update_rate,
+            last_update_unix: engine.last_update_unix.load(Ordering::Relaxed),
         };
 
         let msg = WorkerMessage {

@@ -23,6 +23,8 @@ message WorkerConfig {
   bool update_with_connection = 4;
   bool only_update_spoofable = 5;
   bool only_update_cracked = 6;
+  uint32 update_interval_secs = 7; // seconds between update cycles
+  uint32 update_concurrency = 8;   // max concurrent re-probes during an update cycle
 }
 
 // Worker -> backend, multiplexed over the Session stream.
@@ -53,6 +55,10 @@ message WorkerMetrics {
   bool searching = 5;
   bool updating = 6;
   uint32 active_threads = 7;
+  uint64 update_done = 8;      // targets re-probed in the current/last update cycle
+  uint64 update_total = 9;     // total targets in the current/last update cycle
+  double update_rate = 10;     // re-probes/sec, recent window
+  int64 last_update_unix = 11; // epoch secs of last finished cycle; 0 = never
 }
 
 // Worker -> backend: the outcome of probing a single address.

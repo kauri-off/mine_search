@@ -258,6 +258,8 @@ export interface WorkerConfigInput {
   update_with_connection: boolean;
   only_update_spoofable: boolean;
   only_update_cracked: boolean;
+  update_interval_secs: number;
+  update_concurrency: number;
 }
 
 export const workerApi = {
@@ -276,6 +278,8 @@ export const workerApi = {
         updateWithConnection: config.update_with_connection,
         onlyUpdateSpoofable: config.only_update_spoofable,
         onlyUpdateCracked: config.only_update_cracked,
+        updateIntervalSecs: config.update_interval_secs,
+        updateConcurrency: config.update_concurrency,
       },
     }),
 };

@@ -27,6 +27,10 @@ pub struct WorkerConfig {
     pub update_with_connection: bool,
     pub only_update_spoofable: bool,
     pub only_update_cracked: bool,
+    #[serde(default = "default_update_interval")]
+    pub update_interval_secs: u32,
+    #[serde(default = "default_update_concurrency")]
+    pub update_concurrency: u32,
     pub log_level: Option<String>,
 
     // gRPC mode
@@ -47,6 +51,14 @@ impl Config {
             .map_err(|e| format!("Failed to parse config file {:?}: {}", path, e))?;
         Ok(config)
     }
+}
+
+fn default_update_interval() -> u32 {
+    600
+}
+
+fn default_update_concurrency() -> u32 {
+    50
 }
 
 fn config_path() -> PathBuf {

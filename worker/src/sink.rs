@@ -48,6 +48,8 @@ pub struct RuntimeConfig {
     pub update_with_connection: bool,
     pub only_update_spoofable: bool,
     pub only_update_cracked: bool,
+    pub update_interval_secs: u32,
+    pub update_concurrency: u32,
 }
 
 impl From<&crate::config::WorkerConfig> for RuntimeConfig {
@@ -59,6 +61,8 @@ impl From<&crate::config::WorkerConfig> for RuntimeConfig {
             update_with_connection: c.update_with_connection,
             only_update_spoofable: c.only_update_spoofable,
             only_update_cracked: c.only_update_cracked,
+            update_interval_secs: c.update_interval_secs,
+            update_concurrency: c.update_concurrency,
         }
     }
 }

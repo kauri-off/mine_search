@@ -8,9 +8,9 @@ use std::{
     net::IpAddr,
     sync::{
         Arc,
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering},
     },
-    time::Duration,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use rand::{SeedableRng, rngs::SysRng};
@@ -29,8 +29,8 @@ use crate::{
 };
 
 const SEARCH_PORT: u16 = 25565;
-const UPDATE_INTERVAL_SECS: u64 = 600;
-const UPDATE_CONCURRENCY: usize = 50;
+const DEFAULT_UPDATE_INTERVAL_SECS: u64 = 600;
+const DEFAULT_UPDATE_CONCURRENCY: usize = 50;
 
 pub struct Engine {
     pub sink: Arc<dyn Sink>,
@@ -40,6 +40,9 @@ pub struct Engine {
     pub servers_found: AtomicU64,
     pub ips_scanned: AtomicU64,
     pub updating: AtomicBool,
+    pub update_done: AtomicU64,
+    pub update_total: AtomicU64,
+    pub last_update_unix: AtomicI64,
 }
 
 #[allow(dead_code)] // some methods are only driven by the gRPC command loop
@@ -59,6 +62,9 @@ impl Engine {
             servers_found: AtomicU64::new(0),
             ips_scanned: AtomicU64::new(0),
             updating: AtomicBool::new(false),
+            update_done: AtomicU64::new(0),
+            update_total: AtomicU64::new(0),
+            last_update_unix: AtomicI64::new(0),
         })
     }
 
@@ -199,7 +205,16 @@ async fn update_loop(engine: Arc<Engine>) {
             .await
         {
             Ok(targets) => {
-                let semaphore = Arc::new(Semaphore::new(UPDATE_CONCURRENCY));
+                engine
+                    .update_total
+                    .store(targets.len() as u64, Ordering::Relaxed);
+                engine.update_done.store(0, Ordering::Relaxed);
+                let concurrency = if cfg.update_concurrency == 0 {
+                    DEFAULT_UPDATE_CONCURRENCY
+                } else {
+                    cfg.update_concurrency as usize
+                };
+                let semaphore = Arc::new(Semaphore::new(concurrency));
                 let mut handles = Vec::new();
                 for t in targets {
                     let permit = semaphore.clone().acquire_owned();
@@ -207,6 +222,7 @@ async fn update_loop(engine: Arc<Engine>) {
                     handles.push(tokio::spawn(async move {
                         let _permit = permit.await;
                         engine.ping(t.ip, t.port, t.with_connection).await;
+                        engine.update_done.fetch_add(1, Ordering::Relaxed);
                     }));
                 }
                 for h in handles {
@@ -217,6 +233,11 @@ async fn update_loop(engine: Arc<Engine>) {
         }
 
         engine.updating.store(false, Ordering::Relaxed);
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+        engine.last_update_unix.store(now, Ordering::Relaxed);
         info!(target: "updater", "Update cycle finished");
 
         if cfg.search_module {
@@ -224,6 +245,11 @@ async fn update_loop(engine: Arc<Engine>) {
             info!(target: "updater", "Resuming search");
         }
 
-        tokio::time::sleep(Duration::from_secs(UPDATE_INTERVAL_SECS)).await;
+        let interval = if cfg.update_interval_secs == 0 {
+            DEFAULT_UPDATE_INTERVAL_SECS
+        } else {
+            cfg.update_interval_secs as u64
+        };
+        tokio::time::sleep(Duration::from_secs(interval)).await;
     }
 }

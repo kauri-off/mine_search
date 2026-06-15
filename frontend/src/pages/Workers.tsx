@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
 import { Cpu, Circle } from "lucide-react";
 import { workerApi, type WorkerConfigInput } from "@/api/client";
 import type { WorkerInfo } from "@/gen/api_pb";
@@ -35,6 +36,8 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
     update_with_connection: cfg?.updateWithConnection ?? false,
     only_update_spoofable: cfg?.onlyUpdateSpoofable ?? false,
     only_update_cracked: cfg?.onlyUpdateCracked ?? false,
+    update_interval_secs: cfg?.updateIntervalSecs ?? 600,
+    update_concurrency: cfg?.updateConcurrency ?? 50,
   }));
 
   const mutation = useMutation({
@@ -70,14 +73,43 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
         {t.workers.version}: {worker.version || "?"} · {worker.workerId}
       </div>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-3 gap-3">
-        <Metric label={t.workers.serversFound} value={m ? Number(m.serversFound).toLocaleString() : "-"} />
-        <Metric label={t.workers.scanRate} value={m ? `${m.scanRate.toFixed(1)}/s` : "-"} />
-        <Metric label={t.workers.uptime} value={m ? formatUptime(Number(m.uptimeSecs)) : "-"} />
-        <Metric label={t.workers.activeThreads} value={m ? String(m.activeThreads) : "-"} />
-        <Metric label={t.workers.searching} value={m?.searching ? "✓" : "—"} />
-        <Metric label={t.workers.updating} value={m?.updating ? "✓" : "—"} />
+      {/* Search metrics */}
+      <div>
+        <div className="text-xs font-medium text-slate-400 mb-2">{t.workers.searchMetrics}</div>
+        <div className="grid grid-cols-3 gap-3">
+          <Metric label={t.workers.serversFound} value={m ? Number(m.serversFound).toLocaleString() : "-"} />
+          <Metric label={t.workers.scanRate} value={m ? `${m.scanRate.toFixed(1)}/s` : "-"} />
+          <Metric label={t.workers.uptime} value={m ? formatUptime(Number(m.uptimeSecs)) : "-"} />
+          <Metric label={t.workers.activeThreads} value={m ? String(m.activeThreads) : "-"} />
+          <Metric label={t.workers.searching} value={m?.searching ? "✓" : "—"} />
+        </div>
+      </div>
+
+      {/* Update metrics */}
+      <div>
+        <div className="text-xs font-medium text-slate-400 mb-2">{t.workers.updateMetrics}</div>
+        <div className="grid grid-cols-3 gap-3">
+          <Metric
+            label={t.workers.updateStatus}
+            value={m ? (m.updating ? t.workers.updating : t.workers.idle) : "-"}
+          />
+          <Metric
+            label={t.workers.updateProgress}
+            value={m ? `${Number(m.updateDone).toLocaleString()} / ${Number(m.updateTotal).toLocaleString()}` : "-"}
+          />
+          <Metric label={t.workers.updateRate} value={m ? `${m.updateRate.toFixed(1)}/s` : "-"} />
+          <Metric
+            label={t.workers.lastUpdate}
+            value={
+              m && Number(m.lastUpdateUnix) > 0
+                ? formatDistanceToNow(new Date(Number(m.lastUpdateUnix) * 1000), {
+                    addSuffix: true,
+                    locale: t.dateFnsLocale,
+                  })
+                : t.workers.never
+            }
+          />
+        </div>
       </div>
 
       {/* Config editor */}
@@ -91,6 +123,28 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
             min={0}
             value={form.threads}
             onChange={(e) => setForm({ ...form, threads: Number(e.target.value) })}
+            className="w-24 px-2 py-1 bg-[#1a1a24] border border-[#2a2a3a] rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+        </label>
+
+        <label className="flex items-center justify-between gap-3">
+          <span className="text-sm text-slate-400">{t.workers.updateInterval}</span>
+          <input
+            type="number"
+            min={0}
+            value={form.update_interval_secs}
+            onChange={(e) => setForm({ ...form, update_interval_secs: Number(e.target.value) })}
+            className="w-24 px-2 py-1 bg-[#1a1a24] border border-[#2a2a3a] rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+        </label>
+
+        <label className="flex items-center justify-between gap-3">
+          <span className="text-sm text-slate-400">{t.workers.updateConcurrency}</span>
+          <input
+            type="number"
+            min={0}
+            value={form.update_concurrency}
+            onChange={(e) => setForm({ ...form, update_concurrency: Number(e.target.value) })}
             className="w-24 px-2 py-1 bg-[#1a1a24] border border-[#2a2a3a] rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </label>
