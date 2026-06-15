@@ -31,6 +31,10 @@ use crate::{
 const SEARCH_PORT: u16 = 25565;
 const DEFAULT_UPDATE_INTERVAL_SECS: u64 = 600;
 const DEFAULT_UPDATE_CONCURRENCY: usize = 50;
+/// Per-server budget for a full probe (status + optional login handshake).
+/// The underlying socket reads have no timeout of their own, so this is the
+/// only thing bounding a server that accepts the TCP connection but stalls.
+const PROBE_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct Engine {
     pub sink: Arc<dyn Sink>,
@@ -102,10 +106,14 @@ impl Engine {
     }
 
     /// On-demand ping / update-cycle probe (update semantics).
+    ///
+    /// Bounded by a per-server [`PROBE_TIMEOUT`]: an unresponsive server (TCP
+    /// accepts but never replies) must not block its update slot until the OS
+    /// connection timeout fires. A timeout is treated as offline.
     pub async fn ping(&self, ip: String, port: u16, with_connection: bool) {
-        match probe(&ip, port, None, with_connection, false).await {
-            Ok(report) => self.sink.updated(report).await,
-            Err(_) => self.sink.offline(&ip).await,
+        match timeout(PROBE_TIMEOUT, probe(&ip, port, None, with_connection, false)).await {
+            Ok(Ok(report)) => self.sink.updated(report).await,
+            Ok(Err(_)) | Err(_) => self.sink.offline(&ip).await,
         }
     }
 }
@@ -154,7 +162,7 @@ async fn search_thread(engine: Arc<Engine>, mut pause_rx: watch::Receiver<bool>)
         if let Ok(stream) = check_server(&ip, SEARCH_PORT).await {
             debug!("Potential server found at {}:{}", ip, SEARCH_PORT);
             let engine = engine.clone();
-            let _ = timeout(Duration::from_secs(10), async move {
+            let _ = timeout(PROBE_TIMEOUT, async move {
                 match probe(&ip, SEARCH_PORT, Some(stream), true, true).await {
                     Ok(report) => {
                         engine.servers_found.fetch_add(1, Ordering::Relaxed);
