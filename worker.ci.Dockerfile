@@ -16,6 +16,10 @@ COPY worker/src worker/src
 COPY backend/Cargo.toml backend/
 COPY backend/src backend/src
 
+COPY proto/Cargo.toml proto/build.rs proto/
+COPY proto/src proto/src
+COPY proto/proto proto/proto
+
 # `-p worker` compiles only worker + db_schema, not backend.
 RUN cargo build --release -p worker
 
