@@ -1,120 +1,98 @@
-use std::sync::Arc;
-
-use diesel::{Connection, PgConnection};
-use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
-
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../db_schema/migrations");
-
-use db_schema::schema;
-use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
-use tokio::sync::watch;
-use tracing::{debug, info};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::{
-    database::DatabaseWrapper,
-    modules::{
-        notify_module::notify_listener, search_module::search_thread, update_module::updater,
-    },
-};
-
-mod database;
-mod modules;
+mod config;
+mod engine;
 mod packets;
+mod report;
 mod server_actions;
+mod sink;
+
+#[cfg(feature = "diesel")]
+mod diesel_backend;
+#[cfg(feature = "grpc")]
+mod grpc_backend;
+
+#[cfg(not(any(feature = "grpc", feature = "diesel")))]
+compile_error!("enable exactly one of the `grpc` (default) or `diesel` features");
 
 #[tokio::main]
 async fn main() {
-    let config = db_schema::config::Config::load().expect("Failed to load config.toml");
+    let config = config::Config::load().expect("Failed to load config.toml");
     let worker_cfg = config
         .worker
+        .clone()
         .expect("Missing [worker] section in config.toml");
-
-    let threads = worker_cfg.threads;
-    let search_module = worker_cfg.search_module;
-    let update_module = worker_cfg.update_module;
-    let update_with_connection = worker_cfg.update_with_connection;
-    let only_update_spoofable = worker_cfg.only_update_spoofable;
-    let only_update_cracked = worker_cfg.only_update_cracked;
 
     tracing_subscriber::registry()
         .with(fmt::layer())
         .with(
             EnvFilter::new(worker_cfg.log_level.as_deref().unwrap_or("info"))
-                .add_directive(
-                    "tokio_postgres=warn"
-                        .parse()
-                        .expect("hardcoded tracing directive is valid"),
-                )
-                .add_directive(
-                    "diesel=warn"
-                        .parse()
-                        .expect("hardcoded tracing directive is valid"),
-                ),
+                .add_directive("tokio_postgres=warn".parse().unwrap())
+                .add_directive("diesel=warn".parse().unwrap())
+                .add_directive("h2=warn".parse().unwrap()),
         )
         .init();
 
-    info!("mine_search starting");
-    info!("Threads: {}", threads);
+    tracing::info!("mine_search worker starting");
 
-    let mut migration_conn = PgConnection::establish(&config.database.url)
-        .expect("Failed to connect to database for migrations");
-    migration_conn
-        .run_pending_migrations(MIGRATIONS)
-        .expect("Failed to run database migrations");
-
-    let db = Arc::new(DatabaseWrapper::establish(&config.database.url));
-    debug!("Connection to database established");
-
-    let count: i64 = schema::servers::table
-        .select(diesel::dsl::count(schema::servers::id))
-        .first(
-            &mut db
-                .pool
-                .get()
-                .await
-                .expect("Failed to get DB connection at startup"),
-        )
-        .await
-        .expect("Failed to count servers at startup");
-
-    debug!("Servers in db: {}", count);
-
-    info!("Search module: {:?}", search_module);
-    info!("Update module: {:?}", update_module);
-
-    if update_module {
-        info!("Update with connection: {:?}", update_with_connection);
-        info!("Only update spoofable: {:?}", only_update_spoofable);
-        info!("Only update cracked: {:?}", only_update_cracked);
-    }
-
-    let (tx, rx) = watch::channel(true);
-
-    let mut tasks = vec![];
-
-    if search_module {
-        for _ in 0..threads {
-            tasks.push(tokio::spawn(search_thread(db.clone(), rx.clone())));
+    // The `grpc` feature (default) wins if both happen to be enabled.
+    #[cfg(feature = "grpc")]
+    {
+        let worker_id = resolve_worker_id(&worker_cfg);
+        tracing::info!("worker id: {worker_id}");
+        loop {
+            match grpc_backend::run(worker_cfg.clone(), worker_id.clone()).await {
+                Ok(()) => {
+                    tracing::info!("worker shut down cleanly");
+                    break;
+                }
+                Err(e) => {
+                    tracing::warn!("session ended: {e}; reconnecting in 5s");
+                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                }
+            }
         }
-        info!("All worker threads started");
     }
 
-    if update_module {
-        tasks.push(tokio::spawn(updater(
-            db.clone(),
-            update_with_connection,
-            tx,
-            search_module,
-            only_update_spoofable,
-            only_update_cracked,
-        )));
-    }
+    #[cfg(all(feature = "diesel", not(feature = "grpc")))]
+    {
+        use std::sync::Arc;
 
-    tasks.push(tokio::spawn(notify_listener(db.clone())));
+        let db_url = config
+            .database
+            .as_ref()
+            .expect("Missing [database] section (required in diesel mode)")
+            .url
+            .clone();
 
-    for task in tasks {
-        let _ = task.await;
+        diesel_backend::run_migrations(&db_url);
+        let db = diesel_backend::Database::establish(&db_url);
+        let sink = Arc::new(diesel_backend::DieselSink { db: db.clone() });
+        let targets = Arc::new(diesel_backend::DieselTargetSource { db });
+        let engine = engine::Engine::new(sink, targets, sink::RuntimeConfig::from(&worker_cfg));
+        engine.start();
+        tracing::info!("worker running (diesel mode)");
+        std::future::pending::<()>().await;
     }
+}
+
+#[cfg(feature = "grpc")]
+fn resolve_worker_id(cfg: &config::WorkerConfig) -> String {
+    if let Some(id) = cfg.id.clone().filter(|s| !s.is_empty()) {
+        return id;
+    }
+    // Persist a generated UUID next to the working directory so the identity
+    // (and thus operator-pinned config) survives restarts.
+    let path = std::path::PathBuf::from("worker_id");
+    if let Ok(existing) = std::fs::read_to_string(&path) {
+        let trimmed = existing.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_string();
+        }
+    }
+    let id = uuid::Uuid::new_v4().to_string();
+    if let Err(e) = std::fs::write(&path, &id) {
+        tracing::warn!("could not persist worker id: {e}");
+    }
+    id
 }

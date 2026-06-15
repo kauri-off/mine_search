@@ -31,7 +31,7 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 
 interface ServerInfoCardProps {
   server: ServerInfoResponse;
-  pingCountdown: number | null;
+  isPinging: boolean;
   showPingSplit: boolean;
   showDeleteConfirm: boolean;
   isDeletePending: boolean;
@@ -51,7 +51,7 @@ interface ServerInfoCardProps {
 
 export const ServerInfoCard = ({
   server,
-  pingCountdown,
+  isPinging,
   showPingSplit,
   showDeleteConfirm,
   isDeletePending,
@@ -189,13 +189,13 @@ export const ServerInfoCard = ({
       {/* Ping section */}
       {!isEditing && (
         <div className="border-t border-[#2a2a3a] pt-3">
-          {pingCountdown !== null ? (
+          {isPinging ? (
             <button
               disabled
               className="w-full py-2 px-3 rounded-lg text-sm bg-indigo-950/40 text-indigo-400 border border-indigo-900/30 flex items-center justify-center gap-2 opacity-70 cursor-not-allowed"
             >
               <Radio className="w-4 h-4 animate-pulse" />
-              {t.serverInfo.reloadingIn(pingCountdown)}
+              {t.serverInfo.pinging}
             </button>
           ) : showPingSplit ? (
             <div className="space-y-2">

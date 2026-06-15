@@ -25,7 +25,9 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
+    // Disabled: generated protobuf code (src/gen) emits TS `enum`s, which Vite's
+    // esbuild transpiles fine but this flag forbids.
+    "erasableSyntaxOnly": false,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },

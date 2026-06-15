@@ -2,138 +2,110 @@ use std::sync::Arc;
 
 use diesel::{Connection, PgConnection};
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
+use proto::{api::api_server::ApiServer, worker::worker_control_server::WorkerControlServer};
+use tonic::transport::Server;
+use tonic_web::GrpcWebLayer;
+
+use crate::{
+    auth::{BACKEND_PASSWORD, BACKEND_SECRET, WORKER_TOKEN, generate_random_string},
+    database::DatabaseWrapper,
+    registry::WorkerRegistry,
+    services::{api::ApiService, worker::WorkerService},
+    state::AppState,
+};
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../db_schema/migrations");
 
-use api::{
-    add_target::add_target, add_targets::add_addrs, auth::authenticate_user,
-    delete_player::delete_player, fetch_server_info::fetch_server_info,
-    fetch_server_list::fetch_server_list, fetch_server_snapshots::fetch_server_snapshots,
-    fetch_stats::fetch_stats, me::me, overwrite_server::overwrite_server,
-    server_delete::server_delete, update_server::update_server,
-};
-use axum::{
-    Router,
-    extract::DefaultBodyLimit,
-    http::{
-        Method,
-        header::{CONTENT_TYPE, COOKIE},
-    },
-    middleware,
-    routing::post,
-};
-use database::DatabaseWrapper;
-use lazy_static::lazy_static;
-use rand::{RngExt, distr::Alphanumeric};
-use tokio::sync::Mutex;
-use tower_http::{
-    cors::CorsLayer,
-    trace::{self, TraceLayer},
-};
-use tracing::Level;
-
-use crate::api::{
-    fetch_players_list::fetch_players_list, ping_server::ping_server,
-    search_players::search_players, update_player::update_player,
-};
-
-lazy_static! {
-    static ref BACKEND_PASSWORD: Mutex<String> = Mutex::new(String::new());
-    static ref BACKEND_SECRET: Mutex<String> = Mutex::new(String::new());
-}
-
-mod api;
-mod api_middleware;
+mod auth;
 mod database;
-mod error;
-mod jwt_wrapper;
+mod events;
+mod html;
+mod persistence;
+mod registry;
+mod services;
+mod state;
 
 #[tokio::main]
-async fn main() {
-    tracing_subscriber::fmt()
-        .with_target(false)
-        .compact()
-        .init();
-
-    let logging = TraceLayer::new_for_http()
-        .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
-        .on_response(trace::DefaultOnResponse::new().level(Level::INFO));
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt().with_target(false).compact().init();
 
     let config = db_schema::config::Config::load().expect("Failed to load config.toml");
     let backend_cfg = config
         .backend
         .expect("Missing [backend] section in config.toml");
+    let database_cfg = config
+        .database
+        .expect("Missing [database] section in config.toml");
 
-    let mut migration_conn = PgConnection::establish(&config.database.url)
+    let addr = backend_cfg.grpc_addr().parse()?;
+
+    // The backend owns the database: run migrations on startup.
+    let mut migration_conn = PgConnection::establish(&database_cfg.url)
         .expect("Failed to connect to database for migrations");
     migration_conn
         .run_pending_migrations(MIGRATIONS)
         .expect("Failed to run database migrations");
 
-    let db = Arc::new(DatabaseWrapper::establish(&config.database.url));
+    let db = Arc::new(DatabaseWrapper::establish(&database_cfg.url));
 
-    let protected_routes = Router::new()
-        .route("/server/info", post(fetch_server_info))
-        .route("/server/update", post(update_server))
-        .route("/server/snapshots", post(fetch_server_snapshots))
-        .route("/server/list", post(fetch_server_list))
-        .route("/server/delete", post(server_delete))
-        .route("/server/ping", post(ping_server))
-        .route("/player/list", post(fetch_players_list))
-        .route("/player/search", post(search_players))
-        .route("/player/update", post(update_player))
-        .route("/player/delete", post(delete_player))
-        .route("/server/overwrite", post(overwrite_server))
-        .route("/target/add", post(add_target))
-        .route("/target/add_list", post(add_addrs))
-        .route("/auth/me", post(me))
-        .route("/stats", post(fetch_stats))
-        .layer(middleware::from_fn(api_middleware::middleware_check))
-        .layer(DefaultBodyLimit::disable());
-
-    let public_api = Router::new()
-        .route("/auth/login", post(authenticate_user))
-        .merge(protected_routes);
-
-    let app = Router::new()
-        .nest("/api/v1", public_api)
-        .layer(
-            CorsLayer::new()
-                .allow_methods([Method::POST, Method::OPTIONS])
-                .allow_headers([COOKIE, CONTENT_TYPE])
-                .allow_credentials(true),
-        )
-        .layer(logging)
-        .with_state(db);
-
+    // Install shared secrets used by the auth helpers.
     {
-        let mut password_mutex = BACKEND_PASSWORD.lock().await;
-        let mut secret_mutex = BACKEND_SECRET.lock().await;
-        *password_mutex = backend_cfg.password;
-        *secret_mutex = match backend_cfg.jwt_secret.filter(|s| !s.is_empty()) {
-            Some(secret) => secret,
-            None => {
-                tracing::warn!(
-                    "No [backend].jwt_secret configured — generating a random one. \
-                     All sessions will be invalidated on every restart/redeploy. \
-                     Set a stable secret (e.g. `openssl rand -hex 32`) for production."
-                );
-                generate_random_string(32)
-            }
-        };
+        *BACKEND_PASSWORD.lock().unwrap() = backend_cfg.password.clone();
+        *BACKEND_SECRET.lock().unwrap() =
+            match backend_cfg.jwt_secret.filter(|s| !s.is_empty()) {
+                Some(secret) => secret,
+                None => {
+                    tracing::warn!(
+                        "No [backend].jwt_secret configured — generating a random one. \
+                         All sessions will be invalidated on every restart. \
+                         Set a stable secret (e.g. `openssl rand -hex 32`) for production."
+                    );
+                    generate_random_string(32)
+                }
+            };
+        let token = backend_cfg.worker_token.filter(|s| !s.is_empty());
+        if token.is_none() {
+            tracing::warn!(
+                "No [backend].worker_token configured — workers can connect without \
+                 authentication. Set one for production."
+            );
+        }
+        *WORKER_TOKEN.lock().unwrap() = token;
     }
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
-        .await
-        .expect("Failed to bind TCP listener");
+    let state = Arc::new(AppState {
+        db,
+        registry: Arc::new(WorkerRegistry::default()),
+        events: Arc::new(crate::events::ServerEvents::default()),
+    });
 
-    tracing::info!("Server started on 0.0.0.0:3000");
-    axum::serve(listener, app).await.expect("Server crashed");
-}
+    let api = ApiServer::new(ApiService {
+        state: state.clone(),
+    });
+    let worker = WorkerControlServer::new(WorkerService {
+        state: state.clone(),
+    });
 
-fn generate_random_string(length: usize) -> String {
-    let mut rng = rand::rng();
-    (0..length)
-        .map(|_| rng.sample(Alphanumeric) as char)
-        .collect()
+    // `accept_http1(true)` + `GrpcWebLayer` lets the browser talk gRPC-web while
+    // native gRPC (workers, HTTP/2) still passes through unchanged.
+    let mut builder = Server::builder().accept_http1(true);
+
+    if let (Some(cert_path), Some(key_path)) = (&backend_cfg.tls_cert, &backend_cfg.tls_key) {
+        let cert = std::fs::read(cert_path)?;
+        let key = std::fs::read(key_path)?;
+        let identity = tonic::transport::Identity::from_pem(cert, key);
+        builder = builder.tls_config(tonic::transport::ServerTlsConfig::new().identity(identity))?;
+        tracing::info!("TLS enabled");
+    }
+
+    tracing::info!("gRPC server listening on {addr}");
+
+    builder
+        .layer(GrpcWebLayer::new())
+        .add_service(api)
+        .add_service(worker)
+        .serve(addr)
+        .await?;
+
+    Ok(())
 }

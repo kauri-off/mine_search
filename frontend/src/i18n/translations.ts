@@ -75,7 +75,7 @@ export interface Translations {
     crashed: string;
     ping: string;
     ms: string;
-    reloadingIn: (n: number) => string;
+    pinging: string;
     choosePingType: string;
     withConnection: string;
     withoutConnection: string;
@@ -156,5 +156,31 @@ export interface Translations {
     wrongPassword: string;
     networkError: string;
     tooManyRequests: string;
+  };
+  workers: {
+    title: string;
+    empty: string;
+    online: string;
+    offline: string;
+    lastSeen: string;
+    version: string;
+    metrics: string;
+    serversFound: string;
+    scanRate: string;
+    uptime: string;
+    activeThreads: string;
+    searching: string;
+    updating: string;
+    config: string;
+    threads: string;
+    searchModule: string;
+    updateModule: string;
+    withConnection: string;
+    onlySpoofable: string;
+    onlyCracked: string;
+    save: string;
+    saving: string;
+    saved: string;
+    saveError: string;
   };
 }

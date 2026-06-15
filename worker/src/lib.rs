@@ -1,9 +1,7 @@
 use std::net::Ipv4Addr;
 
-use db_schema::chat::ChatObject;
 use rand::RngExt;
 use rand_chacha::ChaCha8Rng;
-use serde_json::Value;
 
 pub fn generate_random_ip(rng: &mut ChaCha8Rng) -> Ipv4Addr {
     loop {
@@ -37,9 +35,4 @@ fn is_reserved_ip(octets: [u8; 4]) -> bool {
         203 => octets[1] == 0 && octets[2] == 113, // 203.0.113.0/24 (documentation)
         _ => false,
     }
-}
-
-pub fn description_to_str(description: Value) -> Result<String, serde_json::Error> {
-    let chat_object: ChatObject = serde_json::from_value(description)?;
-    Ok(chat_object.get_motd())
 }

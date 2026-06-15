@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
@@ -27,10 +27,11 @@ export const ServerDetail = () => {
   const queryClient = useQueryClient();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [pingCountdown, setPingCountdown] = useState<number | null>(null);
+  const [isPinging, setIsPinging] = useState(false);
   const [showPingSplit, setShowPingSplit] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const pingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // -- Queries ---------------------------------------------------------------
 
@@ -137,6 +138,48 @@ export const ServerDetail = () => {
     },
   });
 
+  // -- Live updates ----------------------------------------------------------
+  // Subscribe to server-info pushes while mounted: the stream emits the current
+  // state, then re-emits on every change (manual ping or background re-probe),
+  // so the page reflects new data in real time without a fixed wait.
+
+  useEffect(() => {
+    if (!ip) return;
+    const controller = new AbortController();
+    let cancelled = false;
+
+    (async () => {
+      while (!cancelled) {
+        try {
+          for await (const info of serverApi.streamServerInfo(ip, controller.signal)) {
+            queryClient.setQueryData<ServerInfoResponse>(["server", ip], info);
+            queryClient.invalidateQueries({ queryKey: ["serverData", info.id] });
+            queryClient.invalidateQueries({ queryKey: ["playerList", info.id] });
+            if (pingTimeoutRef.current) {
+              clearTimeout(pingTimeoutRef.current);
+              pingTimeoutRef.current = null;
+            }
+            setIsPinging(false);
+          }
+        } catch {
+          // Aborts and transient stream errors both land here.
+        }
+        if (cancelled) break;
+        // Brief backoff before reconnecting a dropped stream.
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      if (pingTimeoutRef.current) {
+        clearTimeout(pingTimeoutRef.current);
+        pingTimeoutRef.current = null;
+      }
+    };
+  }, [ip, queryClient]);
+
   // -- Handlers --------------------------------------------------------------
 
   const handleToggle = (field: ToggleField) => {
@@ -145,28 +188,22 @@ export const ServerDetail = () => {
   };
 
   const handlePingRequest = () => {
-    if (!server || pingCountdown !== null) return;
+    if (!server || isPinging) return;
     setShowPingSplit(true);
   };
 
   const handlePing = (withConnection: boolean) => {
-    if (!server || pingCountdown !== null) return;
+    if (!server || isPinging) return;
     const serverId = server.id;
     setShowPingSplit(false);
     serverApi.pingServer({ server_id: serverId, with_connection: withConnection });
-    setPingCountdown(12);
-    const interval = setInterval(() => {
-      setPingCountdown((prev) => {
-        if (prev === null || prev <= 1) {
-          clearInterval(interval);
-          queryClient.invalidateQueries({ queryKey: ["server", ip] });
-          queryClient.invalidateQueries({ queryKey: ["serverData", serverId] });
-          queryClient.invalidateQueries({ queryKey: ["playerList", serverId] });
-          return null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    setIsPinging(true);
+    if (pingTimeoutRef.current) clearTimeout(pingTimeoutRef.current);
+    // Fallback so the spinner can't get stuck if the probe yields no change.
+    pingTimeoutRef.current = setTimeout(() => {
+      setIsPinging(false);
+      pingTimeoutRef.current = null;
+    }, 15000);
   };
 
   // -- Derived data ----------------------------------------------------------
@@ -200,7 +237,7 @@ export const ServerDetail = () => {
             <div className="lg:col-span-1 space-y-4">
               <ServerInfoCard
                 server={server}
-                pingCountdown={pingCountdown}
+                isPinging={isPinging}
                 showPingSplit={showPingSplit}
                 showDeleteConfirm={showDeleteConfirm}
                 isDeletePending={deleteMutation.isPending}

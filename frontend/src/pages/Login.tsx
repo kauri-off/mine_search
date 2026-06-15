@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
-import axios from "axios";
+import { ConnectError, Code } from "@connectrpc/connect";
 import { authApi } from "@/api/client";
 import { useTranslation } from "@/i18n";
 
@@ -20,10 +20,10 @@ export const Login = () => {
       await authApi.login({ password });
       navigate("/");
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        if (err.response?.status === 401) {
+      if (err instanceof ConnectError) {
+        if (err.code === Code.Unauthenticated) {
           setError(t.login.wrongPassword);
-        } else if (err.response?.status === 429) {
+        } else if (err.code === Code.ResourceExhausted) {
           setError(t.login.tooManyRequests);
         } else {
           setError(t.login.networkError);

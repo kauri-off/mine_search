@@ -34,9 +34,9 @@ services:
     networks:
       - app-network
     restart: unless-stopped
+    # gRPC workers talk to the backend, not the database.
     depends_on:
-      postgres:
-        condition: service_healthy
+      - backend
   backend:
     image: ghcr.io/kauri-off/mine_search/backend:latest
     volumes:
@@ -61,6 +61,9 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - 8080:80
+      # Native gRPC endpoint for REMOTE workers (and masscan_wrapper). Add TLS
+      # in production — see nginx.conf.
+      - 50051:50051
     depends_on:
       - backend
       - frontend

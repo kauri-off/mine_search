@@ -1,0 +1,10 @@
+# Generates TypeScript message + service code from the shared protos in
+# ../proto/proto into src/gen. Run with: npx buf generate
+version: v2
+plugins:
+  - local: protoc-gen-es
+    out: src/gen
+    opt:
+      - target=ts
+inputs:
+  - directory: ../proto/proto

@@ -20,6 +20,9 @@ const Stats = lazy(() =>
 const Players = lazy(() =>
   import("./pages/Players").then((m) => ({ default: m.Players })),
 );
+const Workers = lazy(() =>
+  import("./pages/Workers").then((m) => ({ default: m.Workers })),
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,6 +59,7 @@ function App() {
                             <Route path="/server/:ip" element={<ServerDetail />} />
                             <Route path="/stats" element={<Stats />} />
                             <Route path="/players" element={<Players />} />
+                            <Route path="/workers" element={<Workers />} />
                           </Routes>
                         </Suspense>
                       </AppShell>

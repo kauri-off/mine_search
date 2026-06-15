@@ -1,0 +1,140 @@
+syntax = "proto3";
+
+package worker;
+
+// Control plane between a worker and the backend.
+//
+// Workers DIAL the backend. The backend is the gRPC server; each worker opens
+// a long-lived bidirectional `Session` stream: it sends Register, periodic
+// Heartbeats and ScanResults, and receives ServerCommands (ping/scan tasks,
+// live config changes, pause/resume/shutdown). The unary `FetchUpdateTargets`
+// lets a worker pull the set of servers it should re-ping during an update
+// cycle (the backend owns the database, so the worker cannot read it directly).
+service WorkerControl {
+  rpc Session(stream WorkerMessage) returns (stream ServerCommand);
+  rpc FetchUpdateTargets(FetchUpdateTargetsRequest) returns (UpdateTargets);
+}
+
+// Mirrors `[worker]` in config.toml — the live-tunable knobs the frontend can edit.
+message WorkerConfig {
+  int32 threads = 1;
+  bool search_module = 2;
+  bool update_module = 3;
+  bool update_with_connection = 4;
+  bool only_update_spoofable = 5;
+  bool only_update_cracked = 6;
+}
+
+// Worker -> backend, multiplexed over the Session stream.
+message WorkerMessage {
+  oneof kind {
+    Register register = 1;
+    Heartbeat heartbeat = 2;
+    ScanResult result = 3;
+  }
+}
+
+message Register {
+  string worker_id = 1;
+  optional string name = 2;
+  WorkerConfig config = 3;
+  string version = 4; // worker crate version, for display
+}
+
+message Heartbeat {
+  WorkerMetrics metrics = 1;
+}
+
+message WorkerMetrics {
+  uint64 servers_found = 1;   // servers discovered this process lifetime
+  uint64 ips_scanned = 2;     // total random IPs probed
+  double scan_rate = 3;       // probes/sec, recent window
+  uint64 uptime_secs = 4;
+  bool searching = 5;
+  bool updating = 6;
+  uint32 active_threads = 7;
+}
+
+// Worker -> backend: the outcome of probing a single address.
+message ScanResult {
+  oneof outcome {
+    // Newly probed via the search/scan path (upsert-by-ip, conflict only bumps
+    // updated_at/is_online/favicon — mirrors the old `handle_valid_ip`).
+    ServerReport discovered = 1;
+    // Re-probed during an update cycle / on-demand ping (full field update by
+    // ip — mirrors the old `update_server`).
+    ServerReport updated = 2;
+    // Re-probe failed during an update: mark the server offline.
+    ServerOffline offline = 3;
+  }
+}
+
+message ServerReport {
+  string ip = 1;
+  int32 port = 2;
+  string version_name = 3;
+  int32 protocol = 4;
+  string description_json = 5; // serde_json::Value, serialized
+  int32 players_online = 6;
+  int32 players_max = 7;
+  repeated string player_names = 8;
+  bool requires_mods = 9;
+  optional string favicon = 10;
+  optional int64 ping = 11;
+  // Present for every `discovered` report; present for `updated` only when the
+  // worker was asked to probe with a login connection (`with_connection`).
+  optional ServerExtra extra = 12;
+}
+
+message ServerExtra {
+  bool is_online_mode = 1;
+  optional string disconnect_reason_json = 2;
+}
+
+message ServerOffline {
+  string ip = 1;
+}
+
+// Backend -> worker, over the Session stream.
+message ServerCommand {
+  oneof cmd {
+    PingTask ping = 1;        // replaces the ping_requests table
+    ScanTask scan = 2;        // replaces the scan_targets table
+    WorkerConfig set_config = 3; // live config update from the frontend
+    Control control = 4;
+  }
+}
+
+message PingTask {
+  string ip = 1;
+  int32 port = 2;
+  bool with_connection = 3;
+}
+
+message ScanTask {
+  string ip = 1;
+  int32 port = 2;
+}
+
+enum Control {
+  CONTROL_UNSPECIFIED = 0;
+  CONTROL_PAUSE_SEARCH = 1;
+  CONTROL_RESUME_SEARCH = 2;
+  CONTROL_SHUTDOWN = 3;
+}
+
+message FetchUpdateTargetsRequest {
+  string worker_id = 1;
+  bool only_spoofable = 2;
+  bool only_cracked = 3;
+}
+
+message UpdateTargets {
+  repeated UpdateTarget targets = 1;
+}
+
+message UpdateTarget {
+  string ip = 1;
+  int32 port = 2;
+  bool with_connection = 3;
+}

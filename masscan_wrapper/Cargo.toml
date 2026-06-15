@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.102"
 clap = { version = "4.6.1", features = ["derive"] }
-reqwest = { version = "0.13.4", features = ["json", "cookies"] }
-serde_json = "1.0.150"
 tokio = { version = "1.52.3", features = ["full"] }
+proto = { path = "../proto" }
+tonic = { version = "0.13", features = ["tls-ring", "tls-webpki-roots"] }
+prost = "0.13"

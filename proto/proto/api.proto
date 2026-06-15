@@ -1,0 +1,239 @@
+syntax = "proto3";
+
+package api;
+
+import "worker.proto";
+
+// Frontend ⇆ backend API. Replaces the old REST endpoints under /api/v1.
+// Served as gRPC-web (browser) via tonic-web. All RPCs except Login require a
+// valid JWT in the `authorization` metadata (Bearer <token>).
+service Api {
+  // Auth
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Me(Empty) returns (Empty);
+
+  // Stats
+  rpc GetStats(Empty) returns (StatsResponse);
+
+  // Servers
+  rpc ListServers(ServerListRequest) returns (ServerListResponse);
+  rpc GetServerInfo(ServerInfoRequest) returns (ServerInfo);
+  rpc StreamServerInfo(ServerInfoRequest) returns (stream ServerInfo);
+  rpc GetServerSnapshots(ServerSnapshotsRequest) returns (ServerSnapshotsResponse);
+  rpc UpdateServer(UpdateServerRequest) returns (Empty);
+  rpc OverwriteServer(OverwriteServerRequest) returns (Empty);
+  rpc DeleteServer(ServerDeleteRequest) returns (Empty);
+  rpc PingServer(PingServerRequest) returns (Empty);
+  rpc AddTarget(AddAddrRequest) returns (Empty);
+  rpc AddTargetList(AddTargetListRequest) returns (Empty);
+
+  // Players
+  rpc ListPlayers(PlayerListRequest) returns (PlayerListResponse);
+  rpc SearchPlayers(PlayerSearchRequest) returns (PlayerSearchResponse);
+  rpc UpdatePlayer(UpdatePlayerRequest) returns (Empty);
+  rpc DeletePlayer(DeletePlayerRequest) returns (Empty);
+
+  // Worker management
+  rpc ListWorkers(Empty) returns (WorkerList);
+  rpc StreamWorkers(Empty) returns (stream WorkerList);
+  rpc GetWorker(GetWorkerRequest) returns (WorkerInfo);
+  rpc UpdateWorkerConfig(UpdateWorkerConfigRequest) returns (Empty);
+}
+
+message Empty {}
+
+enum PlayerStatus {
+  PLAYER_STATUS_NONE = 0;
+  PLAYER_STATUS_REGULAR = 1;
+  PLAYER_STATUS_ADMIN = 2;
+}
+
+// ----- Auth -----
+message LoginRequest {
+  string password = 1;
+}
+message LoginResponse {
+  string token = 1;
+}
+
+// ----- Stats -----
+message VersionStat {
+  string version = 1;
+  int64 count = 2;
+}
+message StatsResponse {
+  int64 total_servers = 1;
+  int64 cracked_servers = 2;
+  int64 online_servers = 3;
+  int64 crashed_servers = 4;
+  int64 mod_required_servers = 5;
+  int64 spoofable_servers = 6;
+  int64 total_players = 7;
+  int64 admin_players = 8;
+  optional double avg_ping = 9;
+  repeated VersionStat version_distribution = 10;
+  double db_size_mb = 11;
+  double favicon_size_mb = 12;
+}
+
+// ----- Servers -----
+message ServerListRequest {
+  int64 limit = 1;
+  optional int32 offset_id = 2;
+  optional bool licensed = 3;
+  optional bool checked = 4;
+  optional bool spoofable = 5;
+  optional bool crashed = 6;
+  optional bool has_players = 7;
+  optional bool online = 8;
+  optional bool requires_mods = 9;
+  optional bool has_none_players = 10;
+  optional string ip_contains = 11;
+}
+
+message ServerInfo {
+  int32 id = 1;
+  string ip = 2;
+  int32 online = 3;
+  int32 max = 4;
+  string version_name = 5;
+  int32 protocol = 6;
+  bool license = 7;
+  optional string disconnect_reason_html = 8;
+  string updated = 9; // RFC3339
+  string description_html = 10;
+  bool was_online = 11;
+  bool is_checked = 12;
+  optional bool is_spoofable = 13;
+  bool is_crashed = 14;
+  bool requires_mods = 15;
+  optional string favicon = 16;
+  optional int64 ping = 17;
+}
+
+message ServerListResponse {
+  repeated ServerInfo servers = 1;
+}
+
+message ServerInfoRequest {
+  string ip = 1;
+}
+
+message ServerSnapshotsRequest {
+  int32 server_id = 1;
+  int64 limit = 2;
+}
+message ServerSnapshot {
+  int32 server_id = 1;
+  int32 players_online = 2;
+  int32 players_max = 3;
+  string recorded_at = 4; // RFC3339
+}
+message ServerSnapshotsResponse {
+  repeated ServerSnapshot snapshots = 1;
+}
+
+message UpdateServerRequest {
+  string server_ip = 1;
+  optional bool is_checked = 2;
+  optional bool is_spoofable = 3;
+  optional bool is_crashed = 4;
+}
+
+message OverwriteServerRequest {
+  int32 server_id = 1;
+  optional int32 port = 2;
+  optional string version_name = 3;
+  optional int32 protocol = 4;
+  optional bool is_online_mode = 5;
+  optional bool requires_mods = 6;
+  optional bool is_online = 7;
+  optional int64 ping = 8;
+  optional string favicon = 9;
+  optional bool is_checked = 10;
+  optional bool is_spoofable = 11;
+  optional bool is_crashed = 12;
+}
+
+message ServerDeleteRequest {
+  int32 id = 1;
+}
+
+message PingServerRequest {
+  int32 server_id = 1;
+  bool with_connection = 2;
+}
+
+message AddAddrRequest {
+  string addr = 1;
+  bool quick = 2;
+}
+message AddTargetListRequest {
+  repeated AddAddrRequest targets = 1;
+}
+
+// ----- Players -----
+message PlayerListRequest {
+  int32 server_id = 1;
+}
+message Player {
+  int32 id = 1;
+  int32 server_id = 2;
+  string name = 3;
+  PlayerStatus status = 4;
+  string last_seen_at = 5; // RFC3339
+}
+message PlayerListResponse {
+  repeated Player players = 1;
+}
+
+message PlayerSearchRequest {
+  int64 limit = 1;
+  optional int32 offset_id = 2;
+  optional string name_contains = 3;
+  optional PlayerStatus status = 4;
+  optional bool licensed = 5;
+}
+message PlayerSearchResult {
+  int32 id = 1;
+  int32 server_id = 2;
+  string server_ip = 3;
+  string name = 4;
+  PlayerStatus status = 5;
+  string last_seen_at = 6; // RFC3339
+}
+message PlayerSearchResponse {
+  repeated PlayerSearchResult players = 1;
+}
+
+message UpdatePlayerRequest {
+  int32 id = 1;
+  PlayerStatus status = 2;
+}
+message DeletePlayerRequest {
+  int32 id = 1;
+}
+
+// ----- Worker management -----
+message WorkerInfo {
+  string worker_id = 1;
+  optional string name = 2;
+  string version = 3;
+  bool online = 4;
+  int64 last_seen_unix = 5;       // last heartbeat (epoch seconds)
+  worker.WorkerConfig config = 6; // desired/effective config
+  worker.WorkerMetrics metrics = 7;
+}
+
+message WorkerList {
+  repeated WorkerInfo workers = 1;
+}
+
+message GetWorkerRequest {
+  string worker_id = 1;
+}
+
+message UpdateWorkerConfigRequest {
+  string worker_id = 1;
+  worker.WorkerConfig config = 2;
+}

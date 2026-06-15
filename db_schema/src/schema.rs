@@ -7,14 +7,6 @@ pub mod sql_types {
 }
 
 diesel::table! {
-    ping_requests (id) {
-        id -> Int4,
-        server_id -> Int4,
-        with_connection -> Bool,
-    }
-}
-
-diesel::table! {
     player_count_snapshots (server_id, recorded_at) {
         server_id -> Int4,
         players_online -> Int2,
@@ -33,15 +25,6 @@ diesel::table! {
         name -> Varchar,
         status -> PlayerStatus,
         last_seen_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    scan_targets (id) {
-        id -> Int4,
-        ip -> Text,
-        port -> Int4,
-        quick -> Bool,
     }
 }
 
@@ -67,14 +50,11 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(ping_requests -> servers (server_id));
 diesel::joinable!(player_count_snapshots -> servers (server_id));
 diesel::joinable!(players -> servers (server_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    ping_requests,
     player_count_snapshots,
     players,
-    scan_targets,
     servers,
 );

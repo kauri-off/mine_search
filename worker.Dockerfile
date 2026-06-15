@@ -11,6 +11,9 @@ COPY worker/Cargo.toml worker/
 COPY worker/src worker/src
 COPY backend/Cargo.toml backend/
 COPY backend/src backend/src
+COPY proto/Cargo.toml proto/build.rs proto/
+COPY proto/src proto/src
+COPY proto/proto proto/proto
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
@@ -32,6 +35,9 @@ COPY worker/Cargo.toml worker/
 COPY worker/src worker/src
 COPY backend/Cargo.toml backend/
 COPY backend/src backend/src
+COPY proto/Cargo.toml proto/build.rs proto/
+COPY proto/src proto/src
+COPY proto/proto proto/proto
 
 RUN cargo build --release -p worker
 

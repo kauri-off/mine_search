@@ -1,16 +1,18 @@
 use clap::Parser;
-use reqwest::{Client, cookie::Jar};
-use serde_json::{Value, json};
-use std::sync::Arc;
+use proto::api::{AddAddrRequest, AddTargetListRequest, LoginRequest, api_client::ApiClient};
+use tonic::{
+    Request,
+    transport::{Channel, ClientTlsConfig},
+};
 
 #[derive(Parser, Debug)]
 #[command(
     author,
     version,
-    about = "Import IPs from a masscan output file and post them to the API"
+    about = "Import IPs from a masscan output file and submit them to the backend over gRPC"
 )]
 struct Args {
-    /// API base endpoint (e.g. https://example.com)
+    /// Backend gRPC endpoint, e.g. http://127.0.0.1:3000 or https://example.com:443
     #[arg(short, long)]
     endpoint: String,
 
@@ -23,33 +25,36 @@ struct Args {
     file: String,
 }
 
+async fn connect(endpoint: &str) -> anyhow::Result<Channel> {
+    let mut ep = Channel::from_shared(endpoint.to_string())?;
+    if endpoint.starts_with("https") {
+        ep = ep.tls_config(ClientTlsConfig::new().with_webpki_roots())?;
+    }
+    Ok(ep.connect().await?)
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
-    // Build client with cookie store
-    let jar = Arc::new(Jar::default());
-    let client = Client::builder().cookie_provider(jar.clone()).build()?;
+    println!("[*] Connecting to {}...", args.endpoint);
+    let channel = connect(&args.endpoint).await?;
+    let mut client = ApiClient::new(channel);
 
-    // Login
-    println!("[*] Logging in to {}...", args.endpoint);
-    let login_url = format!("{}/api/v1/auth/login", args.endpoint);
-    let res = client
-        .post(&login_url)
-        .json(&json!({ "password": args.password }))
-        .send()
-        .await?;
-
-    if !res.status().is_success() {
-        eprintln!("[-] Login failed: {}", res.status());
-        std::process::exit(1);
-    }
+    println!("[*] Logging in...");
+    let token = client
+        .login(LoginRequest {
+            password: args.password,
+        })
+        .await
+        .map_err(|e| anyhow::anyhow!("login failed: {}", e.message()))?
+        .into_inner()
+        .token;
     println!("[+] Logged in successfully.");
 
     println!("[*] Reading masscan output from {}...", args.file);
     let contents = std::fs::read_to_string(&args.file)?;
     let ips = parse_masscan_output(&contents);
-
     println!("[+] Found {} IPs.", ips.len());
 
     if ips.is_empty() {
@@ -62,13 +67,8 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    print!(
-        "\nAdd these {} IP(s) to {}? [y/N] ",
-        ips.len(),
-        args.endpoint
-    );
+    print!("\nAdd these {} IP(s) to {}? [y/N] ", ips.len(), args.endpoint);
     std::io::Write::flush(&mut std::io::stdout())?;
-
     let mut input = String::new();
     std::io::BufRead::read_line(&mut std::io::stdin().lock(), &mut input)?;
     if input.trim().to_lowercase() != "y" {
@@ -76,12 +76,19 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let add_url = format!("{}/api/v1/target/add_list", args.endpoint);
-    let body: Vec<Value> = ips
+    let targets = ips
         .into_iter()
-        .map(|ip| json!({ "ip": ip, "quick": false }))
+        .map(|ip| AddAddrRequest {
+            addr: ip,
+            quick: false,
+        })
         .collect();
-    client.post(&add_url).json(&body).send().await?;
+
+    // Attach the session token as Bearer metadata.
+    let mut req = Request::new(AddTargetListRequest { targets });
+    req.metadata_mut()
+        .insert("authorization", format!("Bearer {token}").parse()?);
+    client.add_target_list(req).await?;
 
     println!("[*] Done.");
     Ok(())
