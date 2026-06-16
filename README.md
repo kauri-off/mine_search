@@ -36,6 +36,7 @@ Edit `worker.toml` — set `[worker].backend_url` and `[worker].token` (the toke
 
 > [!IMPORTANT]
 > The `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` values in `docker-compose.yml` are only applied **on first container creation**. If you change the password after the database volume already exists, you must update it manually inside the container:
+>
 > ```sql
 > ALTER ROLE <user> WITH PASSWORD 'new_password';
 > ```
@@ -53,6 +54,7 @@ The backend automatically runs any pending database migrations on startup. The a
 ![Dashboard](dashboard.png)
 ![Server Details](server.png)
 ![Stats](stats.png)
+![Workers](workers.png)
 
 ## masscan_wrapper
 
