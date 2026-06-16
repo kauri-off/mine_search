@@ -32,9 +32,21 @@ impl Status {
         let name = self.version.name.to_ascii_lowercase();
         let heuristic = LOADER_KEYWORDS.iter().any(|kw| name.contains(kw));
 
-        let markers = self.forge_data.is_some() || self.modinfo.is_some();
+        let markers = self.forge_data.is_some() || self.has_legacy_mods();
 
         (heuristic || markers) && !self.is_server_side_only()
+    }
+
+    /// True when legacy `modinfo` advertises at least one mod. An empty `modList`
+    /// (commonly spoofed as `{ "type": "FML", "modList": [] }` to look
+    /// Forge-friendly) requires nothing of the client, so a vanilla player can
+    /// still join — that must not flag the server.
+    fn has_legacy_mods(&self) -> bool {
+        self.modinfo
+            .as_ref()
+            .and_then(|m| m.get("modList"))
+            .and_then(Value::as_array)
+            .is_some_and(|list| !list.is_empty())
     }
 
     /// True only when `forgeData` lists channels and *every* one is `required: false`.
@@ -204,5 +216,48 @@ mod tests {
             json!({ "forgeData": { "channels": [], "truncated": true, "d": "abc" } }),
         );
         assert!(s.requires_mods());
+    }
+
+    #[test]
+    fn plain_name_with_empty_modinfo_modlist_is_not_modded() {
+        let s = status(
+            "1.21.1",
+            json!({ "modinfo": { "type": "FML", "modList": [] } }),
+        );
+        assert!(!s.requires_mods());
+    }
+
+    /// Live probe — pings a real server and dumps the fields the detector reads,
+    /// so we can see *why* it gets flagged. Ignored by default (needs network).
+    /// Run with: `cargo test -p worker probe_real_server -- --ignored --nocapture`
+    #[tokio::test]
+    #[ignore]
+    async fn probe_real_server() {
+        let ip = "";
+        let port = 25565;
+
+        let (status, ping) = super::get_status(ip, port, None)
+            .await
+            .expect("status ping failed");
+
+        eprintln!("=== {ip}:{port} (ping {ping:?}ms) ===");
+        eprintln!("version.name     = {:?}", status.version.name);
+        eprintln!("version.protocol = {}", status.version.protocol);
+        eprintln!("forge_data       = {}", status.forge_data.is_some());
+        eprintln!("modinfo          = {}", status.modinfo.is_some());
+        if let Some(fd) = &status.forge_data {
+            eprintln!(
+                "forgeData JSON   = {}",
+                serde_json::to_string_pretty(fd).unwrap()
+            );
+        }
+        if let Some(mi) = &status.modinfo {
+            eprintln!(
+                "modinfo JSON     = {}",
+                serde_json::to_string_pretty(mi).unwrap()
+            );
+        }
+        eprintln!("is_server_side_only = {}", status.is_server_side_only());
+        eprintln!(">>> requires_mods   = {}", status.requires_mods());
     }
 }
