@@ -17,6 +17,7 @@ pub enum ChatObject {
 
 impl ChatObject {
     /// Flattens the component tree into plain text, discarding all formatting.
+    #[allow(dead_code)]
     pub fn get_motd(&self) -> String {
         match self {
             ChatObject::Object(component) => {

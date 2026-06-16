@@ -3,7 +3,7 @@
 //! backend is the sole writer and workers only report structured outcomes.
 
 use chrono::Utc;
-use db_schema::{
+use crate::{
     models::{
         player_count_snapshots::SnapshotInsert,
         players::PlayerInsert,

@@ -1,8 +1,7 @@
-//! Transport-agnostic scanning engine: runs the random-search threads and the
-//! periodic update cycle against a [`Sink`]/[`TargetSource`], reacting live to
-//! config changes pushed through a watch channel. The gRPC session loop drives
-//! it via `set_config`/`scan`/`ping`; in diesel mode it just runs the static
-//! config from `worker.toml`.
+//! Scanning engine: runs the random-search threads and the periodic update cycle,
+//! reacting live to config changes pushed through a watch channel. The gRPC session
+//! loop drives it via `set_config`/`scan`/`ping`, streams its discoveries through a
+//! [`GrpcSink`], and pulls re-probe targets through a [`GrpcTargetSource`].
 
 use std::{
     net::IpAddr,
@@ -24,9 +23,47 @@ use tracing::{debug, error, info};
 use worker::generate_random_ip;
 
 use crate::{
+    grpc_backend::{GrpcSink, GrpcTargetSource},
     report::{check_server, probe},
-    sink::{RuntimeConfig, Sink, TargetSource},
 };
+
+/// Live-tunable subset of the worker config (mirrors `[worker]` and the gRPC
+/// `WorkerConfig` message). Pushed through a watch channel so the engine can
+/// react to changes without a restart.
+#[derive(Debug, Clone)]
+pub struct RuntimeConfig {
+    pub threads: i32,
+    pub search_module: bool,
+    pub update_module: bool,
+    pub update_with_connection: bool,
+    pub only_update_spoofable: bool,
+    pub only_update_cracked: bool,
+    pub update_interval_secs: u32,
+    pub update_concurrency: u32,
+}
+
+impl From<&crate::config::WorkerConfig> for RuntimeConfig {
+    fn from(c: &crate::config::WorkerConfig) -> Self {
+        Self {
+            threads: c.threads,
+            search_module: c.search_module,
+            update_module: c.update_module,
+            update_with_connection: c.update_with_connection,
+            only_update_spoofable: c.only_update_spoofable,
+            only_update_cracked: c.only_update_cracked,
+            update_interval_secs: c.update_interval_secs,
+            update_concurrency: c.update_concurrency,
+        }
+    }
+}
+
+/// One server the worker should re-probe during an update cycle.
+#[derive(Debug, Clone)]
+pub struct UpdateTarget {
+    pub ip: String,
+    pub port: u16,
+    pub with_connection: bool,
+}
 
 const SEARCH_PORT: u16 = 25565;
 const DEFAULT_UPDATE_INTERVAL_SECS: u64 = 600;
@@ -37,8 +74,8 @@ const DEFAULT_UPDATE_CONCURRENCY: usize = 50;
 const PROBE_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct Engine {
-    pub sink: Arc<dyn Sink>,
-    pub targets: Arc<dyn TargetSource>,
+    pub sink: GrpcSink,
+    pub targets: GrpcTargetSource,
     cfg_tx: watch::Sender<RuntimeConfig>,
     pause_tx: watch::Sender<bool>,
     /// Fired to start an update cycle immediately, cutting short the interval wait.
@@ -55,11 +92,7 @@ pub struct Engine {
 
 #[allow(dead_code)] // some methods are only driven by the gRPC command loop
 impl Engine {
-    pub fn new(
-        sink: Arc<dyn Sink>,
-        targets: Arc<dyn TargetSource>,
-        cfg: RuntimeConfig,
-    ) -> Arc<Self> {
+    pub fn new(sink: GrpcSink, targets: GrpcTargetSource, cfg: RuntimeConfig) -> Arc<Self> {
         let (cfg_tx, _) = watch::channel(cfg);
         let (pause_tx, _) = watch::channel(false);
         Arc::new(Self {

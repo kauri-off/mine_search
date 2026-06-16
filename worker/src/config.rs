@@ -1,25 +1,15 @@
-//! Worker-local config parsing. Kept independent of `db_schema` so a gRPC-only
-//! build (the default) does not pull in diesel/postgres just to read a TOML file.
+//! Worker-local config parsing. The worker never talks to a database directly
+//! (it streams to the backend over gRPC), so this only needs to read a TOML file.
 
 use serde::Deserialize;
 use std::{env, fs, path::PathBuf};
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
-    // Only used in diesel mode.
-    #[allow(dead_code)]
-    pub database: Option<DatabaseConfig>,
     pub worker: Option<WorkerConfig>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct DatabaseConfig {
-    #[allow(dead_code)]
-    pub url: String,
-}
-
 #[derive(Debug, Deserialize, Clone)]
-#[allow(dead_code)] // gRPC-only fields are unused in diesel-only builds
 pub struct WorkerConfig {
     pub threads: i32,
     pub search_module: bool,

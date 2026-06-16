@@ -7,9 +7,11 @@ dial in, register, stream scan results + heartbeats, and receive commands.
 - `proto/` — shared `.proto` files (`api.proto`, `worker.proto`) + generated Rust
   (tonic, via `protox` so no `protoc` binary is needed).
 - `backend/` — tonic server: `ApiService` (frontend, served as gRPC-web via
-  tonic-web) + `WorkerControlService` (workers). In-memory `WorkerRegistry`.
-- `worker/` — Minecraft scanner. **Default feature `grpc`** (streams to backend).
-  Optional **`diesel`** feature (default OFF) writes to PostgreSQL directly.
+  tonic-web) + `WorkerControlService` (workers). In-memory `WorkerRegistry`. Sole
+  DB writer: owns the diesel schema/models (`backend/src/{schema,models,chat}.rs`)
+  and the embedded migrations (`backend/migrations/`).
+- `worker/` — Minecraft scanner. Streams scan results to the backend over gRPC; it
+  never touches the database directly.
 - `frontend/` — React + Connect-ES gRPC-web client.
 
 ## Types: proto → TS/Rust (gRPC)
@@ -31,9 +33,10 @@ Always use `npx tsc -b --noEmit` (not `npx tsc --noEmit`)
 
 ## Building
 
-Worker feature builds: `cargo check -p worker` (grpc, default) and
-`cargo check -p worker --no-default-features --features diesel`.
+`cargo check -p worker` and `cargo check -p backend`. The worker has a single
+(gRPC) build configuration.
 
 ## Database schema
 
-`db_schema/src/schema.rs` (diesel migrations in `db_schema/migrations/`).
+`backend/src/schema.rs` (diesel migrations in `backend/migrations/`). Run the diesel
+CLI from the `backend/` directory (`backend/diesel.toml` configures it).

@@ -9,7 +9,6 @@ use std::{
 };
 
 use anyhow::anyhow;
-use async_trait::async_trait;
 use proto::worker::{
     Heartbeat, Register, ScanResult, ServerExtra, ServerReport, WorkerConfig as PbConfig,
     WorkerMessage, WorkerMetrics, scan_result, server_command,
@@ -26,9 +25,8 @@ use tracing::{error, info, warn};
 
 use crate::{
     config::WorkerConfig,
-    engine::Engine,
+    engine::{Engine, RuntimeConfig, UpdateTarget},
     report::ScanReport,
-    sink::{RuntimeConfig, Sink, TargetSource, UpdateTarget},
 };
 
 #[derive(Clone)]
@@ -141,7 +139,8 @@ impl Drop for AbortOnDrop {
     }
 }
 
-struct GrpcSink {
+/// Streams the engine's scan outcomes to the backend over the session channel.
+pub struct GrpcSink {
     tx: mpsc::Sender<WorkerMessage>,
 }
 
@@ -156,19 +155,19 @@ impl GrpcSink {
             warn!("session channel closed; dropping scan result");
         }
     }
-}
 
-#[async_trait]
-impl Sink for GrpcSink {
-    async fn discovered(&self, report: ScanReport) {
+    /// A server found via the search/scan path (upsert-by-ip).
+    pub async fn discovered(&self, report: ScanReport) {
         self.send(scan_result::Outcome::Discovered(report_to_proto(report)))
             .await;
     }
-    async fn updated(&self, report: ScanReport) {
+    /// A server re-probed during an update cycle / on-demand ping (full update).
+    pub async fn updated(&self, report: ScanReport) {
         self.send(scan_result::Outcome::Updated(report_to_proto(report)))
             .await;
     }
-    async fn offline(&self, ip: &str) {
+    /// A server that failed re-probing: mark offline.
+    pub async fn offline(&self, ip: &str) {
         self.send(scan_result::Outcome::Offline(proto::worker::ServerOffline {
             ip: ip.to_string(),
         }))
@@ -176,14 +175,14 @@ impl Sink for GrpcSink {
     }
 }
 
-struct GrpcTargetSource {
+/// Asks the backend which servers to re-probe during an update cycle.
+pub struct GrpcTargetSource {
     client: Client,
     worker_id: String,
 }
 
-#[async_trait]
-impl TargetSource for GrpcTargetSource {
-    async fn update_targets(
+impl GrpcTargetSource {
+    pub async fn update_targets(
         &self,
         only_spoofable: bool,
         only_cracked: bool,
@@ -248,11 +247,11 @@ pub async fn run(
 
     let (msg_tx, msg_rx) = mpsc::channel::<WorkerMessage>(256);
 
-    let sink = Arc::new(GrpcSink { tx: msg_tx.clone() });
-    let targets = Arc::new(GrpcTargetSource {
+    let sink = GrpcSink { tx: msg_tx.clone() };
+    let targets = GrpcTargetSource {
         client: client.clone(),
         worker_id: worker_id.clone(),
-    });
+    };
     let engine = Engine::new(sink, targets, RuntimeConfig::from(&cfg));
 
     // Register first so it is the first message the backend sees.

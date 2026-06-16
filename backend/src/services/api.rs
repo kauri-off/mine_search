@@ -5,7 +5,7 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
 use chrono::Utc;
-use db_schema::{
+use crate::{
     models::{
         player_count_snapshots::SnapshotModel,
         players::{PlayerModel, PlayerStatus as DbStatus, PlayerUpdate},

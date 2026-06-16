@@ -6,12 +6,9 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 
 # All workspace members must be present so Cargo can parse the workspace graph.
-COPY db_schema/Cargo.toml db_schema/
-COPY db_schema/src db_schema/src
-COPY db_schema/migrations db_schema/migrations
-
 COPY backend/Cargo.toml backend/
 COPY backend/src backend/src
+COPY backend/migrations backend/migrations
 
 COPY worker/Cargo.toml worker/
 COPY worker/src worker/src
@@ -20,7 +17,7 @@ COPY proto/Cargo.toml proto/build.rs proto/
 COPY proto/src proto/src
 COPY proto/proto proto/proto
 
-# `-p backend` compiles only backend + db_schema, not worker.
+# `-p backend` compiles only the backend crate, not worker.
 RUN cargo build --release -p backend
 
 FROM debian:bookworm-slim

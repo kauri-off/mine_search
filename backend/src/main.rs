@@ -14,14 +14,18 @@ use crate::{
     state::AppState,
 };
 
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../db_schema/migrations");
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 mod auth;
+mod chat;
+mod config;
 mod database;
 mod events;
 mod html;
+mod models;
 mod persistence;
 mod registry;
+mod schema;
 mod services;
 mod state;
 
@@ -29,7 +33,7 @@ mod state;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt().with_target(false).compact().init();
 
-    let config = db_schema::config::Config::load().expect("Failed to load config.toml");
+    let config = crate::config::Config::load().expect("Failed to load config.toml");
     let backend_cfg = config
         .backend
         .expect("Missing [backend] section in config.toml");

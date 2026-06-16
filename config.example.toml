@@ -1,6 +1,5 @@
 [database]
-# Required by the backend (it owns the DB) and by workers built with the
-# `diesel` feature. Default gRPC workers do NOT need this.
+# The backend owns the database; workers never connect to it directly.
 url = "postgres://user:change_me@postgres-container/mine_search_db"
 # Format: postgres://<POSTGRES_USER>:<POSTGRES_PASSWORD>@postgres-container/<POSTGRES_DB>
 # If you change user or password here, update the matching variables in docker-compose.yml:

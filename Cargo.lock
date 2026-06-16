@@ -103,9 +103,9 @@ name = "backend"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "db_schema",
  "diesel",
  "diesel-async",
+ "diesel-derive-enum",
  "diesel_migrations",
  "futures",
  "jsonwebtoken",
@@ -117,6 +117,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-stream",
+ "toml 1.1.2+spec-1.1.0",
  "tonic",
  "tonic-web",
  "tracing",
@@ -381,18 +382,6 @@ dependencies = [
  "darling_core",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "db_schema"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "diesel",
- "diesel-derive-enum",
- "serde",
- "serde_json",
- "toml 1.1.2+spec-1.1.0",
 ]
 
 [[package]]
@@ -3251,14 +3240,8 @@ name = "worker"
 version = "1.0.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "chrono",
- "db_schema",
- "diesel",
- "diesel-async",
- "diesel_migrations",
  "mc_protocol",
- "pq-sys",
  "proto",
  "rand 0.10.1",
  "rand_chacha 0.10.0",

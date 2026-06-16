@@ -3,12 +3,8 @@ use std::{env, fs, path::PathBuf};
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
-    // Only required by the backend and by workers built with the `diesel`
-    // feature. gRPC workers never talk to the database directly, so they may
-    // omit this section entirely.
     pub database: Option<DatabaseConfig>,
     pub backend: Option<BackendConfig>,
-    pub worker: Option<WorkerConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -38,33 +34,6 @@ impl BackendConfig {
             .clone()
             .unwrap_or_else(|| "0.0.0.0:3000".to_string())
     }
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct WorkerConfig {
-    pub threads: i32,
-    pub search_module: bool,
-    pub update_module: bool,
-    pub update_with_connection: bool,
-    pub only_update_spoofable: bool,
-    pub only_update_cracked: bool,
-    pub log_level: Option<String>,
-
-    // ----- gRPC mode (default build) -----
-    /// Backend endpoint the worker dials, e.g. `http://127.0.0.1:3000` or
-    /// `https://example.com:443`. Required when built with the `grpc` feature.
-    pub backend_url: Option<String>,
-    /// Shared secret presented to the backend. Must match `[backend].worker_token`.
-    pub token: Option<String>,
-    /// Stable worker identity. If unset, a UUID is generated and persisted to
-    /// `worker_id` next to the config so it survives restarts/reconnects.
-    pub id: Option<String>,
-    /// Human-friendly name shown in the management UI.
-    pub name: Option<String>,
-    /// PEM CA bundle to trust for the backend's TLS cert (custom CA / self-signed).
-    pub tls_ca: Option<String>,
-    /// Skip TLS certificate verification (dev only).
-    pub insecure: Option<bool>,
 }
 
 impl Config {

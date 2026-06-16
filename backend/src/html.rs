@@ -2,7 +2,7 @@
 //! old REST `fetch_server_info` handler. Output is HTML-escaped here; the
 //! frontend additionally sanitizes with DOMPurify.
 
-use db_schema::chat::{ChatComponentObject, ChatObject};
+use crate::chat::{ChatComponentObject, ChatObject};
 use serde_json::Value;
 
 pub fn parse_html(value: Value) -> String {

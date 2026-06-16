@@ -1,6 +1,7 @@
-//! Transport-neutral scan result. Both sinks (diesel direct-write and gRPC
-//! streaming) consume this, so the scanning logic doesn't know how results are
-//! persisted.
+//! Scan result assembled by the scanning logic and handed to the [`GrpcSink`] for
+//! streaming to the backend, decoupling probing from how results are reported.
+//!
+//! [`GrpcSink`]: crate::grpc_backend::GrpcSink
 
 use std::time::Duration;
 

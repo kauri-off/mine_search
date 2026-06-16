@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["backend", "worker", "db_schema", "proto"]
+members = ["backend", "worker", "proto"]
 # masscan_wrapper stays a standalone crate (its own Cargo.lock/target). It lives
 # under the workspace root, so it must be excluded or Cargo would adopt it.
 exclude = ["masscan_wrapper"]
