@@ -20,6 +20,7 @@ worker_token = "change_me_worker_token"
 # tls_cert = "/certs/server.pem"
 # tls_key  = "/certs/server.key"
 
-# NOTE: the worker reads its own file (worker.toml — see worker.example.toml), not
-# this one. The worker rewrites that file's live-tunable [worker] keys when it is
-# retuned from the UI, so its edits persist across restarts.
+# Manual "update stack" button: points the backend at watchtower's HTTP API.
+# The token must match WATCHTOWER_HTTP_API_TOKEN in docker-compose.yml.
+watchtower_url = "http://watchtower:8080"
+watchtower_token = "change_me_watchtower_token"
