@@ -77,6 +77,8 @@ export interface Translations {
     ms: string;
     pinging: string;
     choosePingType: string;
+    chooseWorker: string;
+    noWorkersOnline: string;
     withConnection: string;
     withoutConnection: string;
     pingServer: string;

@@ -74,6 +74,8 @@ export const ru: Translations = {
     ms: "мс",
     pinging: "Пингую...",
     choosePingType: "Тип пинга:",
+    chooseWorker: "Выберите воркер:",
+    noWorkersOnline: "Нет воркеров онлайн",
     withConnection: "С подключением",
     withoutConnection: "Без подключения",
     pingServer: "Пинговать",

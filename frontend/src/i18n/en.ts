@@ -74,6 +74,8 @@ export const en: Translations = {
     ms: "ms",
     pinging: "Pinging...",
     choosePingType: "Ping type:",
+    chooseWorker: "Choose worker:",
+    noWorkersOnline: "No workers online",
     withConnection: "With connection",
     withoutConnection: "Without connection",
     pingServer: "Ping server",

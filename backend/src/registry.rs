@@ -152,12 +152,40 @@ impl WorkerRegistry {
             .map_err(|_| Status::unavailable("worker disconnected"))
     }
 
-    pub async fn dispatch_ping(&self, ip: String, port: i32, with_connection: bool) -> Result<(), Status> {
-        self.dispatch(server_command::Cmd::Ping(PingTask {
-            ip,
-            port,
-            with_connection,
-        }))
+    /// Sends a command to a specific worker by id. Errors when the worker is
+    /// unknown or currently offline.
+    async fn dispatch_to(&self, worker_id: &str, cmd: server_command::Cmd) -> Result<(), Status> {
+        let tx = {
+            let workers = self.workers.read().await;
+            let handle = workers
+                .get(worker_id)
+                .ok_or_else(|| Status::not_found("unknown worker"))?;
+            if !handle.online {
+                return Err(Status::unavailable("worker offline"));
+            }
+            handle.cmd_tx.clone()
+        };
+
+        tx.send(Ok(ServerCommand { cmd: Some(cmd) }))
+            .await
+            .map_err(|_| Status::unavailable("worker disconnected"))
+    }
+
+    pub async fn dispatch_ping(
+        &self,
+        worker_id: &str,
+        ip: String,
+        port: i32,
+        with_connection: bool,
+    ) -> Result<(), Status> {
+        self.dispatch_to(
+            worker_id,
+            server_command::Cmd::Ping(PingTask {
+                ip,
+                port,
+                with_connection,
+            }),
+        )
         .await
     }
 

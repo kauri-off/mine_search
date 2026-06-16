@@ -225,7 +225,11 @@ export const serverApi = {
     }),
 
   pingServer: (body: PingServerRequest) =>
-    client.pingServer({ serverId: body.server_id, withConnection: body.with_connection }),
+    client.pingServer({
+      serverId: body.server_id,
+      withConnection: body.with_connection,
+      workerId: body.worker_id,
+    }),
 
   searchPlayers: async (body: PlayerSearchRequest): Promise<PlayerSearchResponse[]> => {
     const res = await client.searchPlayers({

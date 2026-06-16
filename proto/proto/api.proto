@@ -162,6 +162,7 @@ message ServerDeleteRequest {
 message PingServerRequest {
   int32 server_id = 1;
   bool with_connection = 2;
+  string worker_id = 3;   // worker chosen by the user to run this ping
 }
 
 message AddAddrRequest {

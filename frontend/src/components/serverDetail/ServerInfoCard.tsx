@@ -1,6 +1,7 @@
-import { Pencil, Radio, Trash2, Link2, Wifi } from "lucide-react";
+import { Pencil, Radio, Trash2, Link2, Wifi, Server } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/cn";
+import type { WorkerInfo } from "@/gen/api_pb";
 import type { ServerInfoResponse, OverwriteServerRequest } from "@/types";
 import { CopyButton, ToggleButton } from "@/components";
 import type { ToggleField } from "@/constants/serverDetail";
@@ -32,7 +33,9 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 interface ServerInfoCardProps {
   server: ServerInfoResponse;
   isPinging: boolean;
+  showWorkerSelect: boolean;
   showPingSplit: boolean;
+  workers: WorkerInfo[];
   showDeleteConfirm: boolean;
   isDeletePending: boolean;
   isEditing: boolean;
@@ -40,6 +43,7 @@ interface ServerInfoCardProps {
   editError: string | null;
   onToggle: (field: ToggleField) => void;
   onPingRequest: () => void;
+  onWorkerSelect: (workerId: string) => void;
   onPing: (withConnection: boolean) => void;
   onDeleteRequest: () => void;
   onDeleteCancel: () => void;
@@ -52,7 +56,9 @@ interface ServerInfoCardProps {
 export const ServerInfoCard = ({
   server,
   isPinging,
+  showWorkerSelect,
   showPingSplit,
+  workers,
   showDeleteConfirm,
   isDeletePending,
   isEditing,
@@ -60,6 +66,7 @@ export const ServerInfoCard = ({
   editError,
   onToggle,
   onPingRequest,
+  onWorkerSelect,
   onPing,
   onDeleteRequest,
   onDeleteCancel,
@@ -197,6 +204,24 @@ export const ServerInfoCard = ({
               <Radio className="w-4 h-4 animate-pulse" />
               {t.serverInfo.pinging}
             </button>
+          ) : showWorkerSelect ? (
+            <div className="space-y-2">
+              <p className="text-xs text-slate-500 text-center">{t.serverInfo.chooseWorker}</p>
+              {workers.length === 0 ? (
+                <p className="text-xs text-slate-600 text-center py-2">{t.serverInfo.noWorkersOnline}</p>
+              ) : (
+                workers.map((w) => (
+                  <button
+                    key={w.workerId}
+                    onClick={() => onWorkerSelect(w.workerId)}
+                    className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-[#1a1a24] hover:bg-indigo-600/20 text-slate-400 hover:text-indigo-300 border border-[#2a2a3a] hover:border-indigo-600/30 flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Server className="w-4 h-4" />
+                    {w.name ?? w.workerId}
+                  </button>
+                ))
+              )}
+            </div>
           ) : showPingSplit ? (
             <div className="space-y-2">
               <p className="text-xs text-slate-500 text-center">{t.serverInfo.choosePingType}</p>

@@ -578,7 +578,7 @@ impl Api for ApiService {
             .ok_or_else(|| Status::not_found("server not found"))?;
         self.state
             .registry
-            .dispatch_ping(addr.0, addr.1, body.with_connection)
+            .dispatch_ping(&body.worker_id, addr.0, addr.1, body.with_connection)
             .await?;
         Ok(Response::new(Empty {}))
     }

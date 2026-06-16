@@ -10,7 +10,7 @@ import type {
   UpdateServerRequest,
   OverwriteServerRequest,
 } from "@/types";
-import { serverApi } from "@/api/client";
+import { serverApi, workerApi } from "@/api/client";
 import type { ToggleField } from "@/constants/serverDetail";
 import { buildChartData, buildToggleUpdate } from "@/utils/serverDetailHelpers";
 import { useTranslation } from "@/i18n";
@@ -28,7 +28,9 @@ export const ServerDetail = () => {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isPinging, setIsPinging] = useState(false);
+  const [showWorkerSelect, setShowWorkerSelect] = useState(false);
   const [showPingSplit, setShowPingSplit] = useState(false);
+  const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const pingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -56,6 +58,13 @@ export const ServerDetail = () => {
     enabled: !!server?.id,
     staleTime: 10 * 60 * 1000,
   });
+
+  const { data: workers } = useQuery({
+    queryKey: ["workers"],
+    queryFn: workerApi.listWorkers,
+    refetchInterval: 3000,
+  });
+  const onlineWorkers = (workers ?? []).filter((w) => w.online);
 
   // -- Mutations -------------------------------------------------------------
 
@@ -189,14 +198,24 @@ export const ServerDetail = () => {
 
   const handlePingRequest = () => {
     if (!server || isPinging) return;
+    setShowWorkerSelect(true);
+  };
+
+  const handleWorkerSelect = (workerId: string) => {
+    setSelectedWorkerId(workerId);
+    setShowWorkerSelect(false);
     setShowPingSplit(true);
   };
 
   const handlePing = (withConnection: boolean) => {
-    if (!server || isPinging) return;
+    if (!server || isPinging || !selectedWorkerId) return;
     const serverId = server.id;
     setShowPingSplit(false);
-    serverApi.pingServer({ server_id: serverId, with_connection: withConnection });
+    serverApi.pingServer({
+      server_id: serverId,
+      with_connection: withConnection,
+      worker_id: selectedWorkerId,
+    });
     setIsPinging(true);
     if (pingTimeoutRef.current) clearTimeout(pingTimeoutRef.current);
     // Fallback so the spinner can't get stuck if the probe yields no change.
@@ -238,7 +257,9 @@ export const ServerDetail = () => {
               <ServerInfoCard
                 server={server}
                 isPinging={isPinging}
+                showWorkerSelect={showWorkerSelect}
                 showPingSplit={showPingSplit}
+                workers={onlineWorkers}
                 showDeleteConfirm={showDeleteConfirm}
                 isDeletePending={deleteMutation.isPending}
                 isEditing={isEditing}
@@ -246,6 +267,7 @@ export const ServerDetail = () => {
                 editError={editError}
                 onToggle={handleToggle}
                 onPingRequest={handlePingRequest}
+                onWorkerSelect={handleWorkerSelect}
                 onPing={handlePing}
                 onDeleteRequest={() => setShowDeleteConfirm(true)}
                 onDeleteCancel={() => setShowDeleteConfirm(false)}
