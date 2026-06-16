@@ -6,7 +6,7 @@ edition.workspace = true
 [features]
 default = ["grpc"]
 # Default: stream results to the backend over gRPC (workers dial in).
-grpc = ["dep:proto", "dep:tonic", "dep:prost", "dep:tokio-stream"]
+grpc = ["dep:proto", "dep:tonic", "dep:tokio-stream"]
 # Legacy: talk to PostgreSQL directly via diesel. No backend↔worker channel,
 # so on-demand ping/scan from the API is unavailable in this mode.
 diesel = [
@@ -37,7 +37,6 @@ async-trait = "0.1"
 # gRPC mode
 proto = { path = "../proto", optional = true }
 tonic = { workspace = true, optional = true }
-prost = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
 
 # diesel mode
@@ -47,3 +46,8 @@ diesel-async = { workspace = true, optional = true }
 diesel_migrations = { workspace = true, optional = true }
 pq-sys = { workspace = true, optional = true }
 openssl-sys = { workspace = true, optional = true }
+
+# pq-sys/openssl-sys are linkage-only (pulled to control native linking via their
+# build scripts), so cargo-machete reports them as unused. They are required.
+[package.metadata.cargo-machete]
+ignored = ["pq-sys", "openssl-sys"]

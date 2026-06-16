@@ -12,7 +12,6 @@ futures = { workspace = true }
 
 tonic = { workspace = true }
 tonic-web = { workspace = true }
-prost = { workspace = true }
 
 diesel = { workspace = true, features = ["postgres_backend"] }
 diesel-async = { workspace = true }

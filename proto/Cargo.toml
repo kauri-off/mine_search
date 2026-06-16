@@ -5,8 +5,14 @@ edition.workspace = true
 
 [dependencies]
 tonic = { workspace = true }
+tonic-prost = { workspace = true }
 prost = { workspace = true }
 
 [build-dependencies]
-tonic-build = { workspace = true }
+tonic-prost-build = { workspace = true }
 protox = { workspace = true }
+
+# prost/tonic-prost are referenced by the code generated into OUT_DIR, which
+# cargo-machete cannot see, so it reports them as unused. They are required.
+[package.metadata.cargo-machete]
+ignored = ["prost", "tonic-prost"]

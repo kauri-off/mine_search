@@ -19,15 +19,16 @@ diesel = { version = "2.3.10", features = ["postgres", "chrono", "serde_json"] }
 diesel-async = { version = "0.9.1", features = ["postgres", "deadpool"] }
 diesel_migrations = "2.3.2"
 rand = "0.10.1"
-# gRPC stack. tonic-build is fed a FileDescriptorSet produced by protox so no
-# `protoc` binary is required at build time.
-tonic = { version = "0.13", features = ["tls-ring", "tls-webpki-roots"] }
-tonic-web = "0.13"
-prost = "0.13"
-tonic-build = { version = "0.13", default-features = false, features = ["prost"] }
-protox = "0.7"
-tokio-stream = { version = "0.1", features = ["sync"] }
-futures = "0.3"
+# gRPC stack. tonic-prost-build is fed a FileDescriptorSet produced by protox so
+# no `protoc` binary is required at build time.
+tonic = { version = "0.14.6", features = ["tls-ring", "tls-webpki-roots"] }
+tonic-web = "0.14.6"
+tonic-prost = "0.14.4"
+prost = "0.14.4"
+tonic-prost-build = "0.14.6"
+protox = "0.9.1"
+tokio-stream = { version = "0.1.18", features = ["sync"] }
+futures = "0.3.32"
 tracing = "0.1.44"
 tracing-subscriber = "0.3.23"
 pq-sys = { version = "0.7.5", features = ["bundled"] }
