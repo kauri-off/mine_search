@@ -90,10 +90,14 @@ impl Engine {
         let _ = self.pause_tx.send(paused);
     }
 
-    /// Launches the search supervisor and the update loop.
-    pub fn start(self: &Arc<Self>) {
-        tokio::spawn(search_supervisor(self.clone()));
-        tokio::spawn(update_loop(self.clone()));
+    /// Launches the search supervisor and the update loop, returning their task
+    /// handles so the caller can abort them on shutdown/reconnect (otherwise the
+    /// tasks keep the `Engine` alive forever, leaking the whole search pool).
+    pub fn start(self: &Arc<Self>) -> Vec<tokio::task::JoinHandle<()>> {
+        vec![
+            tokio::spawn(search_supervisor(self.clone())),
+            tokio::spawn(update_loop(self.clone())),
+        ]
     }
 
     /// On-demand scan (discovery semantics).

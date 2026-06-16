@@ -127,6 +127,20 @@ fn report_to_proto(report: ScanReport) -> ServerReport {
     }
 }
 
+/// Aborts the per-session engine tasks (search supervisor, update loop,
+/// heartbeat) when `run` returns by any path. Aborting the supervisor drops its
+/// local `JoinSet`, which in turn aborts all search threads; without this the
+/// tasks keep an `Arc<Engine>` alive and every reconnect leaks another pool.
+struct AbortOnDrop(Vec<tokio::task::JoinHandle<()>>);
+
+impl Drop for AbortOnDrop {
+    fn drop(&mut self) {
+        for h in &self.0 {
+            h.abort();
+        }
+    }
+}
+
 struct GrpcSink {
     tx: mpsc::Sender<WorkerMessage>,
 }
@@ -259,8 +273,10 @@ pub async fn run(
         .await?
         .into_inner();
 
-    engine.start();
-    tokio::spawn(heartbeat(engine.clone(), msg_tx.clone()));
+    let mut handles = engine.start();
+    handles.push(tokio::spawn(heartbeat(engine.clone(), msg_tx.clone())));
+    // Tears the tasks down on every exit path below (clean shutdown, `?`, stream close).
+    let _guard = AbortOnDrop(handles);
     info!(worker = %worker_id, "session established");
 
     while let Some(cmd) = inbound.message().await? {
