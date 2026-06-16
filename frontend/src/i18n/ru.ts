@@ -198,4 +198,11 @@ export const ru: Translations = {
     abortUpdate: "Прервать обновление",
     controlError: "Команда не выполнена",
   },
+  system: {
+    updateStack: "Обновить систему",
+    updating: "Обновление...",
+    updateConfirm: "Загрузить новые образы и перезапустить все контейнеры?",
+    updateStarted: "Обновление запущено",
+    updateError: "Ошибка обновления",
+  },
 };

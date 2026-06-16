@@ -26,6 +26,11 @@ pub struct BackendConfig {
     /// otherwise the server is plaintext (intended to sit behind nginx).
     pub tls_cert: Option<String>,
     pub tls_key: Option<String>,
+    /// Base URL of the watchtower HTTP API (e.g. `http://watchtower:8080`). When
+    /// unset, the manual "update stack" action is disabled.
+    pub watchtower_url: Option<String>,
+    /// Bearer token watchtower expects on its HTTP API (`WATCHTOWER_HTTP_API_TOKEN`).
+    pub watchtower_token: Option<String>,
 }
 
 impl BackendConfig {

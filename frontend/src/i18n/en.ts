@@ -198,4 +198,11 @@ export const en: Translations = {
     abortUpdate: "Abort update",
     controlError: "Command failed",
   },
+  system: {
+    updateStack: "Update stack",
+    updating: "Updating...",
+    updateConfirm: "Pull new images and restart all containers now?",
+    updateStarted: "Update triggered",
+    updateError: "Update failed",
+  },
 };

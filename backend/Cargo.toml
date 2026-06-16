@@ -27,6 +27,9 @@ serde = { workspace = true }
 jsonwebtoken = { version = "10.4.0", features = ["rust_crypto"] }
 rand = { workspace = true }
 lazy_static = "1.5.0"
+# Plain-HTTP only (no TLS): the sole caller is an internal POST to watchtower's
+# HTTP API over the docker network. default-features=false drops the TLS backends.
+reqwest = { version = "0.12", default-features = false }
 
 # Windows has no system libpq; pull in the bundled (source-built, no-TLS) one.
 [target.'cfg(windows)'.dependencies]

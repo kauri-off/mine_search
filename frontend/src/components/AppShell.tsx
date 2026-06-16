@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, BarChart3, Users, Cpu, Menu, X } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { LayoutDashboard, BarChart3, Users, Cpu, Menu, X, RefreshCw } from "lucide-react";
 import { cn } from "@/cn";
+import { systemApi } from "@/api/client";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useTranslation } from "@/i18n";
 
@@ -12,6 +14,10 @@ interface AppShellProps {
 export const AppShell = ({ children }: AppShellProps) => {
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Triggers a watchtower run (pull new images + recreate containers). Shared by
+  // the desktop and mobile sidebars, so both reflect the in-flight state.
+  const update = useMutation({ mutationFn: systemApi.triggerUpdate });
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
@@ -59,7 +65,23 @@ export const AppShell = ({ children }: AppShellProps) => {
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-[#2a2a3a]">
+      <div className="px-3 py-4 border-t border-[#2a2a3a] space-y-2">
+        <button
+          onClick={() => {
+            if (window.confirm(t.system.updateConfirm)) update.mutate();
+          }}
+          disabled={update.isPending}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-indigo-600/20 border border-indigo-600/40 text-indigo-300 hover:bg-indigo-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <RefreshCw className={cn("w-4 h-4 flex-shrink-0", update.isPending && "animate-spin")} />
+          {update.isPending ? t.system.updating : t.system.updateStack}
+        </button>
+        {update.isSuccess && (
+          <p className="text-xs text-green-400 text-center">{t.system.updateStarted}</p>
+        )}
+        {update.isError && (
+          <p className="text-xs text-red-400 text-center">{t.system.updateError}</p>
+        )}
         <LanguageSwitcher />
       </div>
     </>

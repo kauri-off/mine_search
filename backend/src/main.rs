@@ -77,10 +77,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         *WORKER_TOKEN.lock().unwrap() = token;
     }
 
+    // The manual "update stack" action needs both a watchtower URL and token.
+    let watchtower = match (
+        backend_cfg.watchtower_url.filter(|s| !s.is_empty()),
+        backend_cfg.watchtower_token.filter(|s| !s.is_empty()),
+    ) {
+        (Some(url), Some(token)) => Some(crate::state::WatchtowerConfig { url, token }),
+        _ => {
+            tracing::info!(
+                "No [backend].watchtower_url/watchtower_token configured — the manual \
+                 stack-update action is disabled."
+            );
+            None
+        }
+    };
+
     let state = Arc::new(AppState {
         db,
         registry: Arc::new(WorkerRegistry::default()),
         events: Arc::new(crate::events::ServerEvents::default()),
+        watchtower,
     });
 
     let api = ApiServer::new(ApiService {

@@ -177,6 +177,39 @@ impl Api for ApiService {
         Ok(Response::new(Empty {}))
     }
 
+    async fn trigger_update(
+        &self,
+        request: Request<Empty>,
+    ) -> Result<Response<Empty>, Status> {
+        auth::require_session(&request)?;
+        let cfg = self
+            .state
+            .watchtower
+            .as_ref()
+            .ok_or_else(|| Status::failed_precondition("watchtower is not configured"))?;
+
+        // POST /v1/update kicks off a one-off watchtower run (pull + recreate).
+        let url = format!("{}/v1/update", cfg.url.trim_end_matches('/'));
+        let resp = reqwest::Client::new()
+            .post(&url)
+            .bearer_auth(&cfg.token)
+            .send()
+            .await
+            .map_err(|e| {
+                tracing::error!("watchtower request failed: {e}");
+                Status::unavailable("could not reach watchtower")
+            })?;
+
+        if !resp.status().is_success() {
+            let code = resp.status();
+            tracing::error!("watchtower returned {code}");
+            return Err(Status::internal(format!("watchtower returned {code}")));
+        }
+
+        tracing::info!("triggered watchtower stack update");
+        Ok(Response::new(Empty {}))
+    }
+
     async fn get_stats(&self, request: Request<Empty>) -> Result<Response<StatsResponse>, Status> {
         auth::require_session(&request)?;
         let mut conn = self

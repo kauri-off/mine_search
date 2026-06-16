@@ -101,6 +101,13 @@ export const authApi = {
   },
 };
 
+export const systemApi = {
+  // Triggers watchtower to pull new images and recreate the stack's containers.
+  triggerUpdate: async (): Promise<void> => {
+    await client.triggerUpdate({});
+  },
+};
+
 export const serverApi = {
   fetchMe: async (): Promise<null> => {
     await client.me({});

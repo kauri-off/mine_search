@@ -78,8 +78,18 @@ services:
       - WATCHTOWER_POLL_INTERVAL=3600
       - WATCHTOWER_CLEANUP=true
       - DOCKER_API_VERSION=1.44
+      # Enable the HTTP API so the backend's "update stack" button can trigger a
+      # run on demand (POST /v1/update). Keep the periodic poll running too —
+      # enabling the API otherwise disables scheduled checks.
+      - WATCHTOWER_HTTP_API_UPDATE=true
+      - WATCHTOWER_HTTP_API_PERIODIC_POLLS=true
+      # Must match [backend].watchtower_token in config.toml.
+      - WATCHTOWER_HTTP_API_TOKEN=change_me_watchtower_token
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    # Join app-network so the backend can reach the HTTP API at http://watchtower:8080.
+    networks:
+      - app-network
     restart: unless-stopped
 networks:
   app-network:

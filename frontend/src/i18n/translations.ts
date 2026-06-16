@@ -201,4 +201,11 @@ export interface Translations {
     abortUpdate: string;
     controlError: string;
   };
+  system: {
+    updateStack: string;
+    updating: string;
+    updateConfirm: string;
+    updateStarted: string;
+    updateError: string;
+  };
 }
