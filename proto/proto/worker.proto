@@ -127,6 +127,8 @@ enum Control {
   CONTROL_PAUSE_SEARCH = 1;
   CONTROL_RESUME_SEARCH = 2;
   CONTROL_SHUTDOWN = 3;
+  CONTROL_ABORT_UPDATE = 4;    // interrupt the running update cycle
+  CONTROL_TRIGGER_UPDATE = 5;  // start an update cycle now, skipping the interval wait
 }
 
 message FetchUpdateTargetsRequest {

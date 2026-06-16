@@ -16,7 +16,7 @@ use std::{
 use rand::{SeedableRng, rngs::SysRng};
 use rand_chacha::ChaCha8Rng;
 use tokio::{
-    sync::{Semaphore, watch},
+    sync::{Notify, Semaphore, watch},
     task::JoinSet,
     time::timeout,
 };
@@ -41,6 +41,10 @@ pub struct Engine {
     pub targets: Arc<dyn TargetSource>,
     cfg_tx: watch::Sender<RuntimeConfig>,
     pause_tx: watch::Sender<bool>,
+    /// Fired to start an update cycle immediately, cutting short the interval wait.
+    trigger_update: Notify,
+    /// Fired to interrupt the running update cycle.
+    abort_update: Notify,
     pub servers_found: AtomicU64,
     pub ips_scanned: AtomicU64,
     pub updating: AtomicBool,
@@ -63,6 +67,8 @@ impl Engine {
             targets,
             cfg_tx,
             pause_tx,
+            trigger_update: Notify::new(),
+            abort_update: Notify::new(),
             servers_found: AtomicU64::new(0),
             ips_scanned: AtomicU64::new(0),
             updating: AtomicBool::new(false),
@@ -88,6 +94,16 @@ impl Engine {
     /// Manually pause/resume the search threads (Control commands).
     pub fn set_paused(&self, paused: bool) {
         let _ = self.pause_tx.send(paused);
+    }
+
+    /// Start an update cycle now, cutting short the inter-cycle interval wait.
+    pub fn trigger_update(&self) {
+        self.trigger_update.notify_one();
+    }
+
+    /// Interrupt the running update cycle (in-flight probes finish).
+    pub fn abort_update(&self) {
+        self.abort_update.notify_one();
     }
 
     /// Launches the search supervisor and the update loop, returning their task
@@ -227,18 +243,22 @@ async fn update_loop(engine: Arc<Engine>) {
                     cfg.update_concurrency as usize
                 };
                 let semaphore = Arc::new(Semaphore::new(concurrency));
-                let mut handles = Vec::new();
+                let mut set = JoinSet::new();
                 for t in targets {
                     let permit = semaphore.clone().acquire_owned();
                     let engine = engine.clone();
-                    handles.push(tokio::spawn(async move {
+                    set.spawn(async move {
                         let _permit = permit.await;
                         engine.ping(t.ip, t.port, t.with_connection).await;
                         engine.update_done.fetch_add(1, Ordering::Relaxed);
-                    }));
+                    });
                 }
-                for h in handles {
-                    let _ = h.await;
+                tokio::select! {
+                    _ = async { while set.join_next().await.is_some() {} } => {}
+                    _ = engine.abort_update.notified() => {
+                        set.abort_all();
+                        info!(target: "updater", "Update cycle aborted");
+                    }
                 }
             }
             Err(e) => error!(target: "updater", "Failed to fetch update targets: {}", e),
@@ -262,6 +282,11 @@ async fn update_loop(engine: Arc<Engine>) {
         } else {
             cfg.update_interval_secs as u64
         };
-        tokio::time::sleep(Duration::from_secs(interval)).await;
+        tokio::select! {
+            _ = tokio::time::sleep(Duration::from_secs(interval)) => {}
+            _ = engine.trigger_update.notified() => {
+                info!(target: "updater", "Update triggered manually");
+            }
+        }
     }
 }

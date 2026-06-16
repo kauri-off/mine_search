@@ -22,7 +22,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use futures::Stream;
 use proto::api::{
-    AddAddrRequest, AddTargetListRequest, DeletePlayerRequest, Empty, GetWorkerRequest,
+    AddAddrRequest, AddTargetListRequest, ControlWorkerRequest, DeletePlayerRequest, Empty,
+    GetWorkerRequest,
     LoginRequest, LoginResponse, Player, PlayerListRequest, PlayerListResponse,
     PlayerSearchRequest, PlayerSearchResponse, PlayerSearchResult, PingServerRequest,
     OverwriteServerRequest, ServerDeleteRequest, ServerInfo, ServerInfoRequest, ServerListRequest,
@@ -793,6 +794,19 @@ impl Api for ApiService {
             .config
             .ok_or_else(|| Status::invalid_argument("missing config"))?;
         self.state.registry.set_config(&body.worker_id, config).await?;
+        Ok(Response::new(Empty {}))
+    }
+
+    async fn control_worker(
+        &self,
+        request: Request<ControlWorkerRequest>,
+    ) -> Result<Response<Empty>, Status> {
+        auth::require_session(&request)?;
+        let body = request.into_inner();
+        self.state
+            .registry
+            .send_control(&body.worker_id, body.control)
+            .await?;
         Ok(Response::new(Empty {}))
     }
 }

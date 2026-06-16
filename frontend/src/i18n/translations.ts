@@ -194,5 +194,11 @@ export interface Translations {
     saving: string;
     saved: string;
     saveError: string;
+    controls: string;
+    pauseSearch: string;
+    resumeSearch: string;
+    triggerUpdate: string;
+    abortUpdate: string;
+    controlError: string;
   };
 }

@@ -47,6 +47,12 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
 
   const m = worker.metrics;
 
+  const control = useMutation({
+    mutationFn: (fn: (id: string) => Promise<unknown>) => fn(worker.workerId),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["workers"] }),
+  });
+  const busy = control.isPending || !worker.online;
+
   return (
     <div className="p-4 bg-[#111118] border border-[#2a2a3a] rounded-xl space-y-4">
       <div className="flex items-center justify-between">
@@ -110,6 +116,37 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
             }
           />
         </div>
+      </div>
+
+      {/* Controls */}
+      <div className="border-t border-[#2a2a3a] pt-3 space-y-2">
+        <div className="text-xs font-medium text-slate-400">{t.workers.controls}</div>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() =>
+              control.mutate(m?.searching ? workerApi.pauseSearch : workerApi.resumeSearch)
+            }
+            disabled={busy}
+            className="py-2 rounded-lg text-sm font-medium bg-[#1a1a24] hover:bg-[#2a2a3a] text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {m?.searching ? t.workers.pauseSearch : t.workers.resumeSearch}
+          </button>
+          <button
+            onClick={() => control.mutate(workerApi.triggerUpdate)}
+            disabled={busy || m?.updating}
+            className="py-2 rounded-lg text-sm font-medium bg-indigo-600/20 border border-indigo-600/40 text-indigo-300 hover:bg-indigo-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {t.workers.triggerUpdate}
+          </button>
+          <button
+            onClick={() => control.mutate(workerApi.abortUpdate)}
+            disabled={control.isPending || !worker.online || !m?.updating}
+            className="col-span-2 py-2 rounded-lg text-sm font-medium bg-red-600/20 border border-red-600/40 text-red-300 hover:bg-red-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {t.workers.abortUpdate}
+          </button>
+        </div>
+        {control.isError && <p className="text-xs text-red-400 text-center">{t.workers.controlError}</p>}
       </div>
 
       {/* Config editor */}

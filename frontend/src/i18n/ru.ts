@@ -191,5 +191,11 @@ export const ru: Translations = {
     saving: "Применение...",
     saved: "Конфигурация применена",
     saveError: "Не удалось применить",
+    controls: "Управление",
+    pauseSearch: "Приостановить поиск",
+    resumeSearch: "Возобновить поиск",
+    triggerUpdate: "Запустить обновление",
+    abortUpdate: "Прервать обновление",
+    controlError: "Команда не выполнена",
   },
 };

@@ -193,6 +193,13 @@ impl WorkerRegistry {
         self.dispatch(server_command::Cmd::Scan(ScanTask { ip, port }))
             .await
     }
+
+    /// Sends a parameterless control command (pause/resume search, abort/trigger
+    /// update) to a specific worker. `control` is the `worker.Control` enum value.
+    pub async fn send_control(&self, worker_id: &str, control: i32) -> Result<(), Status> {
+        self.dispatch_to(worker_id, server_command::Cmd::Control(control))
+            .await
+    }
 }
 
 impl WorkerHandle {

@@ -3,6 +3,7 @@ import { createGrpcWebTransport } from "@connectrpc/connect-web";
 import { Api } from "@/gen/api_pb";
 import { PlayerStatus as PbPlayerStatus } from "@/gen/api_pb";
 import type { WorkerInfo } from "@/gen/api_pb";
+import { Control } from "@/gen/worker_pb";
 import type {
   AuthBody,
   StatsResponse,
@@ -286,4 +287,9 @@ export const workerApi = {
         updateConcurrency: config.update_concurrency,
       },
     }),
+
+  pauseSearch: (id: string) => client.controlWorker({ workerId: id, control: Control.PAUSE_SEARCH }),
+  resumeSearch: (id: string) => client.controlWorker({ workerId: id, control: Control.RESUME_SEARCH }),
+  abortUpdate: (id: string) => client.controlWorker({ workerId: id, control: Control.ABORT_UPDATE }),
+  triggerUpdate: (id: string) => client.controlWorker({ workerId: id, control: Control.TRIGGER_UPDATE }),
 };

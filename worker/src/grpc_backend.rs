@@ -301,6 +301,8 @@ pub async fn run(
                 match proto::worker::Control::try_from(ctrl).unwrap_or(proto::worker::Control::Unspecified) {
                     proto::worker::Control::PauseSearch => engine.set_paused(true),
                     proto::worker::Control::ResumeSearch => engine.set_paused(false),
+                    proto::worker::Control::AbortUpdate => engine.abort_update(),
+                    proto::worker::Control::TriggerUpdate => engine.trigger_update(),
                     proto::worker::Control::Shutdown => {
                         info!("shutdown command received");
                         return Ok(());

@@ -191,5 +191,11 @@ export const en: Translations = {
     saving: "Applying...",
     saved: "Config applied",
     saveError: "Failed to apply config",
+    controls: "Controls",
+    pauseSearch: "Pause search",
+    resumeSearch: "Resume search",
+    triggerUpdate: "Trigger update now",
+    abortUpdate: "Abort update",
+    controlError: "Command failed",
   },
 };
