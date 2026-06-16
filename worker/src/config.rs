@@ -11,11 +11,17 @@ pub struct Config {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct WorkerConfig {
+    #[serde(default)]
     pub threads: i32,
+    #[serde(default)]
     pub search_module: bool,
+    #[serde(default)]
     pub update_module: bool,
+    #[serde(default)]
     pub update_with_connection: bool,
+    #[serde(default)]
     pub only_update_spoofable: bool,
+    #[serde(default)]
     pub only_update_cracked: bool,
     #[serde(default = "default_update_interval")]
     pub update_interval_secs: u32,
