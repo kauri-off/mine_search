@@ -29,18 +29,7 @@ the adapter in `frontend/src/api/client.ts` maps protobuf messages to.
 
 Always use `npx tsc -b --noEmit` (not `npx tsc --noEmit`)
 
-## Building (Windows local dev)
-
-`openssl-sys` is vendored for Docker/Linux. On this Windows box the vendored
-build fails (broken msys perl), so use the prebuilt system OpenSSL:
-
-```
-export OPENSSL_NO_VENDOR=1 \
-  OPENSSL_DIR="C:\\Program Files\\OpenSSL-Win64" \
-  OPENSSL_LIB_DIR="C:\\Program Files\\OpenSSL-Win64\\lib\\VC\\x64\\MD" \
-  OPENSSL_INCLUDE_DIR="C:\\Program Files\\OpenSSL-Win64\\include"
-cargo check --workspace
-```
+## Building
 
 Worker feature builds: `cargo check -p worker` (grpc, default) and
 `cargo check -p worker --no-default-features --features diesel`.

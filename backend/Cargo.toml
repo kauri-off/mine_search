@@ -27,6 +27,6 @@ jsonwebtoken = { version = "10.4.0", features = ["rust_crypto"] }
 rand = { workspace = true }
 lazy_static = "1.5.0"
 
+# Windows has no system libpq; pull in the bundled (source-built, no-TLS) one.
 [target.'cfg(windows)'.dependencies]
 pq-sys = { workspace = true }
-openssl-sys = { workspace = true }

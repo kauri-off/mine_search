@@ -15,7 +15,6 @@ diesel = [
     "dep:diesel-async",
     "dep:diesel_migrations",
     "dep:pq-sys",
-    "dep:openssl-sys",
 ]
 
 [dependencies]
@@ -45,9 +44,8 @@ diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 diesel_migrations = { workspace = true, optional = true }
 pq-sys = { workspace = true, optional = true }
-openssl-sys = { workspace = true, optional = true }
 
-# pq-sys/openssl-sys are linkage-only (pulled to control native linking via their
-# build scripts), so cargo-machete reports them as unused. They are required.
+# pq-sys is linkage-only (pulled to control native libpq linking via its build
+# script), so cargo-machete reports it as unused. It is required.
 [package.metadata.cargo-machete]
-ignored = ["pq-sys", "openssl-sys"]
+ignored = ["pq-sys"]

@@ -31,5 +31,8 @@ tokio-stream = { version = "0.1.18", features = ["sync"] }
 futures = "0.3.32"
 tracing = "0.1.44"
 tracing-subscriber = "0.3.23"
-pq-sys = { version = "0.7.5", features = ["bundled"] }
-openssl-sys = { version = "0.9.117", features = ["vendored"] }
+# Windows has no system libpq, so we compile it from source. `bundled_without_openssl`
+# skips libpq's TLS support, which avoids pulling in (and source-building) openssl-sys
+# entirely. Local dev talks to a non-TLS Postgres, so no TLS is needed here. Linux/Docker
+# use the system libpq+openssl instead (see backend's cfg-gated deps).
+pq-sys = { version = "0.7.5", features = ["bundled_without_openssl"] }
