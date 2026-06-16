@@ -5,16 +5,6 @@
 # connection fields), so your changes survive restarts. Mount it read-write.
 
 [worker]
-threads                = 500
-search_module          = true
-update_module          = true
-update_with_connection = false
-only_update_spoofable  = false
-only_update_cracked    = false
-update_interval_secs   = 600   # seconds between update cycles
-update_concurrency     = 50    # max concurrent re-probes during an update cycle
-log_level              = "info"
-
 # Backend endpoint the worker dials. Inside docker-compose this is the backend
 # service directly; a remote worker uses the public gRPC endpoint, e.g.
 # "https://example.com:50051".

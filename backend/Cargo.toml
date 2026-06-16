@@ -16,7 +16,7 @@ diesel = { workspace = true, features = ["postgres_backend"] }
 diesel-async = { workspace = true }
 diesel_migrations = { workspace = true }
 diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
-toml = "1.1.2"
+toml = "1.1.2+spec-1.1.0"
 
 tracing-subscriber = { workspace = true }
 tracing = { workspace = true }
@@ -29,7 +29,7 @@ rand = { workspace = true }
 lazy_static = "1.5.0"
 # Plain-HTTP only (no TLS): the sole caller is an internal POST to watchtower's
 # HTTP API over the docker network. default-features=false drops the TLS backends.
-reqwest = { version = "0.12", default-features = false }
+reqwest = { version = "0.13.4", default-features = false }
 
 # Windows has no system libpq; pull in the bundled (source-built, no-TLS) one.
 [target.'cfg(windows)'.dependencies]

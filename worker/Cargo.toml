@@ -16,8 +16,8 @@ rand_chacha = "0.10.0"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 uuid = "1.23.3"
-toml = "1.1.2"
-toml_edit = "0.22"
+toml = "1.1.2+spec-1.1.0"
+toml_edit = "0.25.12+spec-1.1.0"
 
 # The worker streams scan results to the backend over gRPC (workers dial in).
 proto = { path = "../proto" }
