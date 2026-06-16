@@ -3,6 +3,7 @@
 //! pushed back over the same bidirectional `Session` stream.
 
 use std::{
+    path::{Path, PathBuf},
     sync::{Arc, atomic::Ordering},
     time::{Duration, Instant},
 };
@@ -59,6 +60,37 @@ fn config_to_proto(c: &WorkerConfig) -> PbConfig {
         only_update_cracked: c.only_update_cracked,
         update_interval_secs: c.update_interval_secs,
         update_concurrency: c.update_concurrency,
+    }
+}
+
+/// Surgically rewrites the live-tunable `[worker]` keys in the worker's config
+/// file so a UI-driven retune survives restarts. Uses `toml_edit` to preserve
+/// comments and the non-tunable connection fields (`backend_url`, `token`, …).
+/// Best-effort: a failure is logged, never fatal (mirrors the `worker_id` write).
+fn persist_config(path: &Path, c: &PbConfig) {
+    let existing = std::fs::read_to_string(path).unwrap_or_default();
+    let mut doc = match existing.parse::<toml_edit::DocumentMut>() {
+        Ok(doc) => doc,
+        Err(e) => {
+            warn!("could not parse {} to persist config: {e}", path.display());
+            return;
+        }
+    };
+
+    let worker = doc["worker"].or_insert(toml_edit::table());
+    worker["threads"] = toml_edit::value(c.threads as i64);
+    worker["search_module"] = toml_edit::value(c.search_module);
+    worker["update_module"] = toml_edit::value(c.update_module);
+    worker["update_with_connection"] = toml_edit::value(c.update_with_connection);
+    worker["only_update_spoofable"] = toml_edit::value(c.only_update_spoofable);
+    worker["only_update_cracked"] = toml_edit::value(c.only_update_cracked);
+    worker["update_interval_secs"] = toml_edit::value(c.update_interval_secs as i64);
+    worker["update_concurrency"] = toml_edit::value(c.update_concurrency as i64);
+
+    if let Err(e) = std::fs::write(path, doc.to_string()) {
+        warn!("could not persist config to {}: {e}", path.display());
+    } else {
+        info!("persisted updated config to {}", path.display());
     }
 }
 
@@ -183,7 +215,11 @@ async fn build_channel(url: &str, cfg: &WorkerConfig) -> anyhow::Result<Channel>
 /// Connects, registers, and runs the session until the stream closes or a
 /// shutdown command arrives. Returns `Ok` on a clean shutdown; the caller may
 /// retry on `Err`.
-pub async fn run(cfg: WorkerConfig, worker_id: String) -> anyhow::Result<()> {
+pub async fn run(
+    cfg: WorkerConfig,
+    worker_id: String,
+    config_path: PathBuf,
+) -> anyhow::Result<()> {
     let backend_url = cfg
         .backend_url
         .clone()
@@ -229,7 +265,10 @@ pub async fn run(cfg: WorkerConfig, worker_id: String) -> anyhow::Result<()> {
 
     while let Some(cmd) = inbound.message().await? {
         match cmd.cmd {
-            Some(server_command::Cmd::SetConfig(c)) => engine.set_config(proto_to_runtime(c)),
+            Some(server_command::Cmd::SetConfig(c)) => {
+                persist_config(&config_path, &c);
+                engine.set_config(proto_to_runtime(c));
+            }
             Some(server_command::Cmd::Ping(p)) => {
                 let engine = engine.clone();
                 tokio::spawn(async move {

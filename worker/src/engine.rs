@@ -2,7 +2,7 @@
 //! periodic update cycle against a [`Sink`]/[`TargetSource`], reacting live to
 //! config changes pushed through a watch channel. The gRPC session loop drives
 //! it via `set_config`/`scan`/`ping`; in diesel mode it just runs the static
-//! config from `config.toml`.
+//! config from `worker.toml`.
 
 use std::{
     net::IpAddr,

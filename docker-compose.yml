@@ -30,7 +30,9 @@ services:
   worker:
     image: ghcr.io/kauri-off/mine_search/worker:latest
     volumes:
-      - ./config.toml:/app/config.toml:ro
+      # Read-write: the worker rewrites its live-tunable [worker] keys when
+      # retuned from the UI, so edits persist across restarts.
+      - ./worker.toml:/app/worker.toml:rw
     networks:
       - app-network
     restart: unless-stopped

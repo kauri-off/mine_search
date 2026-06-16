@@ -17,11 +17,11 @@ compile_error!("enable exactly one of the `grpc` (default) or `diesel` features"
 
 #[tokio::main]
 async fn main() {
-    let config = config::Config::load().expect("Failed to load config.toml");
+    let config = config::Config::load().expect("Failed to load worker config (worker.toml)");
     let worker_cfg = config
         .worker
         .clone()
-        .expect("Missing [worker] section in config.toml");
+        .expect("Missing [worker] section in worker.toml");
 
     tracing_subscriber::registry()
         .with(fmt::layer())
@@ -40,8 +40,11 @@ async fn main() {
     {
         let worker_id = resolve_worker_id(&worker_cfg);
         tracing::info!("worker id: {worker_id}");
+        // Path the worker rewrites when retuned from the UI, so edits persist.
+        let config_path = config::config_path();
         loop {
-            match grpc_backend::run(worker_cfg.clone(), worker_id.clone()).await {
+            match grpc_backend::run(worker_cfg.clone(), worker_id.clone(), config_path.clone()).await
+            {
                 Ok(()) => {
                     tracing::info!("worker shut down cleanly");
                     break;

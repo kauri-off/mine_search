@@ -61,7 +61,11 @@ fn default_update_concurrency() -> u32 {
     50
 }
 
-fn config_path() -> PathBuf {
+/// Path to the worker's config file: `--config <path>`, `CONFIG_PATH`, or the
+/// default `worker.toml`. The worker owns this file (it rewrites the live-tunable
+/// `[worker]` keys when retuned from the UI), so it is separate from the backend's
+/// `config.toml`.
+pub fn config_path() -> PathBuf {
     let args: Vec<String> = env::args().collect();
     if let Some(pos) = args.iter().position(|a| a == "--config") {
         if let Some(val) = args.get(pos + 1) {
@@ -71,5 +75,5 @@ fn config_path() -> PathBuf {
     if let Ok(val) = env::var("CONFIG_PATH") {
         return PathBuf::from(val);
     }
-    PathBuf::from("config.toml")
+    PathBuf::from("worker.toml")
 }

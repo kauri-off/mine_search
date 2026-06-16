@@ -22,13 +22,17 @@ cd mine_search
 
 ## 2. Configure environment
 
-Copy `config.example.toml` to `config.toml` and fill in your values:
+Copy the example configs and fill in your values. The backend reads `config.toml`
+(`[database]` + `[backend]`); the worker reads its own `worker.toml` (`[worker]`),
+which it rewrites when retuned from the UI so those edits persist across restarts:
 
 ```bash
 cp config.example.toml config.toml
+cp worker.example.toml worker.toml
 ```
 
 Edit `config.toml` — at minimum set `[database].url`, `[backend].password`, and the postgres credentials.
+Edit `worker.toml` — set `[worker].backend_url` and `[worker].token` (the token must match `[backend].worker_token`).
 
 > [!IMPORTANT]
 > The `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` values in `docker-compose.yml` are only applied **on first container creation**. If you change the password after the database volume already exists, you must update it manually inside the container:
