@@ -29,6 +29,10 @@ services:
     restart: unless-stopped
   worker:
     image: ghcr.io/kauri-off/mine_search/worker:latest
+    # Opt in to watchtower (it runs in label-enabled mode, so only labelled
+    # containers are updated — never unrelated containers on the same host).
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     volumes:
       # Read-write: the worker rewrites its live-tunable [worker] keys when
       # retuned from the UI, so edits persist across restarts.
@@ -41,6 +45,8 @@ services:
       - backend
   backend:
     image: ghcr.io/kauri-off/mine_search/backend:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     volumes:
       - ./config.toml:/app/config.toml:ro
     networks:
@@ -51,6 +57,8 @@ services:
         condition: service_healthy
   frontend:
     image: ghcr.io/kauri-off/mine_search/frontend:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     depends_on:
       - backend
     networks:
@@ -78,6 +86,10 @@ services:
       - WATCHTOWER_POLL_INTERVAL=3600
       - WATCHTOWER_CLEANUP=true
       - DOCKER_API_VERSION=1.44
+      # Only manage containers explicitly labelled
+      # `com.centurylinklabs.watchtower.enable=true`. Without this, watchtower
+      # tries to update EVERY container on the host (incl. unrelated ones).
+      - WATCHTOWER_LABEL_ENABLE=true
       # Enable the HTTP API so the backend's "update stack" button can trigger a
       # run on demand (POST /v1/update). Keep the periodic poll running too —
       # enabling the API otherwise disables scheduled checks.
