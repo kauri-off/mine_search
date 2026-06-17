@@ -28,8 +28,8 @@ use proto::api::{
     PlayerSearchRequest, PlayerSearchResponse, PlayerSearchResult, PingServerRequest,
     OverwriteServerRequest, ServerDeleteRequest, ServerInfo, ServerInfoRequest, ServerListRequest,
     ServerListResponse, ServerSnapshot, ServerSnapshotsRequest, ServerSnapshotsResponse,
-    StatsResponse, UpdatePlayerRequest, UpdateServerRequest, UpdateWorkerConfigRequest,
-    VersionStat, WorkerInfo, WorkerList, api_server::Api,
+    SetWorkerNameRequest, StatsResponse, UpdatePlayerRequest, UpdateServerRequest,
+    UpdateWorkerConfigRequest, VersionStat, WorkerInfo, WorkerList, api_server::Api,
 };
 use tokio_stream::{StreamExt, wrappers::{BroadcastStream, IntervalStream}};
 use tonic::{Request, Response, Status};
@@ -827,6 +827,21 @@ impl Api for ApiService {
             .config
             .ok_or_else(|| Status::invalid_argument("missing config"))?;
         self.state.registry.set_config(&body.worker_id, config).await?;
+        Ok(Response::new(Empty {}))
+    }
+
+    async fn set_worker_name(
+        &self,
+        request: Request<SetWorkerNameRequest>,
+    ) -> Result<Response<Empty>, Status> {
+        auth::require_session(&request)?;
+        let body = request.into_inner();
+        // Treat blank input as clearing the name.
+        let name = body
+            .name
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
+        self.state.registry.set_name(&body.worker_id, name).await?;
         Ok(Response::new(Empty {}))
     }
 

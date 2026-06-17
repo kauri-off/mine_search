@@ -42,6 +42,7 @@ service Api {
   rpc StreamWorkers(Empty) returns (stream WorkerList);
   rpc GetWorker(GetWorkerRequest) returns (WorkerInfo);
   rpc UpdateWorkerConfig(UpdateWorkerConfigRequest) returns (Empty);
+  rpc SetWorkerName(SetWorkerNameRequest) returns (Empty);
   rpc ControlWorker(ControlWorkerRequest) returns (Empty);
 }
 
@@ -242,6 +243,11 @@ message GetWorkerRequest {
 message UpdateWorkerConfigRequest {
   string worker_id = 1;
   worker.WorkerConfig config = 2;
+}
+
+message SetWorkerNameRequest {
+  string worker_id = 1;
+  optional string name = 2; // absent/empty clears the name
 }
 
 message ControlWorkerRequest {

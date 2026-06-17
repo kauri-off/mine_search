@@ -197,6 +197,8 @@ export const ru: Translations = {
     triggerUpdate: "Запустить обновление",
     abortUpdate: "Прервать обновление",
     controlError: "Команда не выполнена",
+    renameHint: "Двойной клик для переименования",
+    renameError: "Не удалось переименовать",
   },
   system: {
     updateStack: "Обновить систему",

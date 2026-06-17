@@ -11,7 +11,7 @@ use std::{
 use chrono::Utc;
 use proto::{
     api::{WorkerInfo, WorkerList},
-    worker::{PingTask, ScanTask, ServerCommand, WorkerConfig, WorkerMetrics, server_command},
+    worker::{PingTask, ScanTask, ServerCommand, SetName, WorkerConfig, WorkerMetrics, server_command},
 };
 use tokio::sync::{RwLock, mpsc};
 use tonic::Status;
@@ -32,6 +32,10 @@ pub struct WorkerRegistry {
     /// Config the operator wants applied, retained across reconnects so a worker
     /// that drops and comes back is re-tuned to its last requested settings.
     desired: RwLock<HashMap<String, WorkerConfig>>,
+    /// Display name the operator pinned via the UI, retained across reconnects so
+    /// a rename survives a worker dropping and re-registering with its old name
+    /// before it has persisted the change to its own config file.
+    desired_name: RwLock<HashMap<String, Option<String>>>,
     rr: AtomicUsize,
 }
 
@@ -58,6 +62,13 @@ impl WorkerRegistry {
             .get(&id)
             .cloned()
             .unwrap_or(reported);
+
+        // An operator-pinned name overrides whatever the worker reports on
+        // (re)register, until the worker has persisted the rename itself.
+        let name = match self.desired_name.read().await.get(&id) {
+            Some(pinned) => pinned.clone(),
+            None => name,
+        };
 
         let mut workers = self.workers.write().await;
         workers.insert(
@@ -109,6 +120,32 @@ impl WorkerRegistry {
 
         tx.send(Ok(ServerCommand {
             cmd: Some(server_command::Cmd::SetConfig(config)),
+        }))
+        .await
+        .map_err(|_| Status::unavailable("worker is offline"))
+    }
+
+    /// Records the operator's desired display name, updates the live handle, and
+    /// pushes it to the worker so it can persist the rename to its config file.
+    /// `name` of `None` (or empty) clears the override. Errors if the worker is
+    /// unknown.
+    pub async fn set_name(&self, id: &str, name: Option<String>) -> Result<(), Status> {
+        self.desired_name
+            .write()
+            .await
+            .insert(id.to_string(), name.clone());
+
+        let tx = {
+            let mut workers = self.workers.write().await;
+            let handle = workers
+                .get_mut(id)
+                .ok_or_else(|| Status::not_found("unknown worker"))?;
+            handle.name = name.clone();
+            handle.cmd_tx.clone()
+        };
+
+        tx.send(Ok(ServerCommand {
+            cmd: Some(server_command::Cmd::SetName(SetName { name })),
         }))
         .await
         .map_err(|_| Status::unavailable("worker is offline"))

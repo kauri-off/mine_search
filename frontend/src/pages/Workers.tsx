@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Cpu, Circle } from "lucide-react";
@@ -47,6 +47,25 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
 
   const m = worker.metrics;
 
+  // Double-click the header to rename. The draft lives in the uncontrolled input;
+  // `cancelRef` lets Escape blur without committing the edit.
+  const [editingName, setEditingName] = useState(false);
+  const cancelRename = useRef(false);
+  const rename = useMutation({
+    mutationFn: (name: string) => workerApi.setWorkerName(worker.workerId, name),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["workers"] }),
+  });
+
+  const commitRename = (value: string) => {
+    setEditingName(false);
+    if (cancelRename.current) {
+      cancelRename.current = false;
+      return;
+    }
+    const next = value.trim();
+    if (next !== (worker.name ?? "")) rename.mutate(next);
+  };
+
   const control = useMutation({
     mutationFn: (fn: (id: string) => Promise<unknown>) => fn(worker.workerId),
     onSettled: () => qc.invalidateQueries({ queryKey: ["workers"] }),
@@ -58,9 +77,30 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
           <Cpu className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-          <span className="text-sm font-semibold text-slate-100 truncate">
-            {worker.name || worker.workerId}
-          </span>
+          {editingName ? (
+            <input
+              autoFocus
+              defaultValue={worker.name ?? ""}
+              placeholder={worker.workerId}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+                else if (e.key === "Escape") {
+                  cancelRename.current = true;
+                  e.currentTarget.blur();
+                }
+              }}
+              onBlur={(e) => commitRename(e.target.value)}
+              className="min-w-0 flex-1 px-2 py-0.5 bg-[#1a1a24] border border-indigo-500 rounded-md text-sm font-semibold text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          ) : (
+            <span
+              onDoubleClick={() => setEditingName(true)}
+              title={t.workers.renameHint}
+              className="text-sm font-semibold text-slate-100 truncate cursor-text"
+            >
+              {worker.name || worker.workerId}
+            </span>
+          )}
         </div>
         <span
           className={cn(
@@ -78,6 +118,7 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
       <div className="text-xs text-slate-600 truncate">
         {t.workers.version}: {worker.version || "?"} · {worker.workerId}
       </div>
+      {rename.isError && <p className="text-xs text-red-400">{t.workers.renameError}</p>}
 
       {/* Search metrics */}
       <div>

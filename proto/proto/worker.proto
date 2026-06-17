@@ -108,7 +108,15 @@ message ServerCommand {
     ScanTask scan = 2;        // replaces the scan_targets table
     WorkerConfig set_config = 3; // live config update from the frontend
     Control control = 4;
+    SetName set_name = 5;     // operator renamed the worker from the frontend
   }
+}
+
+// Operator-supplied display name pushed from the frontend. The worker persists
+// it to its config file so the new name survives restarts. An absent/empty name
+// clears the override.
+message SetName {
+  optional string name = 1;
 }
 
 message PingTask {

@@ -92,6 +92,36 @@ fn persist_config(path: &Path, c: &PbConfig) {
     }
 }
 
+/// Rewrites the `[worker].name` key in the worker's config file so a UI-driven
+/// rename survives restarts. `None` clears the key. Best-effort, like
+/// [`persist_config`].
+fn persist_name(path: &Path, name: &Option<String>) {
+    let existing = std::fs::read_to_string(path).unwrap_or_default();
+    let mut doc = match existing.parse::<toml_edit::DocumentMut>() {
+        Ok(doc) => doc,
+        Err(e) => {
+            warn!("could not parse {} to persist name: {e}", path.display());
+            return;
+        }
+    };
+
+    let worker = doc["worker"].or_insert(toml_edit::table());
+    match name {
+        Some(n) => worker["name"] = toml_edit::value(n.as_str()),
+        None => {
+            if let Some(t) = worker.as_table_mut() {
+                t.remove("name");
+            }
+        }
+    }
+
+    if let Err(e) = std::fs::write(path, doc.to_string()) {
+        warn!("could not persist name to {}: {e}", path.display());
+    } else {
+        info!("persisted updated name to {}", path.display());
+    }
+}
+
 fn proto_to_runtime(c: PbConfig) -> RuntimeConfig {
     RuntimeConfig {
         threads: c.threads,
@@ -283,6 +313,9 @@ pub async fn run(
             Some(server_command::Cmd::SetConfig(c)) => {
                 persist_config(&config_path, &c);
                 engine.set_config(proto_to_runtime(c));
+            }
+            Some(server_command::Cmd::SetName(s)) => {
+                persist_name(&config_path, &s.name);
             }
             Some(server_command::Cmd::Ping(p)) => {
                 let engine = engine.clone();

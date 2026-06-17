@@ -295,6 +295,11 @@ export const workerApi = {
       },
     }),
 
+  // Renames a worker. An empty/whitespace name clears the override, falling back
+  // to the worker id for display.
+  setWorkerName: (workerId: string, name: string) =>
+    client.setWorkerName({ workerId, name: name.trim() || undefined }),
+
   pauseSearch: (id: string) => client.controlWorker({ workerId: id, control: Control.PAUSE_SEARCH }),
   resumeSearch: (id: string) => client.controlWorker({ workerId: id, control: Control.RESUME_SEARCH }),
   abortUpdate: (id: string) => client.controlWorker({ workerId: id, control: Control.ABORT_UPDATE }),

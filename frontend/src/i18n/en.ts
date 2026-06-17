@@ -197,6 +197,8 @@ export const en: Translations = {
     triggerUpdate: "Trigger update now",
     abortUpdate: "Abort update",
     controlError: "Command failed",
+    renameHint: "Double-click to rename",
+    renameError: "Rename failed",
   },
   system: {
     updateStack: "Update stack",

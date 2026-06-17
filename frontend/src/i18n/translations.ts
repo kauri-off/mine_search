@@ -200,6 +200,8 @@ export interface Translations {
     triggerUpdate: string;
     abortUpdate: string;
     controlError: string;
+    renameHint: string;
+    renameError: string;
   };
   system: {
     updateStack: string;
