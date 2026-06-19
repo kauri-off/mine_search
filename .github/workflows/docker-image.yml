@@ -14,36 +14,69 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: docker/setup-buildx-action@v3
+
       - name: Log in to GitHub Container Registry
-        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Worker image
-        run: |
-          docker build -t ghcr.io/${{ github.repository }}/worker:latest -f worker.ci.Dockerfile .
-          docker push ghcr.io/${{ github.repository }}/worker:latest
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: worker.Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/worker:latest
+          cache-from: type=gha,scope=worker
+          cache-to: type=gha,scope=worker,mode=max
 
   build-backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - uses: docker/setup-buildx-action@v3
+
       - name: Log in to GitHub Container Registry
-        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Backend image
-        run: |
-          docker build -t ghcr.io/${{ github.repository }}/backend:latest -f backend.ci.Dockerfile .
-          docker push ghcr.io/${{ github.repository }}/backend:latest
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend.Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/backend:latest
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
 
   build-frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - uses: docker/setup-buildx-action@v3
+
       - name: Log in to GitHub Container Registry
-        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Frontend image
-        run: |
-          docker build -t ghcr.io/${{ github.repository }}/frontend:latest -f frontend.Dockerfile .
-          docker push ghcr.io/${{ github.repository }}/frontend:latest
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: frontend.Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/frontend:latest
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
