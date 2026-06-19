@@ -7,14 +7,14 @@ edition.workspace = true
 proto = { path = "../proto" }
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
-futures = { workspace = true }
+futures = "0.3.32"
 
 tonic = { workspace = true }
-tonic-web = { workspace = true }
+tonic-web = "0.14.6"
 
-diesel = { workspace = true, features = ["postgres_backend"] }
-diesel-async = { workspace = true }
-diesel_migrations = { workspace = true }
+diesel = { version = "2.3.10", features = ["postgres", "chrono", "serde_json", "postgres_backend"] }
+diesel-async = { version = "0.9.2", features = ["postgres", "deadpool"] }
+diesel_migrations = "2.3.2"
 diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
 toml = "1.1.2+spec-1.1.0"
 
@@ -31,6 +31,9 @@ lazy_static = "1.5.0"
 # HTTP API over the docker network. default-features=false drops the TLS backends.
 reqwest = { version = "0.13.4", default-features = false }
 
-# Windows has no system libpq; pull in the bundled (source-built, no-TLS) one.
+# Windows has no system libpq, so we compile it from source. `bundled_without_openssl`
+# skips libpq's TLS support, which avoids pulling in (and source-building) openssl-sys
+# entirely. Local dev talks to a non-TLS Postgres, so no TLS is needed here. Linux/Docker
+# use the system libpq+openssl instead.
 [target.'cfg(windows)'.dependencies]
-pq-sys = { workspace = true }
+pq-sys = { version = "0.7.5", features = ["bundled_without_openssl"] }

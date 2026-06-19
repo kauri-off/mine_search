@@ -8,11 +8,11 @@ import { Spinner, ToggleButton } from "@/components";
 import { useTranslation } from "@/i18n";
 import { cn } from "@/cn";
 
-function formatUptime(secs: number): string {
+function formatUptime(secs: number, u: { h: string; m: string; s: string }): string {
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m ${secs % 60}s`;
+  if (h > 0) return `${h}${u.h} ${m}${u.m}`;
+  return `${m}${u.m} ${secs % 60}${u.s}`;
 }
 
 const Metric = ({ label, value }: { label: string; value: string }) => (
@@ -123,7 +123,7 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
         <div className="grid grid-cols-3 gap-3">
           <Metric label={t.workers.serversFound} value={m ? Number(m.serversFound).toLocaleString() : "-"} />
           <Metric label={t.workers.scanRate} value={m ? `${m.scanRate.toFixed(1)}/s` : "-"} />
-          <Metric label={t.workers.uptime} value={m ? formatUptime(Number(m.uptimeSecs)) : "-"} />
+          <Metric label={t.workers.uptime} value={m ? formatUptime(Number(m.uptimeSecs), t.workers.uptimeUnits) : "-"} />
           <Metric label={t.workers.activeThreads} value={m ? String(m.activeThreads) : "-"} />
           <Metric label={t.workers.searching} value={m?.searching ? "✓" : "—"} />
         </div>

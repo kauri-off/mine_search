@@ -168,6 +168,7 @@ export const ru: Translations = {
     serversFound: "Найдено серверов",
     scanRate: "Скорость сканирования",
     uptime: "Время работы",
+    uptimeUnits: { h: "ч", m: "м", s: "с" },
     activeThreads: "Активные потоки",
     searching: "Поиск",
     updating: "Обновление",

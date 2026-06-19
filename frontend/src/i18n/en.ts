@@ -168,6 +168,7 @@ export const en: Translations = {
     serversFound: "Servers found",
     scanRate: "Scan rate",
     uptime: "Uptime",
+    uptimeUnits: { h: "h", m: "m", s: "s" },
     activeThreads: "Active threads",
     searching: "Searching",
     updating: "Updating",

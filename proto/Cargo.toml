@@ -5,12 +5,14 @@ edition.workspace = true
 
 [dependencies]
 tonic = { workspace = true }
-tonic-prost = { workspace = true }
-prost = { workspace = true }
+tonic-prost = "0.14.4"
+prost = "0.14.4"
 
+# tonic-prost-build is fed a FileDescriptorSet produced by protox so no `protoc`
+# binary is required at build time.
 [build-dependencies]
-tonic-prost-build = { workspace = true }
-protox = { workspace = true }
+tonic-prost-build = "0.14.6"
+protox = "0.9.1"
 
 # prost/tonic-prost are referenced by the code generated into OUT_DIR, which
 # cargo-machete cannot see, so it reports them as unused. They are required.

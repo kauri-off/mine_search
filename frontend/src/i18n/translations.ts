@@ -171,6 +171,7 @@ export interface Translations {
     serversFound: string;
     scanRate: string;
     uptime: string;
+    uptimeUnits: { h: string; m: string; s: string };
     activeThreads: string;
     searching: string;
     updating: string;
