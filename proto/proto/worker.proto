@@ -65,10 +65,10 @@ message WorkerMetrics {
 message ScanResult {
   oneof outcome {
     // Newly probed via the search/scan path (upsert-by-ip, conflict only bumps
-    // updated_at/is_online/favicon — mirrors the old `handle_valid_ip`).
+    // updated_at/is_online/favicon).
     ServerReport discovered = 1;
     // Re-probed during an update cycle / on-demand ping (full field update by
-    // ip — mirrors the old `update_server`).
+    // ip).
     ServerReport updated = 2;
     // Re-probe failed during an update: mark the server offline.
     ServerOffline offline = 3;

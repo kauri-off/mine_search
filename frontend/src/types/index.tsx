@@ -1,7 +1,7 @@
 // View-model shapes consumed by the UI components. The API now speaks gRPC
 // (see src/gen, generated from ../proto via `npx buf generate`); the adapter in
 // src/api/client.ts maps the protobuf messages to these shapes. These files are
-// now hand-maintained (the old ts-rs export workflow has been retired).
+// hand-maintained.
 
 export type { AddAddrRequest } from "./AddAddrRequest";
 export type { AuthBody } from "./AuthBody";

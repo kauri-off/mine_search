@@ -115,9 +115,6 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
         </span>
       </div>
 
-      <div className="text-xs text-slate-600 truncate">
-        {t.workers.version}: {worker.version || "?"} · {worker.workerId}
-      </div>
       {rename.isError && <p className="text-xs text-red-400">{t.workers.renameError}</p>}
 
       {/* Search metrics */}

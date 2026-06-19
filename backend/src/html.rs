@@ -1,6 +1,5 @@
-//! Renders a Minecraft MOTD/chat JSON object to HTML. Moved verbatim from the
-//! old REST `fetch_server_info` handler. Output is HTML-escaped here; the
-//! frontend additionally sanitizes with DOMPurify.
+//! Renders a Minecraft MOTD/chat JSON object to HTML. Output is HTML-escaped
+//! here; the frontend additionally sanitizes with DOMPurify.
 
 use crate::chat::{ChatComponentObject, ChatObject};
 use serde_json::Value;

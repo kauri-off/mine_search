@@ -4,7 +4,7 @@ package api;
 
 import "worker.proto";
 
-// Frontend ⇆ backend API. Replaces the old REST endpoints under /api/v1.
+// Frontend ⇆ backend API.
 // Served as gRPC-web (browser) via tonic-web. All RPCs except Login require a
 // valid JWT in the `authorization` metadata (Bearer <token>).
 service Api {

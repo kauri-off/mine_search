@@ -37,9 +37,8 @@ pub struct ScanExtra {
 ///
 /// - `fetch_extra` controls whether the login handshake (online-mode detection)
 ///   is attempted.
-/// - `require_extra` makes a failed handshake fatal (discovery path, which
-///   mirrors the old `handle_valid_ip`); otherwise handshake failures are
-///   ignored (update path).
+/// - `require_extra` makes a failed handshake fatal (discovery path); otherwise
+///   handshake failures are ignored (update path).
 pub async fn probe(
     ip: &str,
     port: u16,

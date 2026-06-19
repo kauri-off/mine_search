@@ -165,7 +165,6 @@ export interface Translations {
     online: string;
     offline: string;
     lastSeen: string;
-    version: string;
     metrics: string;
     searchMetrics: string;
     updateMetrics: string;

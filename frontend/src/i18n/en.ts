@@ -162,7 +162,6 @@ export const en: Translations = {
     online: "Online",
     offline: "Offline",
     lastSeen: "Last seen",
-    version: "Version",
     metrics: "Metrics",
     searchMetrics: "Search",
     updateMetrics: "Update",

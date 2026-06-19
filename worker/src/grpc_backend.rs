@@ -92,6 +92,29 @@ fn persist_config(path: &Path, c: &PbConfig) {
     }
 }
 
+/// Writes the generated `[worker].id` key into the worker's config file so the
+/// identity (and thus operator-pinned config) survives restarts. Best-effort,
+/// like [`persist_config`].
+pub fn persist_id(path: &Path, id: &str) {
+    let existing = std::fs::read_to_string(path).unwrap_or_default();
+    let mut doc = match existing.parse::<toml_edit::DocumentMut>() {
+        Ok(doc) => doc,
+        Err(e) => {
+            warn!("could not parse {} to persist worker id: {e}", path.display());
+            return;
+        }
+    };
+
+    let worker = doc["worker"].or_insert(toml_edit::table());
+    worker["id"] = toml_edit::value(id);
+
+    if let Err(e) = std::fs::write(path, doc.to_string()) {
+        warn!("could not persist worker id to {}: {e}", path.display());
+    } else {
+        info!("persisted worker id to {}", path.display());
+    }
+}
+
 /// Rewrites the `[worker].name` key in the worker's config file so a UI-driven
 /// rename survives restarts. `None` clears the key. Best-effort, like
 /// [`persist_config`].

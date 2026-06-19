@@ -109,7 +109,7 @@ async fn load_server_info(db: &DatabaseWrapper, ip: &str) -> Result<ServerInfo, 
     Ok(server_info(server, snap))
 }
 
-/// Splits an address into `(ip, port)`. Ported from the old `AddAddrRequest`.
+/// Splits an address into `(ip, port)`.
 fn parse_addr(addr: &str) -> Result<(String, i32), Status> {
     let addr = addr.trim();
     let parse_port = |s: &str| -> Result<i32, Status> {

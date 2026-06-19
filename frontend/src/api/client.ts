@@ -56,7 +56,7 @@ const transport = createGrpcWebTransport({
 export const client = createClient(Api, transport);
 
 // ---------------------------------------------------------------------------
-// Conversions between protobuf wire types and the legacy view-model shapes the
+// Conversions between protobuf wire types and the view-model shapes the
 // UI components consume (snake_case, string enums, numbers instead of bigint).
 // ---------------------------------------------------------------------------
 

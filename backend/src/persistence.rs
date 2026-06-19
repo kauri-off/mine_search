@@ -1,6 +1,5 @@
-//! Database writes for results streamed in from workers. This is the logic that
-//! used to live in the worker (`handle_valid_ip` / `update_server`) — now the
-//! backend is the sole writer and workers only report structured outcomes.
+//! Database writes for results streamed in from workers. The backend is the
+//! sole writer and workers only report structured outcomes.
 
 use chrono::Utc;
 use crate::{
@@ -33,8 +32,7 @@ fn parse_json(s: &str) -> serde_json::Value {
     serde_json::from_str(s).unwrap_or(serde_json::Value::Null)
 }
 
-/// Mirrors the old `handle_valid_ip`: upsert-by-ip, conflict only bumps
-/// updated_at/is_online/favicon (preserving the original quirk that rediscovery
+/// Upsert-by-ip; conflict only bumps updated_at/is_online/favicon (rediscovery
 /// does not overwrite version/description).
 pub async fn persist_discovered(db: &DatabaseWrapper, report: ServerReport) -> DbResult<Option<i32>> {
     let description = parse_json(&report.description_json);
@@ -79,7 +77,7 @@ pub async fn persist_discovered(db: &DatabaseWrapper, report: ServerReport) -> D
     Ok(Some(server.id))
 }
 
-/// Mirrors the old `update_server` (reachable path): full field update by ip.
+/// Full field update by ip (reachable path).
 pub async fn persist_updated(db: &DatabaseWrapper, report: ServerReport) -> DbResult<Option<i32>> {
     let mut conn = db.pool.get().await?;
 
@@ -131,7 +129,7 @@ pub async fn persist_updated(db: &DatabaseWrapper, report: ServerReport) -> DbRe
     Ok(Some(server_id))
 }
 
-/// Marks a server offline after a failed re-probe (old `update_server` error path).
+/// Marks a server offline after a failed re-probe.
 pub async fn persist_offline(db: &DatabaseWrapper, ip: &str) -> DbResult<Option<i32>> {
     let mut conn = db.pool.get().await?;
     let id = diesel::update(schema::servers::table)
@@ -201,9 +199,9 @@ async fn write_snapshot_and_players(
     Ok(())
 }
 
-/// Returns the servers a worker should re-probe this cycle (old `updater`
-/// selection), honouring the spoofable/cracked filters and stamping each target
-/// with the worker's `with_connection` preference.
+/// Returns the servers a worker should re-probe this cycle, honouring the
+/// spoofable/cracked filters and stamping each target with the worker's
+/// `with_connection` preference.
 pub async fn fetch_update_targets(
     db: &DatabaseWrapper,
     only_spoofable: bool,

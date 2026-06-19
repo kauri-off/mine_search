@@ -25,10 +25,10 @@ async fn main() {
 
     tracing::info!("mine_search worker starting");
 
-    let worker_id = resolve_worker_id(&worker_cfg);
-    tracing::info!("worker id: {worker_id}");
     // Path the worker rewrites when retuned from the UI, so edits persist.
     let config_path = config::config_path();
+    let worker_id = resolve_worker_id(&worker_cfg, &config_path);
+    tracing::info!("worker id: {worker_id}");
     loop {
         match grpc_backend::run(worker_cfg.clone(), worker_id.clone(), config_path.clone()).await {
             Ok(()) => {
@@ -43,22 +43,13 @@ async fn main() {
     }
 }
 
-fn resolve_worker_id(cfg: &config::WorkerConfig) -> String {
+fn resolve_worker_id(cfg: &config::WorkerConfig, config_path: &std::path::Path) -> String {
     if let Some(id) = cfg.id.clone().filter(|s| !s.is_empty()) {
         return id;
     }
-    // Persist a generated UUID next to the working directory so the identity
-    // (and thus operator-pinned config) survives restarts.
-    let path = std::path::PathBuf::from("worker_id");
-    if let Ok(existing) = std::fs::read_to_string(&path) {
-        let trimmed = existing.trim();
-        if !trimmed.is_empty() {
-            return trimmed.to_string();
-        }
-    }
+    // Generate a UUID and persist it back into the worker's config file so the
+    // identity (and thus operator-pinned config) survives restarts.
     let id = uuid::Uuid::new_v4().to_string();
-    if let Err(e) = std::fs::write(&path, &id) {
-        tracing::warn!("could not persist worker id: {e}");
-    }
+    grpc_backend::persist_id(config_path, &id);
     id
 }

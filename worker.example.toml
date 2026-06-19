@@ -1,19 +1,7 @@
 # Worker config. Copy to `worker.toml` and fill in your values.
-#
-# The worker owns this file: when you retune it from the Workers UI, the worker
-# rewrites the live-tunable [worker] keys below (preserving comments and the
-# connection fields), so your changes survive restarts. Mount it read-write.
 
 [worker]
-# Backend endpoint the worker dials. Inside docker-compose this is the backend
-# service directly; a remote worker uses the public gRPC endpoint, e.g.
-# "https://example.com:50051".
 backend_url = "http://backend:3000"
-# Must match [backend].worker_token.
 token       = "change_me_worker_token"
-# Optional stable identity (otherwise a UUID is generated and persisted to a
-# `worker_id` file). A human-friendly name is shown in the Workers UI.
-# id   = "worker-eu-1"
 # name = "EU worker 1"
-# PEM CA bundle to trust for the backend's TLS certificate (self-signed / custom CA).
 # tls_ca = "/certs/ca.pem"

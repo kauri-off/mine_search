@@ -162,7 +162,6 @@ export const ru: Translations = {
     online: "Онлайн",
     offline: "Оффлайн",
     lastSeen: "Был виден",
-    version: "Версия",
     metrics: "Метрики",
     searchMetrics: "Поиск",
     updateMetrics: "Обновление",
