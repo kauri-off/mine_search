@@ -6,7 +6,7 @@ use std::{pin::Pin, sync::Arc};
 
 use futures::Stream;
 use proto::worker::{
-    FetchUpdateTargetsRequest, ScanResult, ServerCommand, UpdateTargets, WorkerMessage,
+    Ack, FetchUpdateTargetsRequest, ScanResult, ServerCommand, UpdateTargets, WorkerMessage,
     scan_result, server_command, worker_control_server::WorkerControl, worker_message,
 };
 use tokio::sync::mpsc;
@@ -14,6 +14,11 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status, Streaming};
 
 use crate::{auth, persistence, state::AppState};
+
+/// Capacity of the per-session result queue feeding the writer task. Sized to
+/// absorb short DB hiccups; on overflow results are dropped and replayed from
+/// the worker's outbox.
+const WRITER_QUEUE: usize = 1024;
 
 pub struct WorkerService {
     pub state: Arc<AppState>,
@@ -35,6 +40,14 @@ impl WorkerControl for WorkerService {
 
         tokio::spawn(async move {
             let mut worker_id: Option<String> = None;
+
+            // Persistence runs on a dedicated writer task fed by this channel, so
+            // a slow/unreachable DB never blocks the read loop below (which also
+            // processes heartbeats — a stall there would make the worker look
+            // offline). Results that don't fit are dropped; the worker's outbox
+            // replays anything left un-acked.
+            let (result_tx, result_rx) = mpsc::channel::<ScanResult>(WRITER_QUEUE);
+            let writer = tokio::spawn(writer_task(state.clone(), cmd_tx.clone(), result_rx));
 
             loop {
                 match inbound.message().await {
@@ -62,7 +75,13 @@ impl WorkerControl for WorkerService {
                             }
                         }
                         Some(worker_message::Kind::Result(result)) => {
-                            handle_result(&state, result).await;
+                            if let Err(mpsc::error::TrySendError::Full(_)) =
+                                result_tx.try_send(result)
+                            {
+                                tracing::warn!(
+                                    "db writer queue full; dropping scan result (worker will replay)"
+                                );
+                            }
                         }
                         None => {}
                     },
@@ -73,6 +92,10 @@ impl WorkerControl for WorkerService {
                     }
                 }
             }
+
+            // Close the queue so the writer task drains and exits.
+            drop(result_tx);
+            let _ = writer.await;
 
             if let Some(id) = worker_id {
                 tracing::info!(worker = %id, "worker disconnected");
@@ -113,16 +136,45 @@ impl WorkerControl for WorkerService {
     }
 }
 
-async fn handle_result(state: &AppState, result: ScanResult) {
-    let outcome = match result.outcome {
-        Some(scan_result::Outcome::Discovered(s)) => persistence::persist_discovered(&state.db, s).await,
-        Some(scan_result::Outcome::Updated(s)) => persistence::persist_updated(&state.db, s).await,
-        Some(scan_result::Outcome::Offline(o)) => persistence::persist_offline(&state.db, &o.ip).await,
-        None => Ok(None),
-    };
-    match outcome {
-        Ok(Some(server_id)) => state.events.notify(server_id),
-        Ok(None) => {}
-        Err(e) => tracing::error!("failed to persist scan result: {e}"),
+/// Drains the per-session result queue, persisting each result and acking it
+/// back to the worker once durable. Persist failures are logged and left
+/// un-acked, so the worker replays them later. Exits when the queue is closed
+/// (the session ended).
+async fn writer_task(
+    state: Arc<AppState>,
+    cmd_tx: mpsc::Sender<Result<ServerCommand, Status>>,
+    mut result_rx: mpsc::Receiver<ScanResult>,
+) {
+    while let Some(result) = result_rx.recv().await {
+        let result_id = result.result_id.clone();
+        let outcome = match result.outcome {
+            Some(scan_result::Outcome::Discovered(s)) => {
+                persistence::persist_discovered(&state.db, s, &result_id).await
+            }
+            Some(scan_result::Outcome::Updated(s)) => {
+                persistence::persist_updated(&state.db, s, &result_id).await
+            }
+            Some(scan_result::Outcome::Offline(o)) => {
+                persistence::persist_offline(&state.db, &o.ip, &result_id).await
+            }
+            None => Ok(None),
+        };
+        match outcome {
+            Ok(maybe_id) => {
+                if let Some(server_id) = maybe_id {
+                    state.events.notify(server_id);
+                }
+                // Ack even on `None` (replay / vanished server): the result is
+                // durably accounted for, so the worker should drop it.
+                if !result_id.is_empty() {
+                    let _ = cmd_tx
+                        .send(Ok(ServerCommand {
+                            cmd: Some(server_command::Cmd::Ack(Ack { result_id })),
+                        }))
+                        .await;
+                }
+            }
+            Err(e) => tracing::error!("failed to persist scan result: {e}"),
+        }
     }
 }

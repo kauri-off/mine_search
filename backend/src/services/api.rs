@@ -54,6 +54,17 @@ fn db_err<E: std::fmt::Display>(context: &str, e: E) -> Status {
     Status::internal("database error")
 }
 
+/// Turns an affected-row count of 0 into a `NOT_FOUND` so writes against a
+/// stale/deleted id surface as an error instead of a silent success (which would
+/// leave the frontend's optimistic update in place).
+fn require_affected(affected: usize, what: &str) -> Result<(), Status> {
+    if affected == 0 {
+        Err(Status::not_found(format!("{what} not found")))
+    } else {
+        Ok(())
+    }
+}
+
 fn proto_status(s: DbStatus) -> i32 {
     match s {
         DbStatus::None => 0,
@@ -108,7 +119,7 @@ fn server_info(server: ServerModel, snap: SnapshotModel) -> ServerInfo {
 /// Loads a server's current `ServerInfo` by ip (joined with its latest snapshot).
 /// Shared by the unary `GetServerInfo` and the streaming `StreamServerInfo`.
 async fn load_server_info(db: &DatabaseWrapper, ip: &str) -> Result<ServerInfo, Status> {
-    let mut conn = db.pool.get().await.map_err(|e| db_err("get conn", e))?;
+    let mut conn = db.conn().await.map_err(|e| db_err("get conn", e))?;
     let (server, snap) = servers::table
         .inner_join(
             schema::player_count_snapshots::table
@@ -229,8 +240,7 @@ impl Api for ApiService {
         let mut conn = self
             .state
             .db
-            .pool
-            .get()
+            .conn()
             .await
             .map_err(|e| db_err("get conn", e))?;
 
@@ -332,8 +342,7 @@ impl Api for ApiService {
         let mut conn = self
             .state
             .db
-            .pool
-            .get()
+            .conn()
             .await
             .map_err(|e| db_err("get conn", e))?;
 
@@ -506,8 +515,7 @@ impl Api for ApiService {
         let mut conn = self
             .state
             .db
-            .pool
-            .get()
+            .conn()
             .await
             .map_err(|e| db_err("get conn", e))?;
 
@@ -541,8 +549,7 @@ impl Api for ApiService {
         let mut conn = self
             .state
             .db
-            .pool
-            .get()
+            .conn()
             .await
             .map_err(|e| db_err("get conn", e))?;
 
@@ -554,7 +561,7 @@ impl Api for ApiService {
             is_crashed: Option<bool>,
         }
 
-        diesel::update(servers::table)
+        let affected = diesel::update(servers::table)
             .filter(servers::ip.eq(&body.server_ip))
             .set(Options {
                 is_checked: body.is_checked,
@@ -564,6 +571,7 @@ impl Api for ApiService {
             .execute(&mut conn)
             .await
             .map_err(|e| db_err("update server", e))?;
+        require_affected(affected, "server")?;
 
         Ok(Response::new(Empty {}))
     }
@@ -577,8 +585,7 @@ impl Api for ApiService {
         let mut conn = self
             .state
             .db
-            .pool
-            .get()
+            .conn()
             .await
             .map_err(|e| db_err("get conn", e))?;
 
@@ -598,7 +605,7 @@ impl Api for ApiService {
             is_crashed: Option<bool>,
         }
 
-        diesel::update(servers::table)
+        let affected = diesel::update(servers::table)
             .filter(servers::id.eq(body.server_id))
             .set(Overwrite {
                 port: body.port,
@@ -616,6 +623,7 @@ impl Api for ApiService {
             .execute(&mut conn)
             .await
             .map_err(|e| db_err("overwrite server", e))?;
+        require_affected(affected, "server")?;
 
         Ok(Response::new(Empty {}))
     }
@@ -629,14 +637,14 @@ impl Api for ApiService {
         let mut conn = self
             .state
             .db
-            .pool
-            .get()
+            .conn()
             .await
             .map_err(|e| db_err("get conn", e))?;
-        diesel::delete(servers::table.filter(servers::id.eq(id)))
+        let affected = diesel::delete(servers::table.filter(servers::id.eq(id)))
             .execute(&mut conn)
             .await
             .map_err(|e| db_err("delete server", e))?;
+        require_affected(affected, "server")?;
         Ok(Response::new(Empty {}))
     }
 
@@ -664,7 +672,10 @@ impl Api for ApiService {
         auth::require_session(&request)?;
         let body = request.into_inner();
         let (ip, port) = parse_addr(&body.addr)?;
-        self.state.registry.dispatch_scan(ip, port).await?;
+        self.state
+            .registry
+            .dispatch_scan_to(&body.worker_id, ip, port)
+            .await?;
         Ok(Response::new(Empty {}))
     }
 
@@ -674,11 +685,20 @@ impl Api for ApiService {
     ) -> Result<Response<Empty>, Status> {
         auth::require_session(&request)?;
         let body = request.into_inner();
-        for t in body.targets {
-            let (ip, port) = parse_addr(&t.addr)?;
-            // Best-effort: skip when no worker is available rather than failing the
-            // whole batch.
-            let _ = self.state.registry.dispatch_scan(ip, port).await;
+        // Validate every address up front so a malformed entry rejects the whole
+        // batch before any target is dispatched.
+        let parsed = body
+            .targets
+            .iter()
+            .map(|t| parse_addr(&t.addr))
+            .collect::<Result<Vec<_>, _>>()?;
+        // Fail-fast: the operator picks the worker; if it is unknown or offline the
+        // whole import errors rather than silently dropping work.
+        for (ip, port) in parsed {
+            self.state
+                .registry
+                .dispatch_scan_to(&body.worker_id, ip, port)
+                .await?;
         }
         Ok(Response::new(Empty {}))
     }
@@ -692,8 +712,7 @@ impl Api for ApiService {
         let mut conn = self
             .state
             .db
-            .pool
-            .get()
+            .conn()
             .await
             .map_err(|e| db_err("get conn", e))?;
 
@@ -728,8 +747,7 @@ impl Api for ApiService {
         let mut conn = self
             .state
             .db
-            .pool
-            .get()
+            .conn()
             .await
             .map_err(|e| db_err("get conn", e))?;
 
@@ -789,17 +807,17 @@ impl Api for ApiService {
         let mut conn = self
             .state
             .db
-            .pool
-            .get()
+            .conn()
             .await
             .map_err(|e| db_err("get conn", e))?;
         let status = db_status(body.status);
-        diesel::update(players::table)
+        let affected = diesel::update(players::table)
             .filter(players::id.eq(body.id))
             .set(&PlayerUpdate { status: &status })
             .execute(&mut conn)
             .await
             .map_err(|e| db_err("update player", e))?;
+        require_affected(affected, "player")?;
         Ok(Response::new(Empty {}))
     }
 
@@ -812,14 +830,14 @@ impl Api for ApiService {
         let mut conn = self
             .state
             .db
-            .pool
-            .get()
+            .conn()
             .await
             .map_err(|e| db_err("get conn", e))?;
-        diesel::delete(players::table.filter(players::id.eq(id)))
+        let affected = diesel::delete(players::table.filter(players::id.eq(id)))
             .execute(&mut conn)
             .await
             .map_err(|e| db_err("delete player", e))?;
+        require_affected(affected, "player")?;
         Ok(Response::new(Empty {}))
     }
 

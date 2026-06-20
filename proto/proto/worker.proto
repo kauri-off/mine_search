@@ -73,6 +73,10 @@ message ScanResult {
     // Re-probe failed during an update: mark the server offline.
     ServerOffline offline = 3;
   }
+  // Stable per-result id (UUID) assigned by the worker, persisted in its outbox.
+  // The backend uses it as an idempotency key so at-least-once replays do not
+  // duplicate writes, and echoes it back in an `Ack` once durably persisted.
+  string result_id = 4;
 }
 
 message ServerReport {
@@ -109,7 +113,14 @@ message ServerCommand {
     WorkerConfig set_config = 3; // live config update from the frontend
     Control control = 4;
     SetName set_name = 5;     // operator renamed the worker from the frontend
+    Ack ack = 6;             // a ScanResult was durably persisted; drop it from the outbox
   }
+}
+
+// Backend -> worker: confirms a ScanResult (by its `result_id`) is durably
+// persisted, so the worker can prune it from its outbox.
+message Ack {
+  string result_id = 1;
 }
 
 // Operator-supplied display name pushed from the frontend. The worker persists

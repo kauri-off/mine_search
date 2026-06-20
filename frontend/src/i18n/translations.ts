@@ -30,6 +30,11 @@ export interface Translations {
       no: string;
     };
   };
+  workerSelect: {
+    label: string;
+    placeholder: string;
+    none: string;
+  };
   addIp: {
     label: string;
     add: string;

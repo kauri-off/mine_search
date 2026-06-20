@@ -23,6 +23,10 @@ struct Args {
     /// Path to masscan -oG output file
     #[arg(short, long)]
     file: String,
+
+    /// ID of the worker that should run the imported scans
+    #[arg(short, long)]
+    worker: String,
 }
 
 async fn connect(endpoint: &str) -> anyhow::Result<Channel> {
@@ -85,10 +89,16 @@ async fn main() -> anyhow::Result<()> {
         .collect();
 
     // Attach the session token as Bearer metadata.
-    let mut req = Request::new(AddTargetListRequest { targets });
+    let mut req = Request::new(AddTargetListRequest {
+        targets,
+        worker_id: args.worker.clone(),
+    });
     req.metadata_mut()
         .insert("authorization", format!("Bearer {token}").parse()?);
-    client.add_target_list(req).await?;
+    client
+        .add_target_list(req)
+        .await
+        .map_err(|e| anyhow::anyhow!("import failed: {}", e.message()))?;
 
     println!("[*] Done.");
     Ok(())

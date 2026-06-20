@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file worker.proto.
  */
 export const file_worker: GenFile = /*@__PURE__*/
-  fileDesc("Cgx3b3JrZXIucHJvdG8SBndvcmtlciLjAQoMV29ya2VyQ29uZmlnEg8KB3RocmVhZHMYASABKAUSFQoNc2VhcmNoX21vZHVsZRgCIAEoCBIVCg11cGRhdGVfbW9kdWxlGAMgASgIEh4KFnVwZGF0ZV93aXRoX2Nvbm5lY3Rpb24YBCABKAgSHQoVb25seV91cGRhdGVfc3Bvb2ZhYmxlGAUgASgIEhsKE29ubHlfdXBkYXRlX2NyYWNrZWQYBiABKAgSHAoUdXBkYXRlX2ludGVydmFsX3NlY3MYByABKA0SGgoSdXBkYXRlX2NvbmN1cnJlbmN5GAggASgNIosBCg1Xb3JrZXJNZXNzYWdlEiQKCHJlZ2lzdGVyGAEgASgLMhAud29ya2VyLlJlZ2lzdGVySAASJgoJaGVhcnRiZWF0GAIgASgLMhEud29ya2VyLkhlYXJ0YmVhdEgAEiQKBnJlc3VsdBgDIAEoCzISLndvcmtlci5TY2FuUmVzdWx0SABCBgoEa2luZCJwCghSZWdpc3RlchIRCgl3b3JrZXJfaWQYASABKAkSEQoEbmFtZRgCIAEoCUgAiAEBEiQKBmNvbmZpZxgDIAEoCzIULndvcmtlci5Xb3JrZXJDb25maWcSDwoHdmVyc2lvbhgEIAEoCUIHCgVfbmFtZSIzCglIZWFydGJlYXQSJgoHbWV0cmljcxgBIAEoCzIVLndvcmtlci5Xb3JrZXJNZXRyaWNzIvoBCg1Xb3JrZXJNZXRyaWNzEhUKDXNlcnZlcnNfZm91bmQYASABKAQSEwoLaXBzX3NjYW5uZWQYAiABKAQSEQoJc2Nhbl9yYXRlGAMgASgBEhMKC3VwdGltZV9zZWNzGAQgASgEEhEKCXNlYXJjaGluZxgFIAEoCBIQCgh1cGRhdGluZxgGIAEoCBIWCg5hY3RpdmVfdGhyZWFkcxgHIAEoDRITCgt1cGRhdGVfZG9uZRgIIAEoBBIUCgx1cGRhdGVfdG90YWwYCSABKAQSEwoLdXBkYXRlX3JhdGUYCiABKAESGAoQbGFzdF91cGRhdGVfdW5peBgLIAEoAyKWAQoKU2NhblJlc3VsdBIqCgpkaXNjb3ZlcmVkGAEgASgLMhQud29ya2VyLlNlcnZlclJlcG9ydEgAEicKB3VwZGF0ZWQYAiABKAsyFC53b3JrZXIuU2VydmVyUmVwb3J0SAASKAoHb2ZmbGluZRgDIAEoCzIVLndvcmtlci5TZXJ2ZXJPZmZsaW5lSABCCQoHb3V0Y29tZSK1AgoMU2VydmVyUmVwb3J0EgoKAmlwGAEgASgJEgwKBHBvcnQYAiABKAUSFAoMdmVyc2lvbl9uYW1lGAMgASgJEhAKCHByb3RvY29sGAQgASgFEhgKEGRlc2NyaXB0aW9uX2pzb24YBSABKAkSFgoOcGxheWVyc19vbmxpbmUYBiABKAUSEwoLcGxheWVyc19tYXgYByABKAUSFAoMcGxheWVyX25hbWVzGAggAygJEhUKDXJlcXVpcmVzX21vZHMYCSABKAgSFAoHZmF2aWNvbhgKIAEoCUgAiAEBEhEKBHBpbmcYCyABKANIAYgBARInCgVleHRyYRgMIAEoCzITLndvcmtlci5TZXJ2ZXJFeHRyYUgCiAEBQgoKCF9mYXZpY29uQgcKBV9waW5nQggKBl9leHRyYSJlCgtTZXJ2ZXJFeHRyYRIWCg5pc19vbmxpbmVfbW9kZRgBIAEoCBIjChZkaXNjb25uZWN0X3JlYXNvbl9qc29uGAIgASgJSACIAQFCGQoXX2Rpc2Nvbm5lY3RfcmVhc29uX2pzb24iGwoNU2VydmVyT2ZmbGluZRIKCgJpcBgBIAEoCSLPAQoNU2VydmVyQ29tbWFuZBIgCgRwaW5nGAEgASgLMhAud29ya2VyLlBpbmdUYXNrSAASIAoEc2NhbhgCIAEoCzIQLndvcmtlci5TY2FuVGFza0gAEioKCnNldF9jb25maWcYAyABKAsyFC53b3JrZXIuV29ya2VyQ29uZmlnSAASIgoHY29udHJvbBgEIAEoDjIPLndvcmtlci5Db250cm9sSAASIwoIc2V0X25hbWUYBSABKAsyDy53b3JrZXIuU2V0TmFtZUgAQgUKA2NtZCIlCgdTZXROYW1lEhEKBG5hbWUYASABKAlIAIgBAUIHCgVfbmFtZSI9CghQaW5nVGFzaxIKCgJpcBgBIAEoCRIMCgRwb3J0GAIgASgFEhcKD3dpdGhfY29ubmVjdGlvbhgDIAEoCCIkCghTY2FuVGFzaxIKCgJpcBgBIAEoCRIMCgRwb3J0GAIgASgFIlwKGUZldGNoVXBkYXRlVGFyZ2V0c1JlcXVlc3QSEQoJd29ya2VyX2lkGAEgASgJEhYKDm9ubHlfc3Bvb2ZhYmxlGAIgASgIEhQKDG9ubHlfY3JhY2tlZBgDIAEoCCI2Cg1VcGRhdGVUYXJnZXRzEiUKB3RhcmdldHMYASADKAsyFC53b3JrZXIuVXBkYXRlVGFyZ2V0IkEKDFVwZGF0ZVRhcmdldBIKCgJpcBgBIAEoCRIMCgRwb3J0GAIgASgFEhcKD3dpdGhfY29ubmVjdGlvbhgDIAEoCCqjAQoHQ29udHJvbBIXChNDT05UUk9MX1VOU1BFQ0lGSUVEEAASGAoUQ09OVFJPTF9QQVVTRV9TRUFSQ0gQARIZChVDT05UUk9MX1JFU1VNRV9TRUFSQ0gQAhIUChBDT05UUk9MX1NIVVRET1dOEAMSGAoUQ09OVFJPTF9BQk9SVF9VUERBVEUQBBIaChZDT05UUk9MX1RSSUdHRVJfVVBEQVRFEAUynAEKDVdvcmtlckNvbnRyb2wSOwoHU2Vzc2lvbhIVLndvcmtlci5Xb3JrZXJNZXNzYWdlGhUud29ya2VyLlNlcnZlckNvbW1hbmQoATABEk4KEkZldGNoVXBkYXRlVGFyZ2V0cxIhLndvcmtlci5GZXRjaFVwZGF0ZVRhcmdldHNSZXF1ZXN0GhUud29ya2VyLlVwZGF0ZVRhcmdldHNiBnByb3RvMw");
+  fileDesc("Cgx3b3JrZXIucHJvdG8SBndvcmtlciLjAQoMV29ya2VyQ29uZmlnEg8KB3RocmVhZHMYASABKAUSFQoNc2VhcmNoX21vZHVsZRgCIAEoCBIVCg11cGRhdGVfbW9kdWxlGAMgASgIEh4KFnVwZGF0ZV93aXRoX2Nvbm5lY3Rpb24YBCABKAgSHQoVb25seV91cGRhdGVfc3Bvb2ZhYmxlGAUgASgIEhsKE29ubHlfdXBkYXRlX2NyYWNrZWQYBiABKAgSHAoUdXBkYXRlX2ludGVydmFsX3NlY3MYByABKA0SGgoSdXBkYXRlX2NvbmN1cnJlbmN5GAggASgNIosBCg1Xb3JrZXJNZXNzYWdlEiQKCHJlZ2lzdGVyGAEgASgLMhAud29ya2VyLlJlZ2lzdGVySAASJgoJaGVhcnRiZWF0GAIgASgLMhEud29ya2VyLkhlYXJ0YmVhdEgAEiQKBnJlc3VsdBgDIAEoCzISLndvcmtlci5TY2FuUmVzdWx0SABCBgoEa2luZCJwCghSZWdpc3RlchIRCgl3b3JrZXJfaWQYASABKAkSEQoEbmFtZRgCIAEoCUgAiAEBEiQKBmNvbmZpZxgDIAEoCzIULndvcmtlci5Xb3JrZXJDb25maWcSDwoHdmVyc2lvbhgEIAEoCUIHCgVfbmFtZSIzCglIZWFydGJlYXQSJgoHbWV0cmljcxgBIAEoCzIVLndvcmtlci5Xb3JrZXJNZXRyaWNzIvoBCg1Xb3JrZXJNZXRyaWNzEhUKDXNlcnZlcnNfZm91bmQYASABKAQSEwoLaXBzX3NjYW5uZWQYAiABKAQSEQoJc2Nhbl9yYXRlGAMgASgBEhMKC3VwdGltZV9zZWNzGAQgASgEEhEKCXNlYXJjaGluZxgFIAEoCBIQCgh1cGRhdGluZxgGIAEoCBIWCg5hY3RpdmVfdGhyZWFkcxgHIAEoDRITCgt1cGRhdGVfZG9uZRgIIAEoBBIUCgx1cGRhdGVfdG90YWwYCSABKAQSEwoLdXBkYXRlX3JhdGUYCiABKAESGAoQbGFzdF91cGRhdGVfdW5peBgLIAEoAyKpAQoKU2NhblJlc3VsdBIqCgpkaXNjb3ZlcmVkGAEgASgLMhQud29ya2VyLlNlcnZlclJlcG9ydEgAEicKB3VwZGF0ZWQYAiABKAsyFC53b3JrZXIuU2VydmVyUmVwb3J0SAASKAoHb2ZmbGluZRgDIAEoCzIVLndvcmtlci5TZXJ2ZXJPZmZsaW5lSAASEQoJcmVzdWx0X2lkGAQgASgJQgkKB291dGNvbWUitQIKDFNlcnZlclJlcG9ydBIKCgJpcBgBIAEoCRIMCgRwb3J0GAIgASgFEhQKDHZlcnNpb25fbmFtZRgDIAEoCRIQCghwcm90b2NvbBgEIAEoBRIYChBkZXNjcmlwdGlvbl9qc29uGAUgASgJEhYKDnBsYXllcnNfb25saW5lGAYgASgFEhMKC3BsYXllcnNfbWF4GAcgASgFEhQKDHBsYXllcl9uYW1lcxgIIAMoCRIVCg1yZXF1aXJlc19tb2RzGAkgASgIEhQKB2Zhdmljb24YCiABKAlIAIgBARIRCgRwaW5nGAsgASgDSAGIAQESJwoFZXh0cmEYDCABKAsyEy53b3JrZXIuU2VydmVyRXh0cmFIAogBAUIKCghfZmF2aWNvbkIHCgVfcGluZ0IICgZfZXh0cmEiZQoLU2VydmVyRXh0cmESFgoOaXNfb25saW5lX21vZGUYASABKAgSIwoWZGlzY29ubmVjdF9yZWFzb25fanNvbhgCIAEoCUgAiAEBQhkKF19kaXNjb25uZWN0X3JlYXNvbl9qc29uIhsKDVNlcnZlck9mZmxpbmUSCgoCaXAYASABKAki6wEKDVNlcnZlckNvbW1hbmQSIAoEcGluZxgBIAEoCzIQLndvcmtlci5QaW5nVGFza0gAEiAKBHNjYW4YAiABKAsyEC53b3JrZXIuU2NhblRhc2tIABIqCgpzZXRfY29uZmlnGAMgASgLMhQud29ya2VyLldvcmtlckNvbmZpZ0gAEiIKB2NvbnRyb2wYBCABKA4yDy53b3JrZXIuQ29udHJvbEgAEiMKCHNldF9uYW1lGAUgASgLMg8ud29ya2VyLlNldE5hbWVIABIaCgNhY2sYBiABKAsyCy53b3JrZXIuQWNrSABCBQoDY21kIhgKA0FjaxIRCglyZXN1bHRfaWQYASABKAkiJQoHU2V0TmFtZRIRCgRuYW1lGAEgASgJSACIAQFCBwoFX25hbWUiPQoIUGluZ1Rhc2sSCgoCaXAYASABKAkSDAoEcG9ydBgCIAEoBRIXCg93aXRoX2Nvbm5lY3Rpb24YAyABKAgiJAoIU2NhblRhc2sSCgoCaXAYASABKAkSDAoEcG9ydBgCIAEoBSJcChlGZXRjaFVwZGF0ZVRhcmdldHNSZXF1ZXN0EhEKCXdvcmtlcl9pZBgBIAEoCRIWCg5vbmx5X3Nwb29mYWJsZRgCIAEoCBIUCgxvbmx5X2NyYWNrZWQYAyABKAgiNgoNVXBkYXRlVGFyZ2V0cxIlCgd0YXJnZXRzGAEgAygLMhQud29ya2VyLlVwZGF0ZVRhcmdldCJBCgxVcGRhdGVUYXJnZXQSCgoCaXAYASABKAkSDAoEcG9ydBgCIAEoBRIXCg93aXRoX2Nvbm5lY3Rpb24YAyABKAgqowEKB0NvbnRyb2wSFwoTQ09OVFJPTF9VTlNQRUNJRklFRBAAEhgKFENPTlRST0xfUEFVU0VfU0VBUkNIEAESGQoVQ09OVFJPTF9SRVNVTUVfU0VBUkNIEAISFAoQQ09OVFJPTF9TSFVURE9XThADEhgKFENPTlRST0xfQUJPUlRfVVBEQVRFEAQSGgoWQ09OVFJPTF9UUklHR0VSX1VQREFURRAFMpwBCg1Xb3JrZXJDb250cm9sEjsKB1Nlc3Npb24SFS53b3JrZXIuV29ya2VyTWVzc2FnZRoVLndvcmtlci5TZXJ2ZXJDb21tYW5kKAEwARJOChJGZXRjaFVwZGF0ZVRhcmdldHMSIS53b3JrZXIuRmV0Y2hVcGRhdGVUYXJnZXRzUmVxdWVzdBoVLndvcmtlci5VcGRhdGVUYXJnZXRzYgZwcm90bzM");
 
 /**
  * Mirrors `[worker]` in config.toml — the live-tunable knobs the frontend can edit.
@@ -275,6 +275,15 @@ export type ScanResult = Message<"worker.ScanResult"> & {
     value: ServerOffline;
     case: "offline";
   } | { case: undefined; value?: undefined };
+
+  /**
+   * Stable per-result id (UUID) assigned by the worker, persisted in its outbox.
+   * The backend uses it as an idempotency key so at-least-once replays do not
+   * duplicate writes, and echoes it back in an `Ack` once durably persisted.
+   *
+   * @generated from field: string result_id = 4;
+   */
+  resultId: string;
 };
 
 /**
@@ -447,6 +456,14 @@ export type ServerCommand = Message<"worker.ServerCommand"> & {
      */
     value: SetName;
     case: "setName";
+  } | {
+    /**
+     * a ScanResult was durably persisted; drop it from the outbox
+     *
+     * @generated from field: worker.Ack ack = 6;
+     */
+    value: Ack;
+    case: "ack";
   } | { case: undefined; value?: undefined };
 };
 
@@ -456,6 +473,26 @@ export type ServerCommand = Message<"worker.ServerCommand"> & {
  */
 export const ServerCommandSchema: GenMessage<ServerCommand> = /*@__PURE__*/
   messageDesc(file_worker, 9);
+
+/**
+ * Backend -> worker: confirms a ScanResult (by its `result_id`) is durably
+ * persisted, so the worker can prune it from its outbox.
+ *
+ * @generated from message worker.Ack
+ */
+export type Ack = Message<"worker.Ack"> & {
+  /**
+   * @generated from field: string result_id = 1;
+   */
+  resultId: string;
+};
+
+/**
+ * Describes the message worker.Ack.
+ * Use `create(AckSchema)` to create a new message.
+ */
+export const AckSchema: GenMessage<Ack> = /*@__PURE__*/
+  messageDesc(file_worker, 10);
 
 /**
  * Operator-supplied display name pushed from the frontend. The worker persists
@@ -476,7 +513,7 @@ export type SetName = Message<"worker.SetName"> & {
  * Use `create(SetNameSchema)` to create a new message.
  */
 export const SetNameSchema: GenMessage<SetName> = /*@__PURE__*/
-  messageDesc(file_worker, 10);
+  messageDesc(file_worker, 11);
 
 /**
  * @generated from message worker.PingTask
@@ -503,7 +540,7 @@ export type PingTask = Message<"worker.PingTask"> & {
  * Use `create(PingTaskSchema)` to create a new message.
  */
 export const PingTaskSchema: GenMessage<PingTask> = /*@__PURE__*/
-  messageDesc(file_worker, 11);
+  messageDesc(file_worker, 12);
 
 /**
  * @generated from message worker.ScanTask
@@ -525,7 +562,7 @@ export type ScanTask = Message<"worker.ScanTask"> & {
  * Use `create(ScanTaskSchema)` to create a new message.
  */
 export const ScanTaskSchema: GenMessage<ScanTask> = /*@__PURE__*/
-  messageDesc(file_worker, 12);
+  messageDesc(file_worker, 13);
 
 /**
  * @generated from message worker.FetchUpdateTargetsRequest
@@ -552,7 +589,7 @@ export type FetchUpdateTargetsRequest = Message<"worker.FetchUpdateTargetsReques
  * Use `create(FetchUpdateTargetsRequestSchema)` to create a new message.
  */
 export const FetchUpdateTargetsRequestSchema: GenMessage<FetchUpdateTargetsRequest> = /*@__PURE__*/
-  messageDesc(file_worker, 13);
+  messageDesc(file_worker, 14);
 
 /**
  * @generated from message worker.UpdateTargets
@@ -569,7 +606,7 @@ export type UpdateTargets = Message<"worker.UpdateTargets"> & {
  * Use `create(UpdateTargetsSchema)` to create a new message.
  */
 export const UpdateTargetsSchema: GenMessage<UpdateTargets> = /*@__PURE__*/
-  messageDesc(file_worker, 14);
+  messageDesc(file_worker, 15);
 
 /**
  * @generated from message worker.UpdateTarget
@@ -596,7 +633,7 @@ export type UpdateTarget = Message<"worker.UpdateTarget"> & {
  * Use `create(UpdateTargetSchema)` to create a new message.
  */
 export const UpdateTargetSchema: GenMessage<UpdateTarget> = /*@__PURE__*/
-  messageDesc(file_worker, 15);
+  messageDesc(file_worker, 16);
 
 /**
  * @generated from enum worker.Control

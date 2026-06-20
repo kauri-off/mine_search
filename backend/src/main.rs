@@ -99,6 +99,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         watchtower,
     });
 
+    // Periodically prune the worker-result idempotency ledger. First tick fires
+    // immediately, then hourly.
+    {
+        let state = state.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(3600));
+            loop {
+                interval.tick().await;
+                match crate::persistence::prune_processed_results(&state.db).await {
+                    Ok(n) if n > 0 => tracing::info!("pruned {n} processed_results rows"),
+                    Ok(_) => {}
+                    Err(e) => tracing::warn!("failed to prune processed_results: {e}"),
+                }
+            }
+        });
+    }
+
     let api = ApiServer::new(ApiService {
         state: state.clone(),
     });

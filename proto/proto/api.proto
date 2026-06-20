@@ -175,9 +175,11 @@ message PingServerRequest {
 message AddAddrRequest {
   string addr = 1;
   bool quick = 2;
+  string worker_id = 3; // worker chosen by the user to run this scan
 }
 message AddTargetListRequest {
   repeated AddAddrRequest targets = 1;
+  string worker_id = 2; // worker chosen by the user to run the whole batch
 }
 
 // ----- Players -----

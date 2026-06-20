@@ -53,7 +53,8 @@ export const Dashboard = () => {
   // -- Mutations -------------------------------------------------------------
 
   const addTargetMutation = useMutation({
-    mutationFn: (addr: string) => serverApi.addTarget({ addr, quick: true }),
+    mutationFn: ({ addr, workerId }: { addr: string; workerId: string }) =>
+      serverApi.addTarget({ addr, quick: true }, workerId),
     onSuccess: () => setShowAddTarget(false),
   });
 
@@ -211,7 +212,7 @@ export const Dashboard = () => {
         }}
         isPending={addTargetMutation.isPending}
         error={addTargetError}
-        onSubmit={(addr) => addTargetMutation.mutate(addr)}
+        onSubmit={(addr, workerId) => addTargetMutation.mutate({ addr, workerId })}
       />
       <BulkImportModal
         isOpen={showBulkImport}

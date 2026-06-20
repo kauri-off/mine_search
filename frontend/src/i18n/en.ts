@@ -27,6 +27,11 @@ export const en: Translations = {
     reset: "Reset filters",
     triState: { all: "All", yes: "Yes", no: "No" },
   },
+  workerSelect: {
+    label: "Worker",
+    placeholder: "Select a worker...",
+    none: "No workers online",
+  },
   addIp: {
     label: "Add IP:",
     add: "Add",

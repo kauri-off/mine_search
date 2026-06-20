@@ -29,6 +29,13 @@ diesel::table! {
 }
 
 diesel::table! {
+    processed_results (result_id) {
+        result_id -> Text,
+        processed_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     servers (id) {
         id -> Int4,
         ip -> Varchar,
@@ -56,5 +63,6 @@ diesel::joinable!(players -> servers (server_id));
 diesel::allow_tables_to_appear_in_same_query!(
     player_count_snapshots,
     players,
+    processed_results,
     servers,
 );

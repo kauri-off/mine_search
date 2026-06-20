@@ -27,6 +27,11 @@ export const ru: Translations = {
     reset: "Сбросить",
     triState: { all: "Все", yes: "Да", no: "Нет" },
   },
+  workerSelect: {
+    label: "Воркер",
+    placeholder: "Выберите воркер...",
+    none: "Нет воркеров онлайн",
+  },
   addIp: {
     label: "Добавить IP:",
     add: "Добавить",

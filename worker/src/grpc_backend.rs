@@ -26,8 +26,14 @@ use tracing::{error, info, warn};
 use crate::{
     config::WorkerConfig,
     engine::{Engine, RuntimeConfig, UpdateTarget},
+    outbox::Outbox,
     report::ScanReport,
 };
+
+/// How often the replay sweep runs, and how long a result may go un-acked before
+/// it is re-sent. Covers the "link up but backend can't persist" case.
+const SWEEP_INTERVAL: Duration = Duration::from_secs(30);
+const RESEND_AFTER: Duration = Duration::from_secs(60);
 
 #[derive(Clone)]
 pub struct AuthInterceptor {
@@ -192,20 +198,28 @@ impl Drop for AbortOnDrop {
     }
 }
 
-/// Streams the engine's scan outcomes to the backend over the session channel.
+/// Streams the engine's scan outcomes to the backend over the session channel,
+/// persisting each to the durable [`Outbox`] first so nothing is lost if the
+/// link is down.
 pub struct GrpcSink {
     tx: mpsc::Sender<WorkerMessage>,
+    outbox: Arc<Outbox>,
 }
 
 impl GrpcSink {
     async fn send(&self, outcome: scan_result::Outcome) {
+        let result_id = uuid::Uuid::new_v4().to_string();
         let msg = WorkerMessage {
             kind: Some(worker_message::Kind::Result(ScanResult {
                 outcome: Some(outcome),
+                result_id: result_id.clone(),
             })),
         };
+        // Persist before sending: if the channel is closed (or the result is
+        // never acked), the periodic sweep / reconnect replay re-sends it.
+        self.outbox.add(&result_id, &msg).await;
         if self.tx.send(msg).await.is_err() {
-            warn!("session channel closed; dropping scan result");
+            warn!("session channel closed; scan result retained in outbox for replay");
         }
     }
 
@@ -285,6 +299,7 @@ pub async fn run(
     cfg: WorkerConfig,
     worker_id: String,
     config_path: PathBuf,
+    outbox: Arc<Outbox>,
 ) -> anyhow::Result<()> {
     let backend_url = cfg
         .backend_url
@@ -300,7 +315,10 @@ pub async fn run(
 
     let (msg_tx, msg_rx) = mpsc::channel::<WorkerMessage>(256);
 
-    let sink = GrpcSink { tx: msg_tx.clone() };
+    let sink = GrpcSink {
+        tx: msg_tx.clone(),
+        outbox: outbox.clone(),
+    };
     let targets = GrpcTargetSource {
         client: client.clone(),
         worker_id: worker_id.clone(),
@@ -327,9 +345,17 @@ pub async fn run(
 
     let mut handles = engine.start();
     handles.push(tokio::spawn(heartbeat(engine.clone(), msg_tx.clone())));
+    handles.push(tokio::spawn(replay_sweep(outbox.clone(), msg_tx.clone())));
     // Tears the tasks down on every exit path below (clean shutdown, `?`, stream close).
     let _guard = AbortOnDrop(handles);
     info!(worker = %worker_id, "session established");
+
+    // Replay every result still awaiting an ack from a previous session.
+    for msg in outbox.collect(None).await {
+        if msg_tx.send(msg).await.is_err() {
+            return Err(anyhow!("session closed before outbox replay completed"));
+        }
+    }
 
     while let Some(cmd) = inbound.message().await? {
         match cmd.cmd {
@@ -339,6 +365,9 @@ pub async fn run(
             }
             Some(server_command::Cmd::SetName(s)) => {
                 persist_name(&config_path, &s.name);
+            }
+            Some(server_command::Cmd::Ack(ack)) => {
+                outbox.ack(&ack.result_id).await;
             }
             Some(server_command::Cmd::Ping(p)) => {
                 let engine = engine.clone();
@@ -370,6 +399,22 @@ pub async fn run(
     }
 
     Err(anyhow!("session stream closed by backend"))
+}
+
+/// Periodically re-sends outbox results that have gone too long without an ack,
+/// so a result is eventually delivered even if the link stays up while the
+/// backend cannot persist. Exits (via the channel error) when the session ends.
+async fn replay_sweep(outbox: Arc<Outbox>, tx: mpsc::Sender<WorkerMessage>) {
+    let mut interval = tokio::time::interval(SWEEP_INTERVAL);
+    interval.tick().await; // skip the immediate first tick
+    loop {
+        interval.tick().await;
+        for msg in outbox.collect(Some(RESEND_AFTER)).await {
+            if tx.send(msg).await.is_err() {
+                return;
+            }
+        }
+    }
 }
 
 async fn heartbeat(engine: Arc<Engine>, tx: mpsc::Sender<WorkerMessage>) {

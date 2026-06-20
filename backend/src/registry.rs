@@ -3,10 +3,7 @@
 //! outbound command channel. The frontend's worker-management RPCs read and
 //! mutate this registry; `dispatch_*` routes scan/ping work to a live worker.
 
-use std::{
-    collections::HashMap,
-    sync::atomic::{AtomicUsize, Ordering},
-};
+use std::collections::HashMap;
 
 use chrono::Utc;
 use proto::{
@@ -36,7 +33,6 @@ pub struct WorkerRegistry {
     /// a rename survives a worker dropping and re-registering with its old name
     /// before it has persisted the change to its own config file.
     desired_name: RwLock<HashMap<String, Option<String>>>,
-    rr: AtomicUsize,
 }
 
 fn now() -> i64 {
@@ -167,28 +163,6 @@ impl WorkerRegistry {
             .ok_or_else(|| Status::not_found("unknown worker"))
     }
 
-    /// Sends a command to a single live worker, chosen round-robin. Errors when
-    /// no worker is currently connected.
-    async fn dispatch(&self, cmd: server_command::Cmd) -> Result<(), Status> {
-        let tx = {
-            let workers = self.workers.read().await;
-            let online: Vec<&mpsc::Sender<Result<ServerCommand, Status>>> = workers
-                .values()
-                .filter(|h| h.online)
-                .map(|h| &h.cmd_tx)
-                .collect();
-            if online.is_empty() {
-                return Err(Status::unavailable("no workers connected"));
-            }
-            let idx = self.rr.fetch_add(1, Ordering::Relaxed) % online.len();
-            online[idx].clone()
-        };
-
-        tx.send(Ok(ServerCommand { cmd: Some(cmd) }))
-            .await
-            .map_err(|_| Status::unavailable("worker disconnected"))
-    }
-
     /// Sends a command to a specific worker by id. Errors when the worker is
     /// unknown or currently offline.
     async fn dispatch_to(&self, worker_id: &str, cmd: server_command::Cmd) -> Result<(), Status> {
@@ -226,8 +200,15 @@ impl WorkerRegistry {
         .await
     }
 
-    pub async fn dispatch_scan(&self, ip: String, port: i32) -> Result<(), Status> {
-        self.dispatch(server_command::Cmd::Scan(ScanTask { ip, port }))
+    /// Sends a scan task to a specific operator-chosen worker. Errors (fail-fast)
+    /// when the worker is unknown or currently offline.
+    pub async fn dispatch_scan_to(
+        &self,
+        worker_id: &str,
+        ip: String,
+        port: i32,
+    ) -> Result<(), Status> {
+        self.dispatch_to(worker_id, server_command::Cmd::Scan(ScanTask { ip, port }))
             .await
     }
 

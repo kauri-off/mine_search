@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { serverApi } from "@/api/client";
 import { Modal } from "@/components/Modal";
+import { WorkerSelect } from "@/components/WorkerSelect";
 import { useTranslation } from "@/i18n";
 
 const IP_REGEX = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/;
@@ -30,10 +31,11 @@ export const BulkImportModal = ({ isOpen, onClose }: BulkImportModalProps) => {
   const [text, setText] = useState("");
   const [parsed, setParsed] = useState<{ valid: string[]; invalidCount: number } | null>(null);
   const [successCount, setSuccessCount] = useState<number | null>(null);
+  const [workerId, setWorkerId] = useState("");
 
   const importMutation = useMutation({
     mutationFn: (addrs: string[]) =>
-      serverApi.addTargetList(addrs.map((addr) => ({ addr, quick: false }))),
+      serverApi.addTargetList(addrs.map((addr) => ({ addr, quick: false })), workerId),
     onSuccess: () => {
       setSuccessCount(parsed?.valid.length ?? 0);
       setText("");
@@ -45,6 +47,7 @@ export const BulkImportModal = ({ isOpen, onClose }: BulkImportModalProps) => {
     setText("");
     setParsed(null);
     setSuccessCount(null);
+    setWorkerId("");
     importMutation.reset();
     onClose();
   };
@@ -56,7 +59,7 @@ export const BulkImportModal = ({ isOpen, onClose }: BulkImportModalProps) => {
   };
 
   const handleImport = () => {
-    if (!parsed || parsed.valid.length === 0) return;
+    if (!parsed || parsed.valid.length === 0 || !workerId) return;
     importMutation.mutate(parsed.valid);
   };
 
@@ -88,6 +91,10 @@ export const BulkImportModal = ({ isOpen, onClose }: BulkImportModalProps) => {
           </div>
         )}
 
+        {parsed && parsed.valid.length > 0 && (
+          <WorkerSelect value={workerId} onChange={setWorkerId} />
+        )}
+
         {successCount !== null && (
           <p className="text-sm text-green-400">{t.bulkImport.success(successCount)}</p>
         )}
@@ -108,7 +115,7 @@ export const BulkImportModal = ({ isOpen, onClose }: BulkImportModalProps) => {
           {parsed && parsed.valid.length > 0 && (
             <button
               onClick={handleImport}
-              disabled={importMutation.isPending}
+              disabled={importMutation.isPending || !workerId}
               className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {importMutation.isPending

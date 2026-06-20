@@ -3,6 +3,7 @@ use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberI
 mod config;
 mod engine;
 mod grpc_backend;
+mod outbox;
 mod packets;
 mod report;
 mod server_actions;
@@ -29,8 +30,23 @@ async fn main() {
     let config_path = config::config_path();
     let worker_id = resolve_worker_id(&worker_cfg, &config_path);
     tracing::info!("worker id: {worker_id}");
+
+    // Durable store of scan results awaiting backend acks; survives reconnects
+    // and restarts, so discovered servers are not lost when the link drops.
+    let outbox_path = config_path.with_file_name("outbox.log");
+    let outbox = std::sync::Arc::new(
+        outbox::Outbox::open(&outbox_path).expect("Failed to open outbox log"),
+    );
+
     loop {
-        match grpc_backend::run(worker_cfg.clone(), worker_id.clone(), config_path.clone()).await {
+        match grpc_backend::run(
+            worker_cfg.clone(),
+            worker_id.clone(),
+            config_path.clone(),
+            outbox.clone(),
+        )
+        .await
+        {
             Ok(()) => {
                 tracing::info!("worker shut down cleanly");
                 break;

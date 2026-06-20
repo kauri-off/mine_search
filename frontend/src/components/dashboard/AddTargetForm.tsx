@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Modal } from "@/components/Modal";
+import { WorkerSelect } from "@/components/WorkerSelect";
 import { useTranslation } from "@/i18n";
 
 const IP_REGEX = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/;
@@ -10,7 +11,7 @@ interface AddTargetFormProps {
   onClose: () => void;
   isPending: boolean;
   error: string | null;
-  onSubmit: (addr: string) => void;
+  onSubmit: (addr: string, workerId: string) => void;
 }
 
 export const AddTargetForm = ({
@@ -22,6 +23,7 @@ export const AddTargetForm = ({
 }: AddTargetFormProps) => {
   const { t } = useTranslation();
   const [ip, setIp] = useState("");
+  const [workerId, setWorkerId] = useState("");
   const [formatError, setFormatError] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -32,11 +34,12 @@ export const AddTargetForm = ({
       return;
     }
     setFormatError(false);
-    onSubmit(trimmed);
+    onSubmit(trimmed, workerId);
   };
 
   const handleClose = () => {
     setIp("");
+    setWorkerId("");
     setFormatError(false);
     onClose();
   };
@@ -61,9 +64,11 @@ export const AddTargetForm = ({
         )}
         {error && <p className="text-xs text-red-400">{error}</p>}
 
+        <WorkerSelect value={workerId} onChange={setWorkerId} />
+
         <button
           type="submit"
-          disabled={isPending || !ip.trim()}
+          disabled={isPending || !ip.trim() || !workerId}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Plus className="w-4 h-4" />

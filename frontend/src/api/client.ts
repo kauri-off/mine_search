@@ -190,8 +190,8 @@ export const serverApi = {
       isCrashed: u(body.is_crashed) ?? undefined,
     }),
 
-  addTarget: (body: AddAddrRequest) =>
-    client.addTarget({ addr: body.addr, quick: body.quick }),
+  addTarget: (body: AddAddrRequest, workerId: string) =>
+    client.addTarget({ addr: body.addr, quick: body.quick, workerId }),
 
   deleteServer: (body: ServerDeleteRequest) => client.deleteServer({ id: body.id }),
 
@@ -227,9 +227,10 @@ export const serverApi = {
       isCrashed: u(body.is_crashed) ?? undefined,
     }),
 
-  addTargetList: (body: AddAddrRequest[]) =>
+  addTargetList: (body: AddAddrRequest[], workerId: string) =>
     client.addTargetList({
       targets: body.map((t) => ({ addr: t.addr, quick: t.quick })),
+      workerId,
     }),
 
   pingServer: (body: PingServerRequest) =>
