@@ -9,7 +9,7 @@ function mergeWithDefaults(stored: Record<string, unknown>): Filters {
     if (!(key in stored)) continue;
 
     const val = stored[key];
-    if (key === "ip_contains") {
+    if (key === "query") {
       if (typeof val === "string" || val === null) {
         (merged as Record<string, unknown>)[key] = val;
       }

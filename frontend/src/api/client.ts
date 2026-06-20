@@ -147,7 +147,7 @@ export const serverApi = {
       online: u(body.online) ?? undefined,
       requiresMods: u(body.requires_mods) ?? undefined,
       hasNonePlayers: u(body.has_none_players) ?? undefined,
-      ipContains: u(body.ip_contains) ?? undefined,
+      query: u(body.query) ?? undefined,
     });
     return res.servers.map(toServerInfo);
   },

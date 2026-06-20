@@ -17,7 +17,7 @@ import { ServerGrid } from "@/components/dashboard/ServerGrid";
 import { useTranslation } from "@/i18n";
 import { Plus, Upload, SlidersHorizontal, X } from "lucide-react";
 
-type BoolFilterKey = keyof Omit<Filters, "limit" | "ip_contains">;
+type BoolFilterKey = keyof Omit<Filters, "limit" | "query">;
 
 export const Dashboard = () => {
   const { t } = useTranslation();
@@ -25,8 +25,8 @@ export const Dashboard = () => {
   const [showAddTarget, setShowAddTarget] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [ipDebounced, setIpDebounced] = useState(filters.ip_contains ?? "");
-  const [ipInputTimer, setIpInputTimer] = useState<ReturnType<
+  const [queryDebounced, setQueryDebounced] = useState(filters.query ?? "");
+  const [queryInputTimer, setQueryInputTimer] = useState<ReturnType<
     typeof setTimeout
   > | null>(null);
 
@@ -78,22 +78,22 @@ export const Dashboard = () => {
     });
   };
 
-  const handleIpChange = (value: string) => {
-    setIpDebounced(value);
-    if (ipInputTimer) clearTimeout(ipInputTimer);
+  const handleQueryChange = (value: string) => {
+    setQueryDebounced(value);
+    if (queryInputTimer) clearTimeout(queryInputTimer);
     const timer = setTimeout(() => {
       setFilters((prev) => {
-        const next = { ...prev, ip_contains: value || null };
+        const next = { ...prev, query: value || null };
         saveFilters(next);
         return next;
       });
     }, 400);
-    setIpInputTimer(timer);
+    setQueryInputTimer(timer);
   };
 
   const resetFilters = () => {
     clearFilters();
-    setIpDebounced("");
+    setQueryDebounced("");
     setFilters(DEFAULT_FILTERS);
   };
 
@@ -107,10 +107,10 @@ export const Dashboard = () => {
   // -- Render ----------------------------------------------------------------
 
   const filterSidebarProps = {
-    filters: { ...filters, ip_contains: ipDebounced || null },
+    filters: { ...filters, query: queryDebounced || null },
     filtersActive,
     onBoolChange: setBoolFilter,
-    onIpChange: handleIpChange,
+    onQueryChange: handleQueryChange,
     onReset: resetFilters,
   };
 

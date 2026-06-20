@@ -10,7 +10,7 @@ export const ru: Translations = {
     loaded: "Загружено",
     addTarget: "Добавить цель",
     bulkImport: "Массовый импорт",
-    searchPlaceholder: "Поиск по IP...",
+    searchPlaceholder: "Поиск по IP, MOTD, версии...",
   },
   filters: {
     label: "Фильтры",

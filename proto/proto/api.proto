@@ -94,7 +94,8 @@ message ServerListRequest {
   optional bool online = 8;
   optional bool requires_mods = 9;
   optional bool has_none_players = 10;
-  optional string ip_contains = 11;
+  // Free-text search matched against IP, version name, and plain-text MOTD.
+  optional string query = 11;
 }
 
 message ServerInfo {

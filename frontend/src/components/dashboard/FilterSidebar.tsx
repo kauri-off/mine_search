@@ -3,7 +3,7 @@ import type { Filters } from "@/constants/dashboardFilters";
 import { X } from "lucide-react";
 import { TriStateSelect } from "./TriStateSelect";
 
-type BoolFilterKey = keyof Omit<Filters, "limit" | "ip_contains">;
+type BoolFilterKey = keyof Omit<Filters, "limit" | "query">;
 
 const BOOL_FILTERS: BoolFilterKey[] = [
   "online",
@@ -20,7 +20,7 @@ interface FilterSidebarProps {
   filters: Filters;
   filtersActive: boolean;
   onBoolChange: (key: BoolFilterKey, value: boolean | null) => void;
-  onIpChange: (value: string) => void;
+  onQueryChange: (value: string) => void;
   onReset: () => void;
   onClose?: () => void;
 }
@@ -29,7 +29,7 @@ export const FilterSidebar = ({
   filters,
   filtersActive,
   onBoolChange,
-  onIpChange,
+  onQueryChange,
   onReset,
   onClose,
 }: FilterSidebarProps) => {
@@ -48,11 +48,11 @@ export const FilterSidebar = ({
             </button>
           )}
         </div>
-        {/* IP search */}
+        {/* Free-text search: IP, MOTD, version */}
         <input
           type="text"
-          value={filters.ip_contains ?? ""}
-          onChange={(e) => onIpChange(e.target.value)}
+          value={filters.query ?? ""}
+          onChange={(e) => onQueryChange(e.target.value)}
           placeholder={t.dashboard.searchPlaceholder}
           className="w-full bg-[#1a1a24] border border-[#2a2a3a] rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
         />

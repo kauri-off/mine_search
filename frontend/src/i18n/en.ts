@@ -10,7 +10,7 @@ export const en: Translations = {
     loaded: "Loaded",
     addTarget: "Add Target",
     bulkImport: "Bulk Import",
-    searchPlaceholder: "Search by IP...",
+    searchPlaceholder: "Search IP, MOTD, version...",
   },
   filters: {
     label: "Filters",

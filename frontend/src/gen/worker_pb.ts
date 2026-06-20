@@ -251,7 +251,7 @@ export type ScanResult = Message<"worker.ScanResult"> & {
   outcome: {
     /**
      * Newly probed via the search/scan path (upsert-by-ip, conflict only bumps
-     * updated_at/is_online/favicon — mirrors the old `handle_valid_ip`).
+     * updated_at/is_online/favicon).
      *
      * @generated from field: worker.ServerReport discovered = 1;
      */
@@ -260,7 +260,7 @@ export type ScanResult = Message<"worker.ScanResult"> & {
   } | {
     /**
      * Re-probed during an update cycle / on-demand ping (full field update by
-     * ip — mirrors the old `update_server`).
+     * ip).
      *
      * @generated from field: worker.ServerReport updated = 2;
      */

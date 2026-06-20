@@ -36,6 +36,7 @@ use tonic::{Request, Response, Status};
 
 use crate::{
     auth::{self, BACKEND_PASSWORD, Claims},
+    chat::ChatObject,
     database::DatabaseWrapper,
     html::parse_html,
     state::AppState,
@@ -67,6 +68,19 @@ fn db_status(i: i32) -> DbStatus {
         2 => DbStatus::Admin,
         _ => DbStatus::None,
     }
+}
+
+/// Case-insensitive free-text match over a server's IP, version name, and
+/// plain-text MOTD. `needle` must already be lowercased.
+fn server_matches(server: &ServerModel, needle: &str) -> bool {
+    if server.ip.to_lowercase().contains(needle)
+        || server.version_name.to_lowercase().contains(needle)
+    {
+        return true;
+    }
+    serde_json::from_value::<ChatObject>(server.description.clone())
+        .map(|chat| chat.get_motd().to_lowercase().contains(needle))
+        .unwrap_or(false)
 }
 
 fn server_info(server: ServerModel, snap: SnapshotModel) -> ServerInfo {
@@ -323,7 +337,23 @@ impl Api for ApiService {
             .await
             .map_err(|e| db_err("get conn", e))?;
 
-        let pagination: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.offset_id {
+        // Free-text search. When present we filter rows in-process (the MOTD
+        // lives as a JSONB chat tree that we flatten via `ChatObject::get_motd`,
+        // which SQL can't do), scanning the keyset-paginated stream in batches
+        // until we've gathered a full page of matches.
+        let needle = body
+            .query
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_lowercase);
+
+        let mut out: Vec<ServerInfo> = Vec::new();
+        let mut cursor = body.offset_id;
+        let batch_size = if needle.is_some() { 256 } else { body.limit };
+
+        'outer: loop {
+        let pagination: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match cursor {
             Some(id) => Box::new(servers::id.lt(id)),
             None => Box::new(sql::<Bool>("TRUE")),
         };
@@ -375,12 +405,7 @@ impl Api for ApiService {
                 Some(v) => Box::new(servers::requires_mods.eq(v)),
                 None => Box::new(sql::<Bool>("TRUE")),
             };
-        let ip_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.ip_contains {
-            Some(ref s) if !s.is_empty() => Box::new(servers::ip.like(format!("%{}%", s))),
-            _ => Box::new(sql::<Bool>("TRUE")),
-        };
-
-        let results = servers::table
+        let batch = servers::table
             .inner_join(
                 schema::player_count_snapshots::table
                     .on(schema::player_count_snapshots::server_id.eq(servers::id)),
@@ -394,24 +419,39 @@ impl Api for ApiService {
             .filter(has_none_players)
             .filter(online)
             .filter(requires_mods)
-            .filter(ip_filter)
             .order((
                 servers::id.desc(),
                 schema::player_count_snapshots::recorded_at.desc(),
             ))
             .distinct_on(servers::id)
             .select((ServerModel::as_select(), SnapshotModel::as_select()))
-            .limit(body.limit)
+            .limit(batch_size)
             .load::<(ServerModel, SnapshotModel)>(&mut conn)
             .await
             .map_err(|e| db_err("list servers", e))?;
 
-        Ok(Response::new(ServerListResponse {
-            servers: results
-                .into_iter()
-                .map(|(s, snap)| server_info(s, snap))
-                .collect(),
-        }))
+        let got = batch.len() as i64;
+        for (s, snap) in batch {
+            cursor = Some(s.id);
+            let keep = match needle.as_deref() {
+                Some(n) => server_matches(&s, n),
+                None => true,
+            };
+            if keep {
+                out.push(server_info(s, snap));
+                if out.len() as i64 >= body.limit {
+                    break 'outer;
+                }
+            }
+        }
+
+        // Stop when the table is exhausted, or — with no search — after one page.
+        if got < batch_size || needle.is_none() {
+            break;
+        }
+        }
+
+        Ok(Response::new(ServerListResponse { servers: out }))
     }
 
     async fn get_server_info(
