@@ -37,7 +37,7 @@ export const Login = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0f]">
+    <div className="flex min-h-screen items-center justify-center bg-app">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -48,7 +48,7 @@ export const Login = () => {
 
         <form
           onSubmit={handleLogin}
-          className="bg-[#111118] border border-[#2a2a3a] rounded-2xl p-8 shadow-2xl shadow-black/40"
+          className="bg-panel border border-border rounded-2xl p-8 shadow-2xl shadow-black/40"
         >
           <h2 className="text-base font-semibold text-slate-200 mb-6 text-center">
             {t.login.title}
@@ -71,7 +71,7 @@ export const Login = () => {
                 autoFocus
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-[#1a1a24] border border-[#2a2a3a] rounded-lg text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-lg text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
               />
             </div>
           </div>

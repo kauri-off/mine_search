@@ -14,6 +14,7 @@ use crate::{
     schema::{self, players, servers},
 };
 use diesel::{
+    PgTextExpressionMethods,
     dsl::sql,
     pg::Pg,
     prelude::*,
@@ -36,7 +37,6 @@ use tonic::{Request, Response, Status};
 
 use crate::{
     auth::{self, BACKEND_PASSWORD, Claims},
-    chat::ChatObject,
     database::DatabaseWrapper,
     html::parse_html,
     state::AppState,
@@ -81,17 +81,13 @@ fn db_status(i: i32) -> DbStatus {
     }
 }
 
-/// Case-insensitive free-text match over a server's IP, version name, and
-/// plain-text MOTD. `needle` must already be lowercased.
-fn server_matches(server: &ServerModel, needle: &str) -> bool {
-    if server.ip.to_lowercase().contains(needle)
-        || server.version_name.to_lowercase().contains(needle)
-    {
-        return true;
-    }
-    serde_json::from_value::<ChatObject>(server.description.clone())
-        .map(|chat| chat.get_motd().to_lowercase().contains(needle))
-        .unwrap_or(false)
+/// Escapes the LIKE/ILIKE wildcards (`%`, `_`) and the escape char (`\`) in a
+/// user-supplied search needle so it is matched literally inside `%...%`.
+fn escape_like(input: &str) -> String {
+    input
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_")
 }
 
 fn server_info(server: ServerModel, snap: SnapshotModel) -> ServerInfo {
@@ -244,57 +240,62 @@ impl Api for ApiService {
             .await
             .map_err(|e| db_err("get conn", e))?;
 
-        let total_servers = servers::table
-            .count()
-            .get_result::<i64>(&mut conn)
-            .await
-            .map_err(|e| db_err("count servers", e))?;
-        let cracked_servers = servers::table
-            .filter(servers::is_online_mode.eq(false))
-            .count()
-            .get_result::<i64>(&mut conn)
-            .await
-            .map_err(|e| db_err("count cracked", e))?;
-        let online_servers = servers::table
-            .filter(servers::is_online.eq(true))
-            .count()
-            .get_result::<i64>(&mut conn)
-            .await
-            .map_err(|e| db_err("count online", e))?;
-        let crashed_servers = servers::table
-            .filter(servers::is_crashed.eq(true))
-            .count()
-            .get_result::<i64>(&mut conn)
-            .await
-            .map_err(|e| db_err("count crashed", e))?;
-        let mod_required_servers = servers::table
-            .filter(servers::requires_mods.eq(true))
-            .count()
-            .get_result::<i64>(&mut conn)
-            .await
-            .map_err(|e| db_err("count mods", e))?;
-        let spoofable_servers = servers::table
-            .filter(servers::is_spoofable.eq(true))
-            .count()
-            .get_result::<i64>(&mut conn)
-            .await
-            .map_err(|e| db_err("count spoofable", e))?;
-        let total_players = players::table
-            .count()
-            .get_result::<i64>(&mut conn)
-            .await
-            .map_err(|e| db_err("count players", e))?;
-        let admin_players = players::table
-            .filter(players::status.eq(DbStatus::Admin))
-            .count()
-            .get_result::<i64>(&mut conn)
-            .await
-            .map_err(|e| db_err("count admins", e))?;
-        let avg_ping = servers::table
-            .select(sql::<Nullable<Double>>("AVG(ping)::float8"))
-            .get_result::<Option<f64>>(&mut conn)
-            .await
-            .map_err(|e| db_err("avg ping", e))?;
+        // All per-`servers` counts (plus avg ping and total favicon bytes) fold
+        // into one aggregate pass using `count(*) FILTER (...)`, replacing the
+        // former ~8 sequential round-trips with a single query. `is_spoofable`
+        // is nullable — `FILTER (WHERE is_spoofable)` counts only TRUE rows,
+        // matching the old `.eq(true)`.
+        #[derive(diesel::QueryableByName)]
+        struct ServerAgg {
+            #[diesel(sql_type = BigInt)]
+            total: i64,
+            #[diesel(sql_type = BigInt)]
+            cracked: i64,
+            #[diesel(sql_type = BigInt)]
+            online: i64,
+            #[diesel(sql_type = BigInt)]
+            crashed: i64,
+            #[diesel(sql_type = BigInt)]
+            mod_required: i64,
+            #[diesel(sql_type = BigInt)]
+            spoofable: i64,
+            #[diesel(sql_type = Nullable<Double>)]
+            avg_ping: Option<f64>,
+            #[diesel(sql_type = BigInt)]
+            favicon_bytes: i64,
+        }
+        let server_agg: ServerAgg = diesel::sql_query(
+            "SELECT \
+                count(*) AS total, \
+                count(*) FILTER (WHERE NOT is_online_mode) AS cracked, \
+                count(*) FILTER (WHERE is_online) AS online, \
+                count(*) FILTER (WHERE is_crashed) AS crashed, \
+                count(*) FILTER (WHERE requires_mods) AS mod_required, \
+                count(*) FILTER (WHERE is_spoofable) AS spoofable, \
+                AVG(ping)::float8 AS avg_ping, \
+                COALESCE(SUM(octet_length(favicon)), 0) AS favicon_bytes \
+             FROM servers",
+        )
+        .get_result(&mut conn)
+        .await
+        .map_err(|e| db_err("server stats", e))?;
+
+        #[derive(diesel::QueryableByName)]
+        struct PlayerAgg {
+            #[diesel(sql_type = BigInt)]
+            total: i64,
+            #[diesel(sql_type = BigInt)]
+            admin: i64,
+        }
+        let player_agg: PlayerAgg = diesel::sql_query(
+            "SELECT count(*) AS total, \
+                    count(*) FILTER (WHERE status = 'admin') AS admin \
+             FROM players",
+        )
+        .get_result(&mut conn)
+        .await
+        .map_err(|e| db_err("player stats", e))?;
+
         let version_rows = servers::table
             .group_by(servers::version_name)
             .select((servers::version_name, diesel::dsl::count_star()))
@@ -307,29 +308,23 @@ impl Api for ApiService {
             .get_result::<i64>(&mut conn)
             .await
             .map_err(|e| db_err("db size", e))?;
-        let favicon_size_bytes = sql::<BigInt>(
-            "SELECT COALESCE(SUM(octet_length(favicon)), 0) FROM servers WHERE favicon IS NOT NULL",
-        )
-        .get_result::<i64>(&mut conn)
-        .await
-        .map_err(|e| db_err("favicon size", e))?;
 
         Ok(Response::new(StatsResponse {
-            total_servers,
-            cracked_servers,
-            online_servers,
-            crashed_servers,
-            mod_required_servers,
-            spoofable_servers,
-            total_players,
-            admin_players,
-            avg_ping,
+            total_servers: server_agg.total,
+            cracked_servers: server_agg.cracked,
+            online_servers: server_agg.online,
+            crashed_servers: server_agg.crashed,
+            mod_required_servers: server_agg.mod_required,
+            spoofable_servers: server_agg.spoofable,
+            total_players: player_agg.total,
+            admin_players: player_agg.admin,
+            avg_ping: server_agg.avg_ping,
             version_distribution: version_rows
                 .into_iter()
                 .map(|(version, count)| VersionStat { version, count })
                 .collect(),
             db_size_mb: db_size_bytes as f64 / 1_048_576.0,
-            favicon_size_mb: favicon_size_bytes as f64 / 1_048_576.0,
+            favicon_size_mb: server_agg.favicon_bytes as f64 / 1_048_576.0,
         }))
     }
 
@@ -346,23 +341,18 @@ impl Api for ApiService {
             .await
             .map_err(|e| db_err("get conn", e))?;
 
-        // Free-text search. When present we filter rows in-process (the MOTD
-        // lives as a JSONB chat tree that we flatten via `ChatObject::get_motd`,
-        // which SQL can't do), scanning the keyset-paginated stream in batches
-        // until we've gathered a full page of matches.
+        // Free-text search now runs in SQL. `motd` is a plaintext column
+        // populated at write time and ip/version_name/motd each carry a pg_trgm
+        // GIN index, so an `ILIKE %needle%` predicate is index-backed — no more
+        // scanning the whole table in-process and deserializing JSONB per row.
         let needle = body
             .query
             .as_deref()
             .map(str::trim)
             .filter(|s| !s.is_empty())
-            .map(str::to_lowercase);
+            .map(str::to_string);
 
-        let mut out: Vec<ServerInfo> = Vec::new();
-        let mut cursor = body.offset_id;
-        let batch_size = if needle.is_some() { 256 } else { body.limit };
-
-        'outer: loop {
-        let pagination: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match cursor {
+        let pagination: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.offset_id {
             Some(id) => Box::new(servers::id.lt(id)),
             None => Box::new(sql::<Bool>("TRUE")),
         };
@@ -414,7 +404,20 @@ impl Api for ApiService {
                 Some(v) => Box::new(servers::requires_mods.eq(v)),
                 None => Box::new(sql::<Bool>("TRUE")),
             };
-        let batch = servers::table
+        let search: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match &needle {
+            Some(n) => {
+                let pattern = format!("%{}%", escape_like(n));
+                Box::new(
+                    servers::ip
+                        .ilike(pattern.clone())
+                        .or(servers::version_name.ilike(pattern.clone()))
+                        .or(servers::motd.ilike(pattern)),
+                )
+            }
+            None => Box::new(sql::<Bool>("TRUE")),
+        };
+
+        let rows = servers::table
             .inner_join(
                 schema::player_count_snapshots::table
                     .on(schema::player_count_snapshots::server_id.eq(servers::id)),
@@ -428,37 +431,22 @@ impl Api for ApiService {
             .filter(has_none_players)
             .filter(online)
             .filter(requires_mods)
+            .filter(search)
             .order((
                 servers::id.desc(),
                 schema::player_count_snapshots::recorded_at.desc(),
             ))
             .distinct_on(servers::id)
             .select((ServerModel::as_select(), SnapshotModel::as_select()))
-            .limit(batch_size)
+            .limit(body.limit)
             .load::<(ServerModel, SnapshotModel)>(&mut conn)
             .await
             .map_err(|e| db_err("list servers", e))?;
 
-        let got = batch.len() as i64;
-        for (s, snap) in batch {
-            cursor = Some(s.id);
-            let keep = match needle.as_deref() {
-                Some(n) => server_matches(&s, n),
-                None => true,
-            };
-            if keep {
-                out.push(server_info(s, snap));
-                if out.len() as i64 >= body.limit {
-                    break 'outer;
-                }
-            }
-        }
-
-        // Stop when the table is exhausted, or — with no search — after one page.
-        if got < batch_size || needle.is_none() {
-            break;
-        }
-        }
+        let out: Vec<ServerInfo> = rows
+            .into_iter()
+            .map(|(s, snap)| server_info(s, snap))
+            .collect();
 
         Ok(Response::new(ServerListResponse { servers: out }))
     }

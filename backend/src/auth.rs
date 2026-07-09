@@ -5,7 +5,10 @@
 
 use std::{
     collections::HashMap,
-    sync::Mutex,
+    sync::{
+        Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
     time::{Duration, Instant},
 };
 
@@ -21,6 +24,11 @@ lazy_static! {
     pub static ref WORKER_TOKEN: Mutex<Option<String>> = Mutex::new(None);
     static ref RATE_LIMIT: Mutex<HashMap<String, RateLimitEntry>> = Mutex::new(HashMap::new());
 }
+
+/// When true, workers are accepted without a token (only reachable if the
+/// operator explicitly set `allow_insecure_workers` and left `worker_token`
+/// unset — otherwise the backend refuses to start). Defaults to fail-closed.
+pub static ALLOW_INSECURE_WORKERS: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -65,12 +73,16 @@ pub fn require_session<T>(req: &Request<T>) -> Result<(), Status> {
     Ok(())
 }
 
-/// Validates a worker's shared-secret token. When no token is configured the
-/// backend accepts any worker (a warning is logged once at startup).
+/// Validates a worker's shared-secret token. Fails closed: when no token is
+/// configured the request is rejected unless the operator explicitly opted into
+/// insecure workers (see [`ALLOW_INSECURE_WORKERS`]).
 pub fn require_worker_token<T>(req: &Request<T>) -> Result<(), Status> {
     let expected = WORKER_TOKEN.lock().expect("worker token mutex poisoned").clone();
     let Some(expected) = expected else {
-        return Ok(());
+        if ALLOW_INSECURE_WORKERS.load(Ordering::Relaxed) {
+            return Ok(());
+        }
+        return Err(Status::unauthenticated("worker authentication required"));
     };
     let token = bearer(req).ok_or_else(|| Status::unauthenticated("missing worker token"))?;
     if token == expected {

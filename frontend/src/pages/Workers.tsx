@@ -73,7 +73,7 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
   const busy = control.isPending || !worker.online;
 
   return (
-    <div className="p-4 bg-[#111118] border border-[#2a2a3a] rounded-xl space-y-4">
+    <div className="p-4 bg-panel border border-border rounded-xl space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
           <Cpu className="w-4 h-4 text-indigo-400 flex-shrink-0" />
@@ -90,7 +90,7 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
                 }
               }}
               onBlur={(e) => commitRename(e.target.value)}
-              className="min-w-0 flex-1 px-2 py-0.5 bg-[#1a1a24] border border-indigo-500 rounded-md text-sm font-semibold text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="min-w-0 flex-1 px-2 py-0.5 bg-surface border border-indigo-500 rounded-md text-sm font-semibold text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           ) : (
             <span
@@ -107,7 +107,7 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
             "flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md border",
             worker.online
               ? "bg-green-900/30 text-green-400 border-green-700/40"
-              : "bg-[#1a1a24] text-slate-500 border-[#2a2a3a]",
+              : "bg-surface text-slate-500 border-border",
           )}
         >
           <Circle className="w-2 h-2 fill-current" />
@@ -157,7 +157,7 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
       </div>
 
       {/* Controls */}
-      <div className="border-t border-[#2a2a3a] pt-3 space-y-2">
+      <div className="border-t border-border pt-3 space-y-2">
         <div className="text-xs font-medium text-slate-400">{t.workers.controls}</div>
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -165,7 +165,7 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
               control.mutate(m?.searching ? workerApi.pauseSearch : workerApi.resumeSearch)
             }
             disabled={busy}
-            className="py-2 rounded-lg text-sm font-medium bg-[#1a1a24] hover:bg-[#2a2a3a] text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="py-2 rounded-lg text-sm font-medium bg-surface hover:bg-border text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {m?.searching ? t.workers.pauseSearch : t.workers.resumeSearch}
           </button>
@@ -188,7 +188,7 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
       </div>
 
       {/* Config editor */}
-      <div className="border-t border-[#2a2a3a] pt-3 space-y-2">
+      <div className="border-t border-border pt-3 space-y-2">
         <div className="text-xs font-medium text-slate-400">{t.workers.config}</div>
 
         <label className="flex items-center justify-between gap-3">
@@ -198,7 +198,7 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
             min={0}
             value={form.threads}
             onChange={(e) => setForm({ ...form, threads: Number(e.target.value) })}
-            className="w-24 px-2 py-1 bg-[#1a1a24] border border-[#2a2a3a] rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-24 px-2 py-1 bg-surface border border-border rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </label>
 
@@ -209,7 +209,7 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
             min={0}
             value={form.update_interval_secs}
             onChange={(e) => setForm({ ...form, update_interval_secs: Number(e.target.value) })}
-            className="w-24 px-2 py-1 bg-[#1a1a24] border border-[#2a2a3a] rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-24 px-2 py-1 bg-surface border border-border rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </label>
 
@@ -220,7 +220,7 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
             min={0}
             value={form.update_concurrency}
             onChange={(e) => setForm({ ...form, update_concurrency: Number(e.target.value) })}
-            className="w-24 px-2 py-1 bg-[#1a1a24] border border-[#2a2a3a] rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-24 px-2 py-1 bg-surface border border-border rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </label>
 

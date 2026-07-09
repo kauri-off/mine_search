@@ -6,7 +6,7 @@ use std::{pin::Pin, sync::Arc};
 
 use futures::Stream;
 use proto::worker::{
-    Ack, FetchUpdateTargetsRequest, ScanResult, ServerCommand, UpdateTargets, WorkerMessage,
+    Ack, FetchUpdateTargetsRequest, ScanResult, ServerCommand, UpdateTarget, WorkerMessage,
     scan_result, server_command, worker_control_server::WorkerControl, worker_message,
 };
 use tokio::sync::mpsc;
@@ -24,9 +24,14 @@ pub struct WorkerService {
     pub state: Arc<AppState>,
 }
 
+/// Rows per keyset page when streaming update targets. Big enough to amortise
+/// round-trips, small enough that each page is a bounded gRPC message.
+const UPDATE_TARGET_BATCH: i64 = 1000;
+
 #[tonic::async_trait]
 impl WorkerControl for WorkerService {
     type SessionStream = Pin<Box<dyn Stream<Item = Result<ServerCommand, Status>> + Send>>;
+    type FetchUpdateTargetsStream = Pin<Box<dyn Stream<Item = Result<UpdateTarget, Status>> + Send>>;
 
     async fn session(
         &self,
@@ -109,7 +114,7 @@ impl WorkerControl for WorkerService {
     async fn fetch_update_targets(
         &self,
         request: Request<FetchUpdateTargetsRequest>,
-    ) -> Result<Response<UpdateTargets>, Status> {
+    ) -> Result<Response<Self::FetchUpdateTargetsStream>, Status> {
         auth::require_worker_token(&request)?;
         let req = request.into_inner();
 
@@ -123,16 +128,50 @@ impl WorkerControl for WorkerService {
             .map(|c| c.update_with_connection)
             .unwrap_or(false);
 
-        let targets = persistence::fetch_update_targets(
-            &self.state.db,
-            req.only_spoofable,
-            req.only_cracked,
-            with_connection,
-        )
-        .await
-        .map_err(|e| Status::internal(format!("db error: {e}")))?;
+        // Page through the servers table and stream one target per row. Each
+        // batch re-acquires (and releases) a pooled connection, so a slow worker
+        // draining the stream never pins a connection for the whole cycle.
+        let (tx, rx) = mpsc::channel::<Result<UpdateTarget, Status>>(256);
+        let state = self.state.clone();
+        tokio::spawn(async move {
+            let mut after_id: Option<i32> = None;
+            loop {
+                let rows = match persistence::fetch_update_targets_batch(
+                    &state.db,
+                    req.only_spoofable,
+                    req.only_cracked,
+                    after_id,
+                    UPDATE_TARGET_BATCH,
+                )
+                .await
+                {
+                    Ok(rows) => rows,
+                    Err(e) => {
+                        let _ = tx.send(Err(Status::internal(format!("db error: {e}")))).await;
+                        return;
+                    }
+                };
 
-        Ok(Response::new(UpdateTargets { targets }))
+                let got = rows.len();
+                for row in rows {
+                    after_id = Some(row.id);
+                    let target = UpdateTarget {
+                        ip: row.ip,
+                        port: row.port,
+                        with_connection,
+                    };
+                    if tx.send(Ok(target)).await.is_err() {
+                        return; // worker dropped the stream
+                    }
+                }
+
+                if (got as i64) < UPDATE_TARGET_BATCH {
+                    break;
+                }
+            }
+        });
+
+        Ok(Response::new(Box::pin(ReceiverStream::new(rx))))
     }
 }
 

@@ -54,6 +54,8 @@ export const ru: Translations = {
     loading: "Загрузка...",
     empty: "Серверы не найдены",
     end: "Конец списка",
+    error: "Не удалось загрузить серверы",
+    retry: "Повторить",
   },
   serverDetail: {
     back: "Назад",
@@ -138,6 +140,8 @@ export const ru: Translations = {
     offline: "Оффлайн",
     admin: "Админ",
     other: "Другие",
+    count: "Количество",
+    unknown: "(неизвестно)",
   },
   players: {
     title: "Игроки",
@@ -152,6 +156,8 @@ export const ru: Translations = {
     server: "Сервер",
     name: "Имя",
     lastSeen: "Последний онлайн",
+    error: "Не удалось загрузить игроков",
+    retry: "Повторить",
   },
   login: {
     title: "MineSearch",

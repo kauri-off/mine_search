@@ -54,7 +54,7 @@ export const LanguageSwitcher = () => {
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 mb-1 w-full rounded-lg bg-[#1a1a24] border border-[#2a2a3a] shadow-xl z-50">
+        <div className="absolute bottom-full left-0 mb-1 w-full rounded-lg bg-surface border border-border shadow-xl z-50">
           {LANGUAGES.map(({ code, label, countryCode }) => (
             <button
               key={code}

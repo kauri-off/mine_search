@@ -75,7 +75,7 @@ export const BulkImportModal = ({ isOpen, onClose }: BulkImportModalProps) => {
           }}
           placeholder={t.bulkImport.placeholder}
           rows={6}
-          className="w-full bg-[#1a1a24] border border-[#2a2a3a] rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 resize-none transition-colors"
+          className="w-full bg-surface border border-border rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 resize-none transition-colors"
         />
 
         {parsed && (
@@ -107,7 +107,7 @@ export const BulkImportModal = ({ isOpen, onClose }: BulkImportModalProps) => {
           <button
             onClick={handleParse}
             disabled={!text.trim()}
-            className="px-4 py-2 rounded-lg text-sm font-medium bg-[#1a1a24] border border-[#2a2a3a] text-slate-300 hover:text-slate-100 hover:border-[#3a3a4a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-surface border border-border text-slate-300 hover:text-slate-100 hover:border-border-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {t.bulkImport.parse}
           </button>

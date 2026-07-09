@@ -28,7 +28,7 @@ export const CopyButton = ({ text }: CopyButtonProps) => {
         "relative inline-flex items-center justify-center w-6 h-6 rounded-md transition-all duration-150",
         copied
           ? "bg-green-900/40 text-green-400"
-          : "bg-[#1a1a24] hover:bg-[#2a2a3a] text-slate-500 hover:text-slate-300",
+          : "bg-surface hover:bg-border text-slate-500 hover:text-slate-300",
       )}
     >
       {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
@@ -36,7 +36,7 @@ export const CopyButton = ({ text }: CopyButtonProps) => {
       <span
         className={cn(
           "absolute -top-7 left-1/2 -translate-x-1/2",
-          "text-xs px-2 py-0.5 rounded bg-[#111118] border border-[#2a2a3a]",
+          "text-xs px-2 py-0.5 rounded bg-panel border border-border",
           "whitespace-nowrap pointer-events-none transition-opacity duration-150",
           copied ? "opacity-100" : "opacity-0",
         )}
@@ -74,7 +74,7 @@ export const ToggleButton = ({
         ? color === "red"
           ? "bg-red-600/20 border border-red-600/40 text-red-300"
           : "bg-indigo-600/20 border border-indigo-600/40 text-indigo-300"
-        : "bg-[#1a1a24] border border-[#2a2a3a] text-slate-500 hover:text-slate-300 hover:border-[#3a3a4a]",
+        : "bg-surface border border-border text-slate-500 hover:text-slate-300 hover:border-border-hover",
     )}
   >
     <span>{label}</span>
@@ -96,15 +96,15 @@ export const ToggleButton = ({
 const STATUS_COLORS: Record<string, { active: string; inactive: string }> = {
   gray: {
     active: "bg-slate-600/30 text-slate-300 border-slate-500/50",
-    inactive: "bg-[#1a1a24] text-slate-600 border-[#2a2a3a]",
+    inactive: "bg-surface text-slate-600 border-border",
   },
   blue: {
     active: "bg-indigo-600/20 text-indigo-300 border-indigo-500/40",
-    inactive: "bg-[#1a1a24] text-slate-600 border-[#2a2a3a]",
+    inactive: "bg-surface text-slate-600 border-border",
   },
   amber: {
     active: "bg-amber-500/20 text-amber-300 border-amber-500/40",
-    inactive: "bg-[#1a1a24] text-slate-600 border-[#2a2a3a]",
+    inactive: "bg-surface text-slate-600 border-border",
   },
 };
 

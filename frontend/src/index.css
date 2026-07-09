@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+/* Design tokens. The March-2026 rewrite referred to "design tokens" but the
+   palette was in fact hardcoded hex literals repeated across dozens of files.
+   These are the real thing: Tailwind v4 `@theme` colors, which both generate
+   utility classes (`bg-panel`, `border-border`, `text-muted`, …) and expose
+   CSS custom properties (`var(--color-panel)`) for use in inline styles and
+   chart props. Change a surface color here, not in 60 files. */
+@theme {
+  --color-app: #0a0a0f;
+  --color-app-elevated: #0d0d14;
+  --color-panel: #111118;
+  --color-surface: #1a1a24;
+  --color-border: #2a2a3a;
+  --color-border-hover: #3a3a4a;
+  --color-accent: #6366f1;
+  --color-muted: #64748b;
+}

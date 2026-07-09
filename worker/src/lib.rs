@@ -19,6 +19,23 @@ pub fn generate_random_ip(rng: &mut ChaCha8Rng) -> Ipv4Addr {
     }
 }
 
+/// Whether a caller-supplied address is safe to probe. Applies the same guards
+/// as [`generate_random_ip`] — rejects the 0/>223 first-octet bands and the
+/// reserved ranges — so backend-directed targets (update cycle, on-demand
+/// ping/scan) cannot aim the worker at internal or bogon hosts. This closes the
+/// SSRF-proxy vector where a compromised backend points the worker at private
+/// infrastructure. Non-IPv4 inputs (hostnames, IPv6) are rejected.
+pub fn is_probeable_ip(ip: &str) -> bool {
+    let Ok(addr) = ip.parse::<Ipv4Addr>() else {
+        return false;
+    };
+    let octets = addr.octets();
+    if octets[0] == 0 || octets[0] > 223 {
+        return false;
+    }
+    !is_reserved_ip(octets)
+}
+
 #[inline(always)]
 fn is_reserved_ip(octets: [u8; 4]) -> bool {
     match octets[0] {

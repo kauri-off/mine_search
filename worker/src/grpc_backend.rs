@@ -14,8 +14,8 @@ use proto::worker::{
     WorkerMessage, WorkerMetrics, scan_result, server_command,
     worker_control_client::WorkerControlClient, worker_message,
 };
-use tokio::sync::mpsc;
-use tokio_stream::wrappers::ReceiverStream;
+use tokio::{sync::mpsc, task::JoinSet};
+use tokio_stream::{StreamExt, wrappers::ReceiverStream};
 use tonic::{
     Request, Status,
     service::{Interceptor, interceptor::InterceptedService},
@@ -151,16 +151,22 @@ fn persist_name(path: &Path, name: &Option<String>) {
     }
 }
 
+/// Upper bounds on backend-supplied config. A malicious or buggy `SetConfig`
+/// with a huge `threads`/`update_concurrency` would otherwise spawn that many
+/// tasks and OOM the worker, so both are clamped here where backend config
+/// enters the runtime.
+const MAX_THREADS: i32 = 256;
+const MAX_UPDATE_CONCURRENCY: u32 = 1024;
+
 fn proto_to_runtime(c: PbConfig) -> RuntimeConfig {
     RuntimeConfig {
-        threads: c.threads,
+        threads: c.threads.clamp(0, MAX_THREADS),
         search_module: c.search_module,
         update_module: c.update_module,
-        update_with_connection: c.update_with_connection,
         only_update_spoofable: c.only_update_spoofable,
         only_update_cracked: c.only_update_cracked,
         update_interval_secs: c.update_interval_secs,
-        update_concurrency: c.update_concurrency,
+        update_concurrency: c.update_concurrency.min(MAX_UPDATE_CONCURRENCY),
     }
 }
 
@@ -249,14 +255,18 @@ pub struct GrpcTargetSource {
 }
 
 impl GrpcTargetSource {
+    /// Opens the server-streaming `FetchUpdateTargets` RPC and yields one target
+    /// at a time. The backend stamps each target's `with_connection` from this
+    /// worker's registered config, so the caller no longer supplies it. Streaming
+    /// means neither side has to buffer the whole `servers` table.
     pub async fn update_targets(
         &self,
         only_spoofable: bool,
         only_cracked: bool,
-        _with_connection: bool,
-    ) -> anyhow::Result<Vec<UpdateTarget>> {
+    ) -> anyhow::Result<impl tokio_stream::Stream<Item = anyhow::Result<UpdateTarget>> + Send + use<>>
+    {
         let mut client = self.client.clone();
-        let resp = client
+        let stream = client
             .fetch_update_targets(proto::worker::FetchUpdateTargetsRequest {
                 worker_id: self.worker_id.clone(),
                 only_spoofable,
@@ -265,15 +275,14 @@ impl GrpcTargetSource {
             .await?
             .into_inner();
 
-        Ok(resp
-            .targets
-            .into_iter()
-            .map(|t| UpdateTarget {
+        Ok(stream.map(|res| {
+            res.map(|t| UpdateTarget {
                 ip: t.ip,
                 port: t.port as u16,
                 with_connection: t.with_connection,
             })
-            .collect())
+            .map_err(anyhow::Error::from)
+        }))
     }
 }
 
@@ -357,7 +366,14 @@ pub async fn run(
         }
     }
 
+    // On-demand ping/scan commands run as detached tasks. Track them in a
+    // JoinSet so they are aborted when the session ends (the JoinSet drops with
+    // `run`) instead of surviving reconnects; drain finished ones each iteration
+    // so completed handles don't accumulate over a long-lived session.
+    let mut cmd_tasks: JoinSet<()> = JoinSet::new();
+
     while let Some(cmd) = inbound.message().await? {
+        while cmd_tasks.try_join_next().is_some() {}
         match cmd.cmd {
             Some(server_command::Cmd::SetConfig(c)) => {
                 persist_config(&config_path, &c);
@@ -370,14 +386,22 @@ pub async fn run(
                 outbox.ack(&ack.result_id).await;
             }
             Some(server_command::Cmd::Ping(p)) => {
+                if !worker::is_probeable_ip(&p.ip) {
+                    warn!("ignoring ping to non-probeable address {}", p.ip);
+                    continue;
+                }
                 let engine = engine.clone();
-                tokio::spawn(async move {
+                cmd_tasks.spawn(async move {
                     engine.ping(p.ip, p.port as u16, p.with_connection).await;
                 });
             }
             Some(server_command::Cmd::Scan(s)) => {
+                if !worker::is_probeable_ip(&s.ip) {
+                    warn!("ignoring scan of non-probeable address {}", s.ip);
+                    continue;
+                }
                 let engine = engine.clone();
-                tokio::spawn(async move {
+                cmd_tasks.spawn(async move {
                     engine.scan(s.ip, s.port as u16).await;
                 });
             }

@@ -68,12 +68,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             };
         let token = backend_cfg.worker_token.filter(|s| !s.is_empty());
+        let allow_insecure = backend_cfg.allow_insecure_workers.unwrap_or(false);
         if token.is_none() {
-            tracing::warn!(
-                "No [backend].worker_token configured — workers can connect without \
-                 authentication. Set one for production."
-            );
+            if allow_insecure {
+                tracing::warn!(
+                    "No [backend].worker_token configured and allow_insecure_workers=true — \
+                     accepting UNAUTHENTICATED workers. Do not use this in production."
+                );
+            } else {
+                return Err("No [backend].worker_token configured. Set one, or set \
+                            [backend].allow_insecure_workers=true to explicitly permit \
+                            unauthenticated workers (dev only)."
+                    .into());
+            }
         }
+        auth::ALLOW_INSECURE_WORKERS.store(allow_insecure, std::sync::atomic::Ordering::Relaxed);
         *WORKER_TOKEN.lock().unwrap() = token;
     }
 
@@ -116,16 +125,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
+    // Explicit message-size caps (tonic's default decode cap is 4 MB; make it
+    // explicit and bound the encode side too). Requests/responses here are small
+    // now that update targets stream one row at a time.
+    const MAX_DECODING: usize = 4 * 1024 * 1024;
+    const MAX_ENCODING: usize = 16 * 1024 * 1024;
+
     let api = ApiServer::new(ApiService {
         state: state.clone(),
-    });
+    })
+    .max_decoding_message_size(MAX_DECODING)
+    .max_encoding_message_size(MAX_ENCODING);
     let worker = WorkerControlServer::new(WorkerService {
         state: state.clone(),
-    });
+    })
+    .max_decoding_message_size(MAX_DECODING)
+    .max_encoding_message_size(MAX_ENCODING);
 
     // `accept_http1(true)` + `GrpcWebLayer` lets the browser talk gRPC-web while
     // native gRPC (workers, HTTP/2) still passes through unchanged.
-    let mut builder = Server::builder().accept_http1(true);
+    //
+    // Bound per-connection resource use: cap concurrent in-flight requests per
+    // connection, and use HTTP/2 keepalive pings to detect and reclaim dead
+    // peers (which would otherwise leak long-lived Session streams). A blanket
+    // `Server::timeout` is intentionally omitted — it would sever the
+    // long-lived bidirectional `Session` and the streaming `FetchUpdateTargets`
+    // RPCs; the unary handlers are individually cheap.
+    let mut builder = Server::builder()
+        .concurrency_limit_per_connection(256)
+        .tcp_keepalive(Some(std::time::Duration::from_secs(75)))
+        .http2_keepalive_interval(Some(std::time::Duration::from_secs(30)))
+        .http2_keepalive_timeout(Some(std::time::Duration::from_secs(20)))
+        .accept_http1(true);
 
     if let (Some(cert_path), Some(key_path)) = (&backend_cfg.tls_cert, &backend_cfg.tls_key) {
         let cert = std::fs::read(cert_path)?;

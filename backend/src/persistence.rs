@@ -14,6 +14,7 @@ use std::time::Duration;
 
 use chrono::Utc;
 use crate::{
+    chat::ChatObject,
     models::{
         player_count_snapshots::SnapshotInsert,
         players::PlayerInsert,
@@ -23,7 +24,7 @@ use crate::{
 };
 use diesel::{dsl::insert_into, pg::Pg, prelude::*, sql_types::Bool};
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
-use proto::worker::{ServerReport, UpdateTarget};
+use proto::worker::ServerReport;
 
 use crate::database::DatabaseWrapper;
 
@@ -51,6 +52,14 @@ const RETRY_BASE_DELAY: Duration = Duration::from_millis(100);
 
 fn parse_json(s: &str) -> serde_json::Value {
     serde_json::from_str(s).unwrap_or(serde_json::Value::Null)
+}
+
+/// Flattens a server description JSON into plaintext MOTD for the queryable
+/// `motd` column. Returns an empty string when the JSON isn't a chat component.
+fn motd_from_description(description: &serde_json::Value) -> String {
+    serde_json::from_value::<ChatObject>(description.clone())
+        .map(|chat| chat.get_motd())
+        .unwrap_or_default()
 }
 
 /// Runs `op` up to [`RETRY_ATTEMPTS`] times with exponential backoff. Intended
@@ -117,6 +126,7 @@ async fn discovered_txn(
             }
 
             let description = parse_json(&report.description_json);
+            let motd = motd_from_description(&description);
             let (is_online_mode, disconnect_reason) = match &report.extra {
                 Some(e) => (
                     e.is_online_mode,
@@ -132,6 +142,7 @@ async fn discovered_txn(
                 version_name: &report.version_name,
                 protocol: report.protocol,
                 description: &description,
+                motd: &motd,
                 is_online_mode,
                 disconnect_reason,
                 requires_mods: report.requires_mods,
@@ -193,12 +204,14 @@ async fn updated_txn(
             };
 
             let description = parse_json(&report.description_json);
+            let motd = motd_from_description(&description);
             let favicon = report.favicon.as_deref();
 
             let server_change = ServerUpdate {
                 version_name: &report.version_name,
                 protocol: report.protocol,
                 description: &description,
+                motd: &motd,
                 updated_at: Utc::now(),
                 is_online: true,
                 requires_mods: report.requires_mods,
@@ -330,15 +343,20 @@ pub async fn prune_processed_results(db: &DatabaseWrapper) -> DbResult<usize> {
     Ok(n)
 }
 
-/// Returns the servers a worker should re-probe this cycle, honouring the
-/// spoofable/cracked filters and stamping each target with the worker's
-/// `with_connection` preference.
-pub async fn fetch_update_targets(
+/// Fetches one keyset-paginated batch of servers a worker should re-probe this
+/// cycle, honouring the spoofable/cracked filters. Rows are ordered by ascending
+/// id and start strictly after `after_id`; the caller pages by passing the last
+/// returned id back as `after_id` until a short batch signals the end. This
+/// replaces a single load-the-whole-table query so the streaming RPC never has
+/// to buffer every server at once. The pooled connection is held only for the
+/// duration of this one batch query.
+pub async fn fetch_update_targets_batch(
     db: &DatabaseWrapper,
     only_spoofable: bool,
     only_cracked: bool,
-    with_connection: bool,
-) -> DbResult<Vec<UpdateTarget>> {
+    after_id: Option<i32>,
+    limit: i64,
+) -> DbResult<Vec<ServerModelMini>> {
     let mut conn = db.conn().await?;
 
     let spoofable_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = if only_spoofable {
@@ -351,22 +369,22 @@ pub async fn fetch_update_targets(
     } else {
         Box::new(diesel::dsl::sql::<Bool>("TRUE"))
     };
+    let cursor_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match after_id {
+        Some(id) => Box::new(schema::servers::id.gt(id)),
+        None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
+    };
 
     let servers: Vec<ServerModelMini> = schema::servers::table
         .filter(spoofable_filter)
         .filter(cracked_filter)
+        .filter(cursor_filter)
+        .order(schema::servers::id.asc())
+        .limit(limit)
         .select(ServerModelMini::as_select())
         .load(&mut conn)
         .await?;
 
-    Ok(servers
-        .into_iter()
-        .map(|s| UpdateTarget {
-            ip: s.ip,
-            port: s.port,
-            with_connection,
-        })
-        .collect())
+    Ok(servers)
 }
 
 /// Looks up a server's address by id (used to translate a frontend PingServer

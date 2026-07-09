@@ -57,6 +57,8 @@ export interface Translations {
     loading: string;
     empty: string;
     end: string;
+    error: string;
+    retry: string;
   };
   serverDetail: {
     back: string;
@@ -141,6 +143,8 @@ export interface Translations {
     offline: string;
     admin: string;
     other: string;
+    count: string;
+    unknown: string;
   };
   players: {
     title: string;
@@ -155,6 +159,8 @@ export interface Translations {
     server: string;
     name: string;
     lastSeen: string;
+    error: string;
+    retry: string;
   };
   login: {
     title: string;

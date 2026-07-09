@@ -23,13 +23,13 @@ const PILL_TRANSLATE = [
 ] as const;
 
 const PILL_COLOR = [
-  "bg-[#2a2a3a]",
+  "bg-border",
   "bg-indigo-600/40 shadow-[0_0_8px_rgba(99,102,241,0.4)]",
   "bg-red-600/40 shadow-[0_0_8px_rgba(220,38,38,0.35)]",
 ] as const;
 
 const BORDER_COLOR = [
-  "border-[#2a2a3a]",
+  "border-border",
   "border-indigo-600/50",
   "border-red-600/50",
 ] as const;
@@ -55,7 +55,7 @@ export function TriStateSelect({
   return (
     <div
       className={cn(
-        "relative flex w-full rounded-lg border bg-[#1a1a24] overflow-hidden transition-colors duration-150",
+        "relative flex w-full rounded-lg border bg-surface overflow-hidden transition-colors duration-150",
         BORDER_COLOR[activeIdx],
       )}
     >

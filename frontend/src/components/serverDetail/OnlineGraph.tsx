@@ -25,7 +25,7 @@ export const OnlineGraph = ({ data, isLoading }: OnlineGraphProps) => {
 
   return (
     <div
-      className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5 h-80 select-none"
+      className="bg-panel border border-border rounded-xl p-5 h-80 select-none"
       onMouseDown={(e) => e.preventDefault()}
     >
       <h3 className="text-sm font-semibold text-slate-300 mb-4">{t.onlineGraph.title}</h3>
@@ -33,27 +33,27 @@ export const OnlineGraph = ({ data, isLoading }: OnlineGraphProps) => {
         <AreaChart data={isLoading || data === undefined ? [] : data} style={{ userSelect: "none" }}>
           <defs>
             <linearGradient id="colorOnline" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
-              <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+              <stop offset="5%" stopColor="var(--color-accent)" stopOpacity={0.4} />
+              <stop offset="95%" stopColor="var(--color-accent)" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1a1a24" />
-          <XAxis dataKey="formattedTime" stroke="#3a3a4a" tick={{ fill: "#64748b", fontSize: 11 }} />
-          <YAxis stroke="#3a3a4a" tick={{ fill: "#64748b", fontSize: 11 }} allowDecimals={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-surface)" />
+          <XAxis dataKey="formattedTime" stroke="var(--color-border-hover)" tick={{ fill: "var(--color-muted)", fontSize: 11 }} />
+          <YAxis stroke="var(--color-border-hover)" tick={{ fill: "var(--color-muted)", fontSize: 11 }} allowDecimals={false} />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#111118",
-              border: "1px solid #2a2a3a",
+              backgroundColor: "var(--color-panel)",
+              border: "1px solid var(--color-border)",
               borderRadius: "8px",
             }}
             itemStyle={{ color: "#a5b4fc" }}
-            labelStyle={{ color: "#64748b" }}
+            labelStyle={{ color: "var(--color-muted)" }}
           />
           <Area
             type="monotone"
             dataKey="online"
             name={t.onlineGraph.online}
-            stroke="#6366f1"
+            stroke="var(--color-accent)"
             strokeWidth={1.5}
             fillOpacity={1}
             fill="url(#colorOnline)"

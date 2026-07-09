@@ -7,7 +7,7 @@ import type { ServerInfoResponse } from "@/types";
 import { useTranslation } from "@/i18n";
 
 function getPingBadgeClass(ping: bigint | null): string {
-  if (ping === null) return "bg-[#1a1a24] text-slate-500";
+  if (ping === null) return "bg-surface text-slate-500";
   const ms = Number(ping);
   if (ms < 50) return "bg-green-900/40 text-green-300";
   if (ms < 100) return "bg-yellow-900/40 text-yellow-300";
@@ -26,24 +26,24 @@ interface ServerCardProps {
 }
 
 export const SkeletonCard = () => (
-  <div className="p-4 bg-[#111118] border border-[#2a2a3a] rounded-xl animate-pulse">
+  <div className="p-4 bg-panel border border-border rounded-xl animate-pulse">
     <div className="flex justify-between items-start mb-3">
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="w-8 h-8 rounded flex-shrink-0 bg-[#1a1a24]" />
-        <div className="h-4 w-32 bg-[#1a1a24] rounded" />
+        <div className="w-8 h-8 rounded flex-shrink-0 bg-surface" />
+        <div className="h-4 w-32 bg-surface rounded" />
       </div>
-      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 bg-[#1a1a24]" />
+      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 bg-surface" />
     </div>
-    <div className="bg-[#0d0d14] rounded-lg p-2 mb-3 space-y-1.5">
-      <div className="h-3 bg-[#1a1a24] rounded w-full" />
-      <div className="h-3 bg-[#1a1a24] rounded w-3/4" />
+    <div className="bg-app-elevated rounded-lg p-2 mb-3 space-y-1.5">
+      <div className="h-3 bg-surface rounded w-full" />
+      <div className="h-3 bg-surface rounded w-3/4" />
     </div>
     <div className="flex justify-between items-center">
       <div className="flex gap-1.5">
-        <div className="h-5 w-16 bg-[#1a1a24] rounded-md" />
-        <div className="h-5 w-20 bg-[#1a1a24] rounded-md" />
+        <div className="h-5 w-16 bg-surface rounded-md" />
+        <div className="h-5 w-20 bg-surface rounded-md" />
       </div>
-      <div className="h-3 w-16 bg-[#1a1a24] rounded" />
+      <div className="h-3 w-16 bg-surface rounded" />
     </div>
   </div>
 );
@@ -56,7 +56,7 @@ export const ServerCard = memo(({ server, cardRef }: ServerCardProps) => {
       ref={cardRef}
       to={`/server/${server.ip}`}
       className={cn(
-        "block p-4 bg-[#111118] border border-[#2a2a3a] rounded-xl transition-all duration-150",
+        "block p-4 bg-panel border border-border rounded-xl transition-all duration-150",
         "hover:border-indigo-500/60 hover:shadow-lg hover:shadow-indigo-950/30",
       )}
     >
@@ -71,9 +71,9 @@ export const ServerCard = memo(({ server, cardRef }: ServerCardProps) => {
               style={{ imageRendering: "pixelated" }}
             />
           ) : (
-            <div className="w-8 h-8 rounded flex-shrink-0 bg-[#1a1a24] grid grid-cols-2 p-0.5 gap-0.5">
+            <div className="w-8 h-8 rounded flex-shrink-0 bg-surface grid grid-cols-2 p-0.5 gap-0.5">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="rounded-sm bg-[#2a2a3a]" />
+                <div key={i} className="rounded-sm bg-border" />
               ))}
             </div>
           )}
@@ -96,17 +96,17 @@ export const ServerCard = memo(({ server, cardRef }: ServerCardProps) => {
 
       {/* MOTD */}
       <div
-        className="prose prose-invert prose-xs max-w-none bg-[#0d0d14] px-2.5 py-2 rounded-lg mb-3 max-h-10 overflow-hidden text-xs leading-relaxed"
+        className="prose prose-invert prose-xs max-w-none bg-app-elevated px-2.5 py-2 rounded-lg mb-3 max-h-10 overflow-hidden text-xs leading-relaxed"
         dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(server.description_html) }}
       />
 
       {/* Footer */}
       <div className="flex justify-between items-center gap-2">
         <div className="flex gap-1.5 flex-wrap">
-          <span className="px-2 py-0.5 rounded-md text-xs bg-[#1a1a24] text-slate-400 border border-[#2a2a3a]">
+          <span className="px-2 py-0.5 rounded-md text-xs bg-surface text-slate-400 border border-border">
             {server.version_name}
           </span>
-          <span className="px-2 py-0.5 rounded-md text-xs bg-[#1a1a24] text-slate-400 border border-[#2a2a3a]">
+          <span className="px-2 py-0.5 rounded-md text-xs bg-surface text-slate-400 border border-border">
             {server.online}/{server.max}
           </span>
           {server.requires_mods && (

@@ -23,7 +23,7 @@ function formatPing(ping: bigint | null, ms: string): string {
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex justify-between items-center gap-2 py-1.5 border-b border-[#1a1a24] last:border-0">
+    <div className="flex justify-between items-center gap-2 py-1.5 border-b border-surface last:border-0">
       <span className="text-xs text-slate-500 flex-shrink-0">{label}</span>
       <span className="text-sm text-right">{children}</span>
     </div>
@@ -78,7 +78,7 @@ export const ServerInfoCard = ({
   const { t } = useTranslation();
 
   return (
-    <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5 space-y-4">
+    <div className="bg-panel border border-border rounded-xl p-5 space-y-4">
       {/* Header */}
       <div className="flex items-start gap-3">
         {server.favicon ? (
@@ -89,9 +89,9 @@ export const ServerInfoCard = ({
             style={{ imageRendering: "pixelated" }}
           />
         ) : (
-          <div className="w-14 h-14 rounded-lg flex-shrink-0 bg-[#1a1a24] grid grid-cols-4 p-1 gap-0.5">
+          <div className="w-14 h-14 rounded-lg flex-shrink-0 bg-surface grid grid-cols-4 p-1 gap-0.5">
             {Array.from({ length: 16 }).map((_, i) => (
-              <div key={i} className="rounded-sm bg-[#2a2a3a]" />
+              <div key={i} className="rounded-sm bg-border" />
             ))}
           </div>
         )}
@@ -108,7 +108,7 @@ export const ServerInfoCard = ({
               "inline-block mt-1 px-2 py-0.5 rounded-md text-xs font-medium",
               server.was_online
                 ? "bg-green-900/40 text-green-300"
-                : "bg-[#1a1a24] text-slate-500",
+                : "bg-surface text-slate-500",
             )}
           >
             {server.was_online ? t.serverInfo.statusOnline : t.serverInfo.statusOffline}
@@ -195,7 +195,7 @@ export const ServerInfoCard = ({
 
       {/* Ping section */}
       {!isEditing && (
-        <div className="border-t border-[#2a2a3a] pt-3">
+        <div className="border-t border-border pt-3">
           {isPinging ? (
             <button
               disabled
@@ -214,7 +214,7 @@ export const ServerInfoCard = ({
                   <button
                     key={w.workerId}
                     onClick={() => onWorkerSelect(w.workerId)}
-                    className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-[#1a1a24] hover:bg-indigo-600/20 text-slate-400 hover:text-indigo-300 border border-[#2a2a3a] hover:border-indigo-600/30 flex items-center justify-center gap-2 transition-colors"
+                    className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-surface hover:bg-indigo-600/20 text-slate-400 hover:text-indigo-300 border border-border hover:border-indigo-600/30 flex items-center justify-center gap-2 transition-colors"
                   >
                     <Server className="w-4 h-4" />
                     {w.name ?? w.workerId}
@@ -234,7 +234,7 @@ export const ServerInfoCard = ({
               </button>
               <button
                 onClick={() => onPing(false)}
-                className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-[#1a1a24] hover:bg-[#2a2a3a] text-slate-400 border border-[#2a2a3a] flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-surface hover:bg-border text-slate-400 border border-border flex items-center justify-center gap-2 transition-colors"
               >
                 <Wifi className="w-4 h-4" />
                 {t.serverInfo.withoutConnection}
@@ -243,7 +243,7 @@ export const ServerInfoCard = ({
           ) : (
             <button
               onClick={onPingRequest}
-              className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-[#1a1a24] hover:bg-indigo-600/20 text-slate-400 hover:text-indigo-300 border border-[#2a2a3a] hover:border-indigo-600/30 flex items-center justify-center gap-2 transition-colors"
+              className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-surface hover:bg-indigo-600/20 text-slate-400 hover:text-indigo-300 border border-border hover:border-indigo-600/30 flex items-center justify-center gap-2 transition-colors"
             >
               <Radio className="w-4 h-4" />
               {t.serverInfo.pingServer}
@@ -254,7 +254,7 @@ export const ServerInfoCard = ({
 
       {/* Delete section */}
       {!isEditing && (
-        <div className="border-t border-[#2a2a3a] pt-3">
+        <div className="border-t border-border pt-3">
           {showDeleteConfirm ? (
             <div className="space-y-2">
               <p className="text-xs text-red-400 text-center font-medium">
@@ -267,7 +267,7 @@ export const ServerInfoCard = ({
                 <button
                   onClick={onDeleteCancel}
                   disabled={isDeletePending}
-                  className="flex-1 py-1.5 rounded-lg text-xs font-medium bg-[#1a1a24] border border-[#2a2a3a] text-slate-400 hover:text-slate-200 disabled:opacity-50 transition-colors"
+                  className="flex-1 py-1.5 rounded-lg text-xs font-medium bg-surface border border-border text-slate-400 hover:text-slate-200 disabled:opacity-50 transition-colors"
                 >
                   {t.serverInfo.cancel}
                 </button>
@@ -283,7 +283,7 @@ export const ServerInfoCard = ({
           ) : (
             <button
               onClick={onDeleteRequest}
-              className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-[#1a1a24] hover:bg-red-950/40 text-slate-500 hover:text-red-400 border border-[#2a2a3a] hover:border-red-800/30 flex items-center justify-center gap-2 transition-colors"
+              className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-surface hover:bg-red-950/40 text-slate-500 hover:text-red-400 border border-border hover:border-red-800/30 flex items-center justify-center gap-2 transition-colors"
             >
               <Trash2 className="w-4 h-4" />
               {t.serverInfo.deleteServer}

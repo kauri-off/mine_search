@@ -54,6 +54,7 @@ diesel::table! {
         requires_mods -> Bool,
         favicon -> Nullable<Text>,
         ping -> Nullable<Int8>,
+        motd -> Text,
     }
 }
 

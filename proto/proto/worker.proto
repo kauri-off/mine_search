@@ -12,7 +12,10 @@ package worker;
 // cycle (the backend owns the database, so the worker cannot read it directly).
 service WorkerControl {
   rpc Session(stream WorkerMessage) returns (stream ServerCommand);
-  rpc FetchUpdateTargets(FetchUpdateTargetsRequest) returns (UpdateTargets);
+  // Server-streaming: the backend yields one UpdateTarget per row instead of
+  // buffering the whole `servers` table into a single message (which would blow
+  // the gRPC message-size limit as the table grows).
+  rpc FetchUpdateTargets(FetchUpdateTargetsRequest) returns (stream UpdateTarget);
 }
 
 // Mirrors `[worker]` in config.toml — the live-tunable knobs the frontend can edit.
@@ -154,10 +157,6 @@ message FetchUpdateTargetsRequest {
   string worker_id = 1;
   bool only_spoofable = 2;
   bool only_cracked = 3;
-}
-
-message UpdateTargets {
-  repeated UpdateTarget targets = 1;
 }
 
 message UpdateTarget {

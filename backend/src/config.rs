@@ -20,8 +20,11 @@ pub struct BackendConfig {
     /// and the worker control plane). Defaults to `0.0.0.0:3000`.
     pub grpc_addr: Option<String>,
     /// Shared secret a worker must present (Bearer) to connect. When unset, the
-    /// backend accepts unauthenticated workers and logs a warning.
+    /// backend refuses to start unless `allow_insecure_workers` is explicitly set.
     pub worker_token: Option<String>,
+    /// Escape hatch (dev only): permit unauthenticated workers when no
+    /// `worker_token` is set. Absent/false means a missing token is a hard error.
+    pub allow_insecure_workers: Option<bool>,
     /// Optional TLS for the gRPC server. Both must be set to enable TLS;
     /// otherwise the server is plaintext (intended to sit behind nginx).
     pub tls_cert: Option<String>,

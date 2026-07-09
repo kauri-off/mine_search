@@ -21,14 +21,14 @@ export const PlayersTable = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   return (
-    <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5">
+    <div className="bg-panel border border-border rounded-xl p-5">
       <h3 className="text-sm font-semibold text-slate-300 mb-4">{t.playersTable.title}</h3>
 
       {players && players.length > 0 ? (
         <div className="overflow-x-auto -mx-1">
           <table className="w-full text-sm min-w-full">
             <thead>
-              <tr className="border-b border-[#2a2a3a] text-slate-500 text-left">
+              <tr className="border-b border-border text-slate-500 text-left">
                 <th className="pb-2.5 pl-1 text-xs font-medium">{t.playersTable.name}</th>
                 <th className="pb-2.5 text-xs font-medium text-right">{t.playersTable.status}</th>
                 <th className="pb-2.5 pr-1 w-8" />
@@ -38,7 +38,7 @@ export const PlayersTable = ({
               {players.map((player) => (
                 <tr
                   key={player.id}
-                  className="group border-b border-[#1a1a24] last:border-0 hover:bg-white/[0.02] transition-colors"
+                  className="group border-b border-surface last:border-0 hover:bg-white/[0.02] transition-colors"
                 >
                   <td className="py-2.5 pl-1 pr-3">
                     <div className="flex items-center gap-2">
@@ -87,7 +87,7 @@ export const PlayersTable = ({
                         </button>
                         <button
                           onClick={() => setConfirmDeleteId(null)}
-                          className="px-1.5 py-0.5 rounded text-xs bg-[#1a1a24] text-slate-400 hover:text-slate-200 transition-colors"
+                          className="px-1.5 py-0.5 rounded text-xs bg-surface text-slate-400 hover:text-slate-200 transition-colors"
                         >
                           {t.playersTable.deleteNo}
                         </button>

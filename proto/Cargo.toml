@@ -5,7 +5,7 @@ edition.workspace = true
 
 [dependencies]
 tonic = { workspace = true }
-tonic-prost = "0.14.4"
+tonic-prost = "0.14.6"
 prost = "0.14.4"
 
 # tonic-prost-build is fed a FileDescriptorSet produced by protox so no `protoc`

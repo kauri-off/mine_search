@@ -197,9 +197,19 @@ fn compact_to_disk(path: &Path, entries: &HashMap<String, Entry>) -> io::Result<
             let bytes = e.msg.encode_to_vec();
             append(&mut f, OP_PUT, unix_secs(e.created), id, &bytes)?;
         }
-        f.flush()?;
+        // Force the temp file's contents to disk before the rename, so a crash
+        // can never leave a renamed-but-empty log.
+        f.sync_all()?;
     }
     std::fs::rename(&tmp, path)?;
+    // fsync the parent directory so the rename itself survives power loss.
+    // Best-effort and platform-dependent (opening a directory as a file fails on
+    // Windows); the durability target is the Linux/Docker deployment.
+    if let Some(dir) = path.parent().filter(|d| !d.as_os_str().is_empty()) {
+        if let Ok(d) = File::open(dir) {
+            let _ = d.sync_all();
+        }
+    }
     OpenOptions::new().append(true).create(true).open(path)
 }
 
@@ -213,7 +223,10 @@ fn append(file: &mut File, op: u8, created_secs: u64, id: &str, payload: &[u8]) 
     buf.extend_from_slice(&(payload.len() as u32).to_le_bytes());
     buf.extend_from_slice(payload);
     file.write_all(&buf)?;
-    file.flush()
+    // fsync, not just flush: `File::flush` is a no-op for `std::fs::File`, so the
+    // record would only reach the OS page cache. The outbox promises durability
+    // across a crash/power loss, so force the bytes to disk before returning.
+    file.sync_data()
 }
 
 fn load_entries(path: &Path) -> HashMap<String, Entry> {

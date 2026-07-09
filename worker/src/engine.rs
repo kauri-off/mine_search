@@ -19,6 +19,7 @@ use tokio::{
     task::JoinSet,
     time::timeout,
 };
+use tokio_stream::StreamExt;
 use tracing::{debug, error, info};
 use worker::generate_random_ip;
 
@@ -35,7 +36,6 @@ pub struct RuntimeConfig {
     pub threads: i32,
     pub search_module: bool,
     pub update_module: bool,
-    pub update_with_connection: bool,
     pub only_update_spoofable: bool,
     pub only_update_cracked: bool,
     pub update_interval_secs: u32,
@@ -48,7 +48,6 @@ impl From<&crate::config::WorkerConfig> for RuntimeConfig {
             threads: c.threads,
             search_module: c.search_module,
             update_module: c.update_module,
-            update_with_connection: c.update_with_connection,
             only_update_spoofable: c.only_update_spoofable,
             only_update_cracked: c.only_update_cracked,
             update_interval_secs: c.update_interval_secs,
@@ -77,7 +76,15 @@ pub struct Engine {
     pub sink: GrpcSink,
     pub targets: GrpcTargetSource,
     cfg_tx: watch::Sender<RuntimeConfig>,
+    /// Effective pause signal the search threads observe: `manual_paused ||
+    /// updater_paused`. Recomputed via [`Engine::refresh_pause`] whenever either
+    /// source changes, so the update cycle can pause/resume search without
+    /// clobbering an operator's manual pause.
     pause_tx: watch::Sender<bool>,
+    /// Operator-requested pause (Control::Pause/ResumeSearch).
+    manual_paused: AtomicBool,
+    /// Search paused because an update cycle is running.
+    updater_paused: AtomicBool,
     /// Fired to start an update cycle immediately, cutting short the interval wait.
     trigger_update: Notify,
     /// Fired to interrupt the running update cycle.
@@ -100,6 +107,8 @@ impl Engine {
             targets,
             cfg_tx,
             pause_tx,
+            manual_paused: AtomicBool::new(false),
+            updater_paused: AtomicBool::new(false),
             trigger_update: Notify::new(),
             abort_update: Notify::new(),
             servers_found: AtomicU64::new(0),
@@ -124,9 +133,26 @@ impl Engine {
         self.config().search_module && !*self.pause_tx.borrow()
     }
 
-    /// Manually pause/resume the search threads (Control commands).
+    /// Manually pause/resume the search threads (Control commands). Independent
+    /// of the updater's pause, so an update cycle finishing won't resume search
+    /// that the operator paused.
     pub fn set_paused(&self, paused: bool) {
-        let _ = self.pause_tx.send(paused);
+        self.manual_paused.store(paused, Ordering::Relaxed);
+        self.refresh_pause();
+    }
+
+    /// Recomputes the effective pause (`manual || updater`) and publishes it to
+    /// the search threads.
+    fn refresh_pause(&self) {
+        let effective = self.manual_paused.load(Ordering::Relaxed)
+            || self.updater_paused.load(Ordering::Relaxed);
+        let _ = self.pause_tx.send(effective);
+    }
+
+    /// Pause/resume search on behalf of the update cycle (leaves a manual pause intact).
+    fn set_updater_paused(&self, paused: bool) {
+        self.updater_paused.store(paused, Ordering::Relaxed);
+        self.refresh_pause();
     }
 
     /// Start an update cycle now, cutting short the inter-cycle interval wait.
@@ -150,9 +176,13 @@ impl Engine {
     }
 
     /// On-demand scan (discovery semantics).
+    ///
+    /// Bounded by [`PROBE_TIMEOUT`] like [`Engine::ping`]: a server that accepts
+    /// the TCP connection but never replies must not leak the task forever (the
+    /// underlying socket reads have no timeout of their own).
     pub async fn scan(&self, ip: String, port: u16) {
         self.ips_scanned.fetch_add(1, Ordering::Relaxed);
-        if let Ok(report) = probe(&ip, port, None, true, true).await {
+        if let Ok(Ok(report)) = timeout(PROBE_TIMEOUT, probe(&ip, port, None, true, true)).await {
             self.servers_found.fetch_add(1, Ordering::Relaxed);
             self.sink.discovered(report).await;
         }
@@ -249,47 +279,70 @@ async fn update_loop(engine: Arc<Engine>) {
 
         if cfg.search_module {
             info!(target: "updater", "Pausing search");
-            let _ = engine.pause_tx.send(true);
+            engine.set_updater_paused(true);
             tokio::time::sleep(Duration::from_secs(20)).await;
         }
 
         engine.updating.store(true, Ordering::Relaxed);
         info!(target: "updater", "Starting update cycle");
 
+        engine.update_total.store(0, Ordering::Relaxed);
+        engine.update_done.store(0, Ordering::Relaxed);
+        let concurrency = if cfg.update_concurrency == 0 {
+            DEFAULT_UPDATE_CONCURRENCY
+        } else {
+            cfg.update_concurrency as usize
+        };
+
         match engine
             .targets
-            .update_targets(
-                cfg.only_update_spoofable,
-                cfg.only_update_cracked,
-                cfg.update_with_connection,
-            )
+            .update_targets(cfg.only_update_spoofable, cfg.only_update_cracked)
             .await
         {
-            Ok(targets) => {
-                engine
-                    .update_total
-                    .store(targets.len() as u64, Ordering::Relaxed);
-                engine.update_done.store(0, Ordering::Relaxed);
-                let concurrency = if cfg.update_concurrency == 0 {
-                    DEFAULT_UPDATE_CONCURRENCY
-                } else {
-                    cfg.update_concurrency as usize
-                };
-                let semaphore = Arc::new(Semaphore::new(concurrency));
-                let mut set = JoinSet::new();
-                for t in targets {
-                    let permit = semaphore.clone().acquire_owned();
-                    let engine = engine.clone();
-                    set.spawn(async move {
-                        let _permit = permit.await;
-                        engine.ping(t.ip, t.port, t.with_connection).await;
-                        engine.update_done.fetch_add(1, Ordering::Relaxed);
-                    });
-                }
+            Ok(stream) => {
+                // Consume the target stream through a fixed-size pool. We acquire a
+                // permit *before* pulling the next target, so at most `concurrency`
+                // probes are in flight and at most `concurrency` tasks are ever
+                // alive — no matter how many servers the backend streams (the old
+                // code spawned one task per target up front). Reserved/invalid
+                // addresses are dropped so a compromised backend can't aim the
+                // worker at internal hosts. `update_total` now counts probeable
+                // targets as they arrive rather than being known up front.
+                let dispatch_engine = engine.clone();
+                let dispatcher = tokio::spawn(async move {
+                    let semaphore = Arc::new(Semaphore::new(concurrency));
+                    let mut set = JoinSet::new();
+                    tokio::pin!(stream);
+                    while let Some(item) = stream.next().await {
+                        let t = match item {
+                            Ok(t) => t,
+                            Err(e) => {
+                                error!(target: "updater", "target stream error: {}", e);
+                                break;
+                            }
+                        };
+                        if !worker::is_probeable_ip(&t.ip) {
+                            continue;
+                        }
+                        dispatch_engine.update_total.fetch_add(1, Ordering::Relaxed);
+                        let Ok(permit) = semaphore.clone().acquire_owned().await else {
+                            break;
+                        };
+                        let engine = dispatch_engine.clone();
+                        set.spawn(async move {
+                            let _permit = permit;
+                            engine.ping(t.ip, t.port, t.with_connection).await;
+                            engine.update_done.fetch_add(1, Ordering::Relaxed);
+                        });
+                    }
+                    while set.join_next().await.is_some() {}
+                });
+
+                let abort = dispatcher.abort_handle();
                 tokio::select! {
-                    _ = async { while set.join_next().await.is_some() {} } => {}
+                    _ = async { let _ = dispatcher.await; } => {}
                     _ = engine.abort_update.notified() => {
-                        set.abort_all();
+                        abort.abort();
                         info!(target: "updater", "Update cycle aborted");
                     }
                 }
@@ -306,7 +359,7 @@ async fn update_loop(engine: Arc<Engine>) {
         info!(target: "updater", "Update cycle finished");
 
         if cfg.search_module {
-            let _ = engine.pause_tx.send(false);
+            engine.set_updater_paused(false);
             info!(target: "updater", "Resuming search");
         }
 

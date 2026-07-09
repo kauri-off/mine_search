@@ -54,6 +54,8 @@ export const en: Translations = {
     loading: "Loading...",
     empty: "No servers found",
     end: "End of list",
+    error: "Failed to load servers",
+    retry: "Retry",
   },
   serverDetail: {
     back: "Back",
@@ -138,6 +140,8 @@ export const en: Translations = {
     offline: "Offline",
     admin: "Admin",
     other: "Other",
+    count: "Count",
+    unknown: "(unknown)",
   },
   players: {
     title: "Players",
@@ -152,6 +156,8 @@ export const en: Translations = {
     server: "Server",
     name: "Name",
     lastSeen: "Last seen",
+    error: "Failed to load players",
+    retry: "Retry",
   },
   login: {
     title: "MineSearch",

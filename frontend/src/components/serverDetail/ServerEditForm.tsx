@@ -12,7 +12,7 @@ interface ServerEditFormProps {
 }
 
 const inputClass =
-  "w-full bg-[#0d0d14] border border-[#2a2a3a] rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors";
+  "w-full bg-app-elevated border border-border rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors";
 
 const labelClass = "text-xs text-slate-500 block mb-1";
 
@@ -31,7 +31,7 @@ function Toggle({
       <button
         type="button"
         onClick={() => onChange(!value)}
-        className={`relative w-9 h-5 rounded-full transition-colors ${value ? "bg-indigo-600" : "bg-[#2a2a3a]"}`}
+        className={`relative w-9 h-5 rounded-full transition-colors ${value ? "bg-indigo-600" : "bg-border"}`}
       >
         <span
           className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${value ? "translate-x-4" : "translate-x-0.5"}`}
@@ -147,7 +147,7 @@ export const ServerEditForm = ({
       <div className="flex gap-2 pt-1">
         <button
           onClick={onCancel}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#1a1a24] border border-[#2a2a3a] text-slate-400 hover:text-slate-200 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-surface border border-border text-slate-400 hover:text-slate-200 transition-colors"
         >
           <X className="w-3 h-3" />
           {t.serverInfo.cancelEdit}

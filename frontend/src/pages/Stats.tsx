@@ -28,7 +28,7 @@ import { Spinner } from "@/components";
 import { useTranslation } from "@/i18n";
 
 const CHART_COLORS = [
-  "#6366f1",
+  "var(--color-accent)",
   "#f97316",
   "#34d399",
   "#f87171",
@@ -52,7 +52,7 @@ function StatCard({
   iconClass?: string;
 }) {
   return (
-    <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5">
+    <div className="bg-panel border border-border rounded-xl p-5">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-slate-500 uppercase tracking-wide font-medium">
           {label}
@@ -70,12 +70,12 @@ function formatMb(mb: number): string {
 
 const tooltipStyle = {
   contentStyle: {
-    backgroundColor: "#111118",
-    border: "1px solid #2a2a3a",
+    backgroundColor: "var(--color-panel)",
+    border: "1px solid var(--color-border)",
     borderRadius: "8px",
   },
   itemStyle: { color: "#94a3b8" },
-  labelStyle: { color: "#64748b" },
+  labelStyle: { color: "var(--color-muted)" },
 };
 
 export const Stats = () => {
@@ -106,7 +106,7 @@ export const Stats = () => {
   ];
 
   const versionData = stats.version_distribution.map((v) => ({
-    name: v.version || "(unknown)",
+    name: v.version || t.stats.unknown,
     count: v.count,
   }));
 
@@ -135,23 +135,23 @@ export const Stats = () => {
 
         {/* Charts */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-          <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5">
+          <div className="bg-panel border border-border rounded-xl p-5">
             <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
               {t.stats.licensedVsCracked}
             </h2>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie data={licenseData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} dataKey="value" isAnimationActive={false}>
-                  <Cell fill="#6366f1" />
+                  <Cell fill="var(--color-accent)" />
                   <Cell fill="#f97316" />
                 </Pie>
                 <Tooltip {...tooltipStyle} />
-                <Legend formatter={(v) => <span style={{ color: "#64748b", fontSize: 12 }}>{v}</span>} />
+                <Legend formatter={(v) => <span style={{ color: "var(--color-muted)", fontSize: 12 }}>{v}</span>} />
               </PieChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5">
+          <div className="bg-panel border border-border rounded-xl p-5">
             <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
               {t.stats.onlineVsOffline}
             </h2>
@@ -159,10 +159,10 @@ export const Stats = () => {
               <PieChart>
                 <Pie data={onlineData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} dataKey="value" isAnimationActive={false}>
                   <Cell fill="#22c55e" />
-                  <Cell fill="#2a2a3a" />
+                  <Cell fill="var(--color-border)" />
                 </Pie>
                 <Tooltip {...tooltipStyle} />
-                <Legend formatter={(v) => <span style={{ color: "#64748b", fontSize: 12 }}>{v}</span>} />
+                <Legend formatter={(v) => <span style={{ color: "var(--color-muted)", fontSize: 12 }}>{v}</span>} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -170,16 +170,16 @@ export const Stats = () => {
 
         {/* Versions bar chart */}
         {versionData.length > 0 && (
-          <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5 mb-6">
+          <div className="bg-panel border border-border rounded-xl p-5 mb-6">
             <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
               {t.stats.topVersions}
             </h2>
             <ResponsiveContainer width="100%" height={Math.max(200, versionData.length * 28)}>
               <BarChart data={versionData} layout="vertical" margin={{ top: 0, right: 24, bottom: 0, left: 8 }}>
-                <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <XAxis type="number" tick={{ fill: "var(--color-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="name" width={140} tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip {...tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.02)" }} />
-                <Bar dataKey="count" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+                <Bar dataKey="count" name={t.stats.count} radius={[0, 4, 4, 0]} isAnimationActive={false}>
                   {versionData.map((_, index) => (
                     <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}

@@ -30,7 +30,7 @@ export const AppShell = ({ children }: AppShellProps) => {
   const sidebarContent = (onNav?: () => void) => (
     <>
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-[#2a2a3a] flex items-center justify-between">
+      <div className="px-5 py-5 border-b border-border flex items-center justify-between">
         <span className="text-lg font-bold text-slate-100 tracking-tight">
           Mine<span className="text-indigo-400">Search</span>
         </span>
@@ -65,7 +65,7 @@ export const AppShell = ({ children }: AppShellProps) => {
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-[#2a2a3a] space-y-2">
+      <div className="px-3 py-4 border-t border-border space-y-2">
         <button
           onClick={() => {
             if (window.confirm(t.system.updateConfirm)) update.mutate();
@@ -90,7 +90,7 @@ export const AppShell = ({ children }: AppShellProps) => {
   return (
     <div className="flex h-screen flex-col md:flex-row">
       {/* Mobile header */}
-      <header className="flex md:hidden items-center px-4 h-12 bg-[#111118] border-b border-[#2a2a3a] flex-shrink-0">
+      <header className="flex md:hidden items-center px-4 h-12 bg-panel border-b border-border flex-shrink-0">
         <button
           onClick={() => setSidebarOpen(true)}
           className="p-1 text-slate-400 hover:text-slate-200 mr-3"
@@ -103,7 +103,7 @@ export const AppShell = ({ children }: AppShellProps) => {
       </header>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-56 flex-shrink-0 bg-[#111118] border-r border-[#2a2a3a] flex-col">
+      <aside className="hidden md:flex w-56 flex-shrink-0 bg-panel border-r border-border flex-col">
         {sidebarContent()}
       </aside>
 
@@ -112,7 +112,7 @@ export const AppShell = ({ children }: AppShellProps) => {
         className={`fixed inset-0 z-40 bg-black/60 md:hidden transition-opacity duration-200 ${sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
         onClick={() => setSidebarOpen(false)}
       />
-      <aside className={`fixed inset-y-0 left-0 z-50 w-56 bg-[#111118] border-r border-[#2a2a3a] flex flex-col md:hidden transition-transform duration-200 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-56 bg-panel border-r border-border flex flex-col md:hidden transition-transform duration-200 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         {sidebarContent(() => setSidebarOpen(false))}
       </aside>
 

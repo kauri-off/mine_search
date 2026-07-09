@@ -43,6 +43,9 @@ pub struct ServerInsert<'a> {
     pub version_name: &'a str,
     pub protocol: i32,
     pub description: &'a Value,
+    /// Plaintext MOTD flattened from `description`, kept as a queryable column so
+    /// free-text search can hit a trigram index instead of scanning JSONB.
+    pub motd: &'a str,
     pub is_online_mode: bool,
     pub disconnect_reason: Option<Value>,
     pub requires_mods: bool,
@@ -57,6 +60,8 @@ pub struct ServerUpdate<'a> {
     pub version_name: &'a str,
     pub protocol: i32,
     pub description: &'a serde_json::Value,
+    /// Plaintext MOTD flattened from `description` (see [`ServerInsert::motd`]).
+    pub motd: &'a str,
     pub updated_at: chrono::DateTime<Utc>,
     pub is_online: bool,
     pub requires_mods: bool,

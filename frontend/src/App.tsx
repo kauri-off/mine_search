@@ -44,7 +44,7 @@ function App() {
     <LanguageProvider>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <div className="min-h-screen bg-[#0a0a0f] text-slate-100 font-sans">
+          <div className="min-h-screen bg-app text-slate-100 font-sans">
             <ErrorBoundary>
               <Routes>
                 <Route path="/login" element={<Login />} />
