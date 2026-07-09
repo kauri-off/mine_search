@@ -26,14 +26,19 @@ export const ru: Translations = {
     reset: "Сбросить",
     triState: { all: "Все", yes: "Да", no: "Нет" },
   },
+  copyButton: {
+    copy: "Копировать",
+    copied: "Скопировано!",
+  },
   joinStatus: {
-    label: "Тип доступа",
+    label: "Состояние подключения",
     values: {
       Undetermined: "Не определён",
       Spoofable: "Без авторизации",
       Whitelist: "Белый список",
       Password: "Пароль",
       Modded: "Моды",
+      Broken: "Сломан",
     },
   },
   playerStatus: {

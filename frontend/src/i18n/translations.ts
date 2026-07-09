@@ -29,6 +29,10 @@ export interface Translations {
       no: string;
     };
   };
+  copyButton: {
+    copy: string;
+    copied: string;
+  };
   joinStatus: {
     label: string;
     values: {
@@ -37,6 +41,7 @@ export interface Translations {
       Whitelist: string;
       Password: string;
       Modded: string;
+      Broken: string;
     };
   };
   playerStatus: {

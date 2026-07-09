@@ -55,7 +55,8 @@ export type JoinStatus =
   | "Spoofable"
   | "Whitelist"
   | "Password"
-  | "Modded";
+  | "Modded"
+  | "Broken";
 
 export type AddAddrRequest = { addr: string; quick: boolean };
 

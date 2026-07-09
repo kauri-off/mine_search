@@ -90,6 +90,7 @@ fn proto_join_status(s: JoinStatus) -> i32 {
         JoinStatus::Whitelist => 2,
         JoinStatus::Password => 3,
         JoinStatus::Modded => 4,
+        JoinStatus::Broken => 5,
     }
 }
 
@@ -99,6 +100,7 @@ fn db_join_status(i: i32) -> JoinStatus {
         2 => JoinStatus::Whitelist,
         3 => JoinStatus::Password,
         4 => JoinStatus::Modded,
+        5 => JoinStatus::Broken,
         _ => JoinStatus::Undetermined,
     }
 }

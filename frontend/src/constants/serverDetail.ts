@@ -19,6 +19,7 @@ export const JOIN_STATUSES: JoinStatus[] = [
   "Whitelist",
   "Password",
   "Modded",
+  "Broken",
 ];
 
 export const JOIN_STATUS_COLOR: Record<JoinStatus, string> = {
@@ -27,4 +28,5 @@ export const JOIN_STATUS_COLOR: Record<JoinStatus, string> = {
   Whitelist: "amber",
   Password: "blue",
   Modded: "purple",
+  Broken: "red",
 };

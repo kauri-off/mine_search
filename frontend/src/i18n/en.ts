@@ -26,6 +26,10 @@ export const en: Translations = {
     reset: "Reset filters",
     triState: { all: "All", yes: "Yes", no: "No" },
   },
+  copyButton: {
+    copy: "Copy",
+    copied: "Copied!",
+  },
   joinStatus: {
     label: "Join status",
     values: {
@@ -34,6 +38,7 @@ export const en: Translations = {
       Whitelist: "Whitelisted",
       Password: "Password",
       Modded: "Modded",
+      Broken: "Broken",
     },
   },
   playerStatus: {

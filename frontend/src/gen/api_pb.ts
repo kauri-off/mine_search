@@ -1071,6 +1071,13 @@ export enum JoinStatus {
    * @generated from enum value: JOIN_STATUS_MODDED = 4;
    */
   MODDED = 4,
+
+  /**
+   * server responds but cannot be joined (broken/misconfigured)
+   *
+   * @generated from enum value: JOIN_STATUS_BROKEN = 5;
+   */
+  BROKEN = 5,
 }
 
 /**

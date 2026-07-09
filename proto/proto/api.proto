@@ -62,6 +62,7 @@ enum JoinStatus {
   JOIN_STATUS_WHITELIST = 2;   // blocked by a whitelist
   JOIN_STATUS_PASSWORD = 3;    // blocked by a login/password plugin
   JOIN_STATUS_MODDED = 4;      // kicked for missing mods on join
+  JOIN_STATUS_BROKEN = 5;      // server responds but cannot be joined (broken/misconfigured)
 }
 
 // ----- Auth -----

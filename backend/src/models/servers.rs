@@ -14,6 +14,7 @@ pub enum JoinStatus {
     Whitelist,
     Password,
     Modded,
+    Broken,
 }
 
 #[derive(Queryable, Selectable, Identifiable)]

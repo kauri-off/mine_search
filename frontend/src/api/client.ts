@@ -80,6 +80,7 @@ const JOIN_STATUS_TO_STR: Record<number, JoinStatus> = {
   [PbJoinStatus.WHITELIST]: "Whitelist",
   [PbJoinStatus.PASSWORD]: "Password",
   [PbJoinStatus.MODDED]: "Modded",
+  [PbJoinStatus.BROKEN]: "Broken",
 };
 const JOIN_STATUS_TO_NUM: Record<JoinStatus, PbJoinStatus> = {
   Undetermined: PbJoinStatus.UNDETERMINED,
@@ -87,6 +88,7 @@ const JOIN_STATUS_TO_NUM: Record<JoinStatus, PbJoinStatus> = {
   Whitelist: PbJoinStatus.WHITELIST,
   Password: PbJoinStatus.PASSWORD,
   Modded: PbJoinStatus.MODDED,
+  Broken: PbJoinStatus.BROKEN,
 };
 
 type PbServerInfo = Awaited<ReturnType<typeof client.getServerInfo>>;

@@ -1,6 +1,7 @@
 import { cn } from "@/cn";
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
+import { useTranslation } from "@/i18n";
 
 // ---------------------------------------------------------------------------
 // CopyButton
@@ -11,6 +12,7 @@ interface CopyButtonProps {
 }
 
 export const CopyButton = ({ text }: CopyButtonProps) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -22,8 +24,8 @@ export const CopyButton = ({ text }: CopyButtonProps) => {
   return (
     <button
       onClick={handleCopy}
-      title={copied ? "Copied!" : "Copy"}
-      aria-label={copied ? "Copied!" : "Copy"}
+      title={copied ? t.copyButton.copied : t.copyButton.copy}
+      aria-label={copied ? t.copyButton.copied : t.copyButton.copy}
       className={cn(
         "relative inline-flex items-center justify-center w-6 h-6 rounded-md transition-all duration-150",
         copied
@@ -41,7 +43,7 @@ export const CopyButton = ({ text }: CopyButtonProps) => {
           copied ? "opacity-100" : "opacity-0",
         )}
       >
-        Copied!
+        {t.copyButton.copied}
       </span>
     </button>
   );
@@ -112,6 +114,10 @@ const STATUS_COLORS: Record<string, { active: string; inactive: string }> = {
   },
   purple: {
     active: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+    inactive: "bg-surface text-slate-600 border-border",
+  },
+  red: {
+    active: "bg-red-500/20 text-red-300 border-red-500/40",
     inactive: "bg-surface text-slate-600 border-border",
   },
 };
