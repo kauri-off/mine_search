@@ -84,7 +84,6 @@ export const Stats = () => {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["stats"],
     queryFn: serverApi.fetchStats,
-    staleTime: Infinity,
   });
 
   if (isLoading || !stats) {
