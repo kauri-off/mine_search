@@ -6,6 +6,10 @@ exclude = ["masscan_wrapper"]
 [workspace.package]
 edition = "2024"
 
+[profile.release]
+strip = true
+lto = "thin"
+
 [workspace.dependencies]
 tokio = { version = "1.52.3", features = ["full"] }
 serde = { version = "1.0.228", features = ["derive"] }

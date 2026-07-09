@@ -219,6 +219,6 @@ export interface Translations {
     updating: string;
     updateConfirm: string;
     updateStarted: string;
-    updateError: string;
+    updateWaiting: string;
   };
 }

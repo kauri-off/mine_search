@@ -106,6 +106,12 @@ export const systemApi = {
   triggerUpdate: async (): Promise<void> => {
     await client.triggerUpdate({});
   },
+
+  // Cheap liveness probe used to detect when the backend is reachable again
+  // after an update restarts it.
+  ping: async (): Promise<void> => {
+    await client.me({}, { timeoutMs: 3000 });
+  },
 };
 
 export const serverApi = {

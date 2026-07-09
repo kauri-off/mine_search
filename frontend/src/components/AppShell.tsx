@@ -14,10 +14,29 @@ interface AppShellProps {
 export const AppShell = ({ children }: AppShellProps) => {
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [waitingRestart, setWaitingRestart] = useState(false);
 
   // Triggers a watchtower run (pull new images + recreate containers). Shared by
   // the desktop and mobile sidebars, so both reflect the in-flight state.
-  const update = useMutation({ mutationFn: systemApi.triggerUpdate });
+  // The run usually recreates the backend itself, killing this request
+  // mid-flight — so on error we assume the stack is restarting, ping the
+  // backend until it answers again, then reload to pick up the new build.
+  const update = useMutation({
+    mutationFn: systemApi.triggerUpdate,
+    onError: async () => {
+      setWaitingRestart(true);
+      for (;;) {
+        try {
+          await systemApi.ping();
+          break;
+        } catch {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      }
+      window.location.reload();
+    },
+  });
+  const updateBusy = update.isPending || waitingRestart;
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
@@ -70,17 +89,17 @@ export const AppShell = ({ children }: AppShellProps) => {
           onClick={() => {
             if (window.confirm(t.system.updateConfirm)) update.mutate();
           }}
-          disabled={update.isPending}
+          disabled={updateBusy}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-indigo-600/20 border border-indigo-600/40 text-indigo-300 hover:bg-indigo-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          <RefreshCw className={cn("w-4 h-4 flex-shrink-0", update.isPending && "animate-spin")} />
-          {update.isPending ? t.system.updating : t.system.updateStack}
+          <RefreshCw className={cn("w-4 h-4 flex-shrink-0", updateBusy && "animate-spin")} />
+          {updateBusy ? t.system.updating : t.system.updateStack}
         </button>
         {update.isSuccess && (
           <p className="text-xs text-green-400 text-center">{t.system.updateStarted}</p>
         )}
-        {update.isError && (
-          <p className="text-xs text-red-400 text-center">{t.system.updateError}</p>
+        {waitingRestart && (
+          <p className="text-xs text-amber-400 text-center">{t.system.updateWaiting}</p>
         )}
         <LanguageSwitcher />
       </div>

@@ -216,6 +216,6 @@ export const ru: Translations = {
     updating: "Обновление...",
     updateConfirm: "Загрузить новые образы и перезапустить все контейнеры?",
     updateStarted: "Обновление запущено",
-    updateError: "Ошибка обновления",
+    updateWaiting: "Перезапуск — ожидание сервера...",
   },
 };

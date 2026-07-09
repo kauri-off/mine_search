@@ -216,6 +216,6 @@ export const en: Translations = {
     updating: "Updating...",
     updateConfirm: "Pull new images and restart all containers now?",
     updateStarted: "Update triggered",
-    updateError: "Update failed",
+    updateWaiting: "Restarting — waiting for the backend...",
   },
 };
