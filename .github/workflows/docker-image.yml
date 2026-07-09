@@ -26,6 +26,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # No cache-to here: this build's layers are all reachable from the backend
+      # target below, whose export covers them. Only the worker runtime stage is
+      # left uncached, and it is a COPY of the binary.
       - name: Build and Push Worker image
         uses: docker/build-push-action@v6
         with:
@@ -33,9 +36,10 @@ jobs:
           file: rust.Dockerfile
           target: worker
           push: true
+          provenance: false
+          sbom: false
           tags: ghcr.io/${{ github.repository }}/worker:latest
-          cache-from: type=gha,scope=rust
-          cache-to: type=gha,scope=rust,mode=max
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/cache:rust
 
       - name: Build and Push Backend image
         uses: docker/build-push-action@v6
@@ -44,9 +48,11 @@ jobs:
           file: rust.Dockerfile
           target: backend
           push: true
+          provenance: false
+          sbom: false
           tags: ghcr.io/${{ github.repository }}/backend:latest
-          cache-from: type=gha,scope=rust
-          cache-to: type=gha,scope=rust,mode=max
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/cache:rust
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/cache:rust,mode=max,compression=zstd,image-manifest=true,oci-mediatypes=true
 
   build-frontend:
     runs-on: ubuntu-latest
@@ -68,6 +74,8 @@ jobs:
           context: .
           file: frontend.Dockerfile
           push: true
+          provenance: false
+          sbom: false
           tags: ghcr.io/${{ github.repository }}/frontend:latest
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,scope=frontend,mode=max
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/cache:frontend
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/cache:frontend,mode=max,compression=zstd,image-manifest=true,oci-mediatypes=true
