@@ -1,7 +1,7 @@
 import { createClient, type Interceptor, ConnectError, Code } from "@connectrpc/connect";
 import { createGrpcWebTransport } from "@connectrpc/connect-web";
 import { Api } from "@/gen/api_pb";
-import { PlayerStatus as PbPlayerStatus } from "@/gen/api_pb";
+import { PlayerStatus as PbPlayerStatus, JoinStatus as PbJoinStatus } from "@/gen/api_pb";
 import type { WorkerInfo } from "@/gen/api_pb";
 import { Control } from "@/gen/worker_pb";
 import type {
@@ -23,6 +23,7 @@ import type {
   PlayerSearchRequest,
   PlayerSearchResponse,
   PlayerStatus,
+  JoinStatus,
 } from "@/types";
 
 const TOKEN_KEY = "ms_token";
@@ -73,6 +74,21 @@ const STATUS_TO_NUM: Record<PlayerStatus, PbPlayerStatus> = {
   Admin: PbPlayerStatus.ADMIN,
 };
 
+const JOIN_STATUS_TO_STR: Record<number, JoinStatus> = {
+  [PbJoinStatus.UNDETERMINED]: "Undetermined",
+  [PbJoinStatus.SPOOFABLE]: "Spoofable",
+  [PbJoinStatus.WHITELIST]: "Whitelist",
+  [PbJoinStatus.PASSWORD]: "Password",
+  [PbJoinStatus.MODDED]: "Modded",
+};
+const JOIN_STATUS_TO_NUM: Record<JoinStatus, PbJoinStatus> = {
+  Undetermined: PbJoinStatus.UNDETERMINED,
+  Spoofable: PbJoinStatus.SPOOFABLE,
+  Whitelist: PbJoinStatus.WHITELIST,
+  Password: PbJoinStatus.PASSWORD,
+  Modded: PbJoinStatus.MODDED,
+};
+
 type PbServerInfo = Awaited<ReturnType<typeof client.getServerInfo>>;
 const toServerInfo = (s: PbServerInfo): ServerInfoResponse => ({
   id: s.id,
@@ -87,7 +103,7 @@ const toServerInfo = (s: PbServerInfo): ServerInfoResponse => ({
   description_html: s.descriptionHtml,
   was_online: s.wasOnline,
   is_checked: s.isChecked,
-  is_spoofable: u(s.isSpoofable),
+  join_status: JOIN_STATUS_TO_STR[s.joinStatus] ?? "Undetermined",
   is_crashed: s.isCrashed,
   requires_mods: s.requiresMods,
   favicon: u(s.favicon),
@@ -147,7 +163,7 @@ export const serverApi = {
       offsetId: u(body.offset_id) ?? undefined,
       licensed: u(body.licensed) ?? undefined,
       checked: u(body.checked) ?? undefined,
-      spoofable: u(body.spoofable) ?? undefined,
+      joinStatus: body.join_status ? JOIN_STATUS_TO_NUM[body.join_status] : undefined,
       crashed: u(body.crashed) ?? undefined,
       hasPlayers: u(body.has_players) ?? undefined,
       online: u(body.online) ?? undefined,
@@ -192,7 +208,7 @@ export const serverApi = {
     client.updateServer({
       serverIp: body.server_ip,
       isChecked: u(body.is_checked) ?? undefined,
-      isSpoofable: u(body.is_spoofable) ?? undefined,
+      joinStatus: body.join_status ? JOIN_STATUS_TO_NUM[body.join_status] : undefined,
       isCrashed: u(body.is_crashed) ?? undefined,
     }),
 
@@ -229,7 +245,7 @@ export const serverApi = {
       ping: body.ping === null || body.ping === undefined ? undefined : BigInt(body.ping),
       favicon: u(body.favicon) ?? undefined,
       isChecked: u(body.is_checked) ?? undefined,
-      isSpoofable: u(body.is_spoofable) ?? undefined,
+      joinStatus: body.join_status ? JOIN_STATUS_TO_NUM[body.join_status] : undefined,
       isCrashed: u(body.is_crashed) ?? undefined,
     }),
 

@@ -2,9 +2,10 @@ import { Pencil, Radio, Trash2, Link2, Wifi, Server } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/cn";
 import type { WorkerInfo } from "@/gen/api_pb";
-import type { ServerInfoResponse, OverwriteServerRequest } from "@/types";
-import { CopyButton, ToggleButton } from "@/components";
-import type { ToggleField } from "@/constants/serverDetail";
+import type { ServerInfoResponse, OverwriteServerRequest, JoinStatus } from "@/types";
+import { CopyButton, ToggleButton, StatusBlock } from "@/components";
+import type { ServerFlagField } from "@/constants/serverDetail";
+import { JOIN_STATUSES, JOIN_STATUS_COLOR } from "@/constants/serverDetail";
 import { useTranslation } from "@/i18n";
 import { ServerEditForm } from "./ServerEditForm";
 
@@ -41,7 +42,8 @@ interface ServerInfoCardProps {
   isEditing: boolean;
   isEditPending: boolean;
   editError: string | null;
-  onToggle: (field: ToggleField) => void;
+  onFlagToggle: (field: ServerFlagField) => void;
+  onJoinStatusChange: (status: JoinStatus) => void;
   onPingRequest: () => void;
   onWorkerSelect: (workerId: string) => void;
   onPing: (withConnection: boolean) => void;
@@ -64,7 +66,8 @@ export const ServerInfoCard = ({
   isEditing,
   isEditPending,
   editError,
-  onToggle,
+  onFlagToggle,
+  onJoinStatusChange,
   onPingRequest,
   onWorkerSelect,
   onPing,
@@ -168,7 +171,7 @@ export const ServerInfoCard = ({
             </span>
           </InfoRow>
 
-          {/* Management toggles */}
+          {/* Management */}
           <div className="pt-3 space-y-2">
             <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">
               {t.serverInfo.management}
@@ -176,19 +179,32 @@ export const ServerInfoCard = ({
             <ToggleButton
               label={t.serverInfo.checked}
               active={!!server.is_checked}
-              onClick={() => onToggle("is_checked")}
-            />
-            <ToggleButton
-              label={t.serverInfo.spoofable}
-              active={!!server.is_spoofable}
-              onClick={() => onToggle("is_spoofable")}
+              onClick={() => onFlagToggle("is_checked")}
             />
             <ToggleButton
               label={t.serverInfo.crashed}
               active={!!server.is_crashed}
-              onClick={() => onToggle("is_crashed")}
+              onClick={() => onFlagToggle("is_crashed")}
               color="red"
             />
+
+            {/* Join status: independent enum, one value at a time */}
+            <div className="pt-1">
+              <p className="text-xs text-slate-500 mb-1.5">{t.joinStatus.label}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {JOIN_STATUSES.map((status) => (
+                  <StatusBlock
+                    key={status}
+                    label={t.joinStatus.values[status]}
+                    active={server.join_status === status}
+                    activeColor={JOIN_STATUS_COLOR[status]}
+                    onClick={() => {
+                      if (server.join_status !== status) onJoinStatusChange(status);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

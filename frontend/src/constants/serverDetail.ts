@@ -1,4 +1,4 @@
-import type { PlayerStatus } from "@/types";
+import type { PlayerStatus, JoinStatus } from "@/types";
 
 export const PLAYER_STATUSES: PlayerStatus[] = ["None", "Regular", "Admin"];
 
@@ -8,6 +8,23 @@ export const PLAYER_STATUS_COLOR: Record<PlayerStatus, string> = {
   Admin: "amber",
 };
 
-/** Fields that are mutually exclusive when toggling server flags. */
-export const EXCLUSIVE_TOGGLE_FIELDS = ["is_checked", "is_spoofable", "is_crashed"] as const;
-export type ToggleField = (typeof EXCLUSIVE_TOGGLE_FIELDS)[number];
+/** Independent boolean server flags (checked / crashed) toggled one at a time. */
+export const SERVER_FLAG_FIELDS = ["is_checked", "is_crashed"] as const;
+export type ServerFlagField = (typeof SERVER_FLAG_FIELDS)[number];
+
+/** The join_status enum values, in display order. */
+export const JOIN_STATUSES: JoinStatus[] = [
+  "Undetermined",
+  "Spoofable",
+  "Whitelist",
+  "Password",
+  "Modded",
+];
+
+export const JOIN_STATUS_COLOR: Record<JoinStatus, string> = {
+  Undetermined: "gray",
+  Spoofable: "green",
+  Whitelist: "amber",
+  Password: "blue",
+  Modded: "purple",
+};

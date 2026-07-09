@@ -34,7 +34,7 @@ function Toggle({
         className={`relative w-9 h-5 rounded-full transition-colors ${value ? "bg-indigo-600" : "bg-border"}`}
       >
         <span
-          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${value ? "translate-x-4" : "translate-x-0.5"}`}
+          className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${value ? "translate-x-4" : "translate-x-0"}`}
         />
       </button>
     </div>
@@ -74,7 +74,7 @@ export const ServerEditForm = ({
       ping: (pingNum as unknown) as bigint,
       favicon: favicon || null,
       is_checked: null,
-      is_spoofable: null,
+      join_status: null,
       is_crashed: null,
     };
     onSave(body);

@@ -54,6 +54,16 @@ enum PlayerStatus {
   PLAYER_STATUS_ADMIN = 2;
 }
 
+// Manual "how do I get in" classification for a server, set by an operator.
+// Independent of `is_checked`/`is_crashed` and of the auto-detected `requires_mods`.
+enum JoinStatus {
+  JOIN_STATUS_UNDETERMINED = 0;
+  JOIN_STATUS_SPOOFABLE = 1;   // any nickname can join, no auth gate
+  JOIN_STATUS_WHITELIST = 2;   // blocked by a whitelist
+  JOIN_STATUS_PASSWORD = 3;    // blocked by a login/password plugin
+  JOIN_STATUS_MODDED = 4;      // kicked for missing mods on join
+}
+
 // ----- Auth -----
 message LoginRequest {
   string password = 1;
@@ -88,7 +98,7 @@ message ServerListRequest {
   optional int32 offset_id = 2;
   optional bool licensed = 3;
   optional bool checked = 4;
-  optional bool spoofable = 5;
+  optional JoinStatus join_status = 5;
   optional bool crashed = 6;
   optional bool has_players = 7;
   optional bool online = 8;
@@ -111,7 +121,7 @@ message ServerInfo {
   string description_html = 10;
   bool was_online = 11;
   bool is_checked = 12;
-  optional bool is_spoofable = 13;
+  JoinStatus join_status = 13;
   bool is_crashed = 14;
   bool requires_mods = 15;
   optional string favicon = 16;
@@ -143,7 +153,7 @@ message ServerSnapshotsResponse {
 message UpdateServerRequest {
   string server_ip = 1;
   optional bool is_checked = 2;
-  optional bool is_spoofable = 3;
+  optional JoinStatus join_status = 3;
   optional bool is_crashed = 4;
 }
 
@@ -158,7 +168,7 @@ message OverwriteServerRequest {
   optional int64 ping = 8;
   optional string favicon = 9;
   optional bool is_checked = 10;
-  optional bool is_spoofable = 11;
+  optional JoinStatus join_status = 11;
   optional bool is_crashed = 12;
 }
 

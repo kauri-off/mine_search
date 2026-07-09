@@ -17,7 +17,6 @@ export const en: Translations = {
     fields: {
       licensed: "Licensed",
       checked: "Checked",
-      spoofable: "Spoofable",
       crashed: "Crashed",
       has_players: "Has Players",
       online: "Online",
@@ -26,6 +25,24 @@ export const en: Translations = {
     },
     reset: "Reset filters",
     triState: { all: "All", yes: "Yes", no: "No" },
+  },
+  joinStatus: {
+    label: "Join status",
+    values: {
+      Undetermined: "Undetermined",
+      Spoofable: "Spoofable",
+      Whitelist: "Whitelisted",
+      Password: "Password",
+      Modded: "Modded",
+    },
+  },
+  playerStatus: {
+    label: "Player status",
+    values: {
+      None: "None",
+      Regular: "Regular",
+      Admin: "Admin",
+    },
   },
   workerSelect: {
     label: "Worker",
@@ -75,7 +92,6 @@ export const en: Translations = {
     no: "No",
     management: "Management",
     checked: "Checked",
-    spoofable: "Spoofable",
     crashed: "Crashed",
     ping: "Ping",
     ms: "ms",

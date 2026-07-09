@@ -61,7 +61,7 @@ export const PlayersTable = ({
                       {PLAYER_STATUSES.map((status) => (
                         <StatusBlock
                           key={status}
-                          label={status}
+                          label={t.playerStatus.values[status]}
                           active={player.status === status}
                           activeColor={PLAYER_STATUS_COLOR[status]}
                           onClick={() => {

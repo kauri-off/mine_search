@@ -1,15 +1,16 @@
 import { useTranslation } from "@/i18n";
 import type { Filters } from "@/constants/dashboardFilters";
+import type { JoinStatus } from "@/types";
+import { JOIN_STATUSES } from "@/constants/serverDetail";
 import { X } from "lucide-react";
 import { TriStateSelect } from "./TriStateSelect";
 
-type BoolFilterKey = keyof Omit<Filters, "limit" | "query">;
+type BoolFilterKey = keyof Omit<Filters, "limit" | "query" | "join_status">;
 
 const BOOL_FILTERS: BoolFilterKey[] = [
   "online",
   "licensed",
   "checked",
-  "spoofable",
   "crashed",
   "requires_mods",
   "has_players",
@@ -20,6 +21,7 @@ interface FilterSidebarProps {
   filters: Filters;
   filtersActive: boolean;
   onBoolChange: (key: BoolFilterKey, value: boolean | null) => void;
+  onJoinStatusChange: (value: JoinStatus | null) => void;
   onQueryChange: (value: string) => void;
   onReset: () => void;
   onClose?: () => void;
@@ -29,6 +31,7 @@ export const FilterSidebar = ({
   filters,
   filtersActive,
   onBoolChange,
+  onJoinStatusChange,
   onQueryChange,
   onReset,
   onClose,
@@ -76,6 +79,24 @@ export const FilterSidebar = ({
             </div>
           );
         })}
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-400">{t.joinStatus.label}</label>
+          <select
+            value={filters.join_status ?? ""}
+            onChange={(e) =>
+              onJoinStatusChange((e.target.value || null) as JoinStatus | null)
+            }
+            className="w-full bg-surface border border-border rounded-lg px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+          >
+            <option value="">{t.filters.triState.all}</option>
+            {JOIN_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {t.joinStatus.values[status]}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {filtersActive && (

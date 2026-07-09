@@ -17,7 +17,9 @@ use crate::{
     models::{
         player_count_snapshots::SnapshotInsert,
         players::PlayerInsert,
-        servers::{ServerExtraUpdate, ServerInsert, ServerModel, ServerModelMini, ServerUpdate},
+        servers::{
+            JoinStatus, ServerExtraUpdate, ServerInsert, ServerModel, ServerModelMini, ServerUpdate,
+        },
     },
     schema,
 };
@@ -358,7 +360,7 @@ pub async fn fetch_update_targets_batch(
     let mut conn = db.conn().await?;
 
     let spoofable_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = if only_spoofable {
-        Box::new(schema::servers::is_spoofable.assume_not_null().eq(true))
+        Box::new(schema::servers::join_status.eq(JoinStatus::Spoofable))
     } else {
         Box::new(diesel::dsl::sql::<Bool>("TRUE"))
     };

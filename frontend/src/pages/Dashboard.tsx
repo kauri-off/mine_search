@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { Dialog, DialogPanel } from "@headlessui/react";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
-import type { ServerInfoResponse } from "@/types";
+import type { ServerInfoResponse, JoinStatus } from "@/types";
 import { serverApi } from "@/api/client";
 import {
   areFiltersDefault,
@@ -17,7 +17,7 @@ import { ServerGrid } from "@/components/dashboard/ServerGrid";
 import { useTranslation } from "@/i18n";
 import { Plus, Upload, SlidersHorizontal, X } from "lucide-react";
 
-type BoolFilterKey = keyof Omit<Filters, "limit" | "query">;
+type BoolFilterKey = keyof Omit<Filters, "limit" | "query" | "join_status">;
 
 export const Dashboard = () => {
   const { t } = useTranslation();
@@ -81,6 +81,14 @@ export const Dashboard = () => {
     });
   };
 
+  const setJoinStatusFilter = (value: JoinStatus | null) => {
+    setFilters((prev) => {
+      const next = { ...prev, join_status: value };
+      saveFilters(next);
+      return next;
+    });
+  };
+
   const handleQueryChange = (value: string) => {
     setQueryDebounced(value);
     if (queryInputTimer) clearTimeout(queryInputTimer);
@@ -113,6 +121,7 @@ export const Dashboard = () => {
     filters: { ...filters, query: queryDebounced || null },
     filtersActive,
     onBoolChange: setBoolFilter,
+    onJoinStatusChange: setJoinStatusFilter,
     onQueryChange: handleQueryChange,
     onReset: resetFilters,
   };

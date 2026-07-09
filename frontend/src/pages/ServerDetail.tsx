@@ -9,10 +9,15 @@ import type {
   UpdatePlayerRequest,
   UpdateServerRequest,
   OverwriteServerRequest,
+  JoinStatus,
 } from "@/types";
 import { serverApi, workerApi } from "@/api/client";
-import type { ToggleField } from "@/constants/serverDetail";
-import { buildChartData, buildToggleUpdate } from "@/utils/serverDetailHelpers";
+import type { ServerFlagField } from "@/constants/serverDetail";
+import {
+  buildChartData,
+  buildFlagUpdate,
+  buildJoinStatusUpdate,
+} from "@/utils/serverDetailHelpers";
 import { useTranslation } from "@/i18n";
 import { ServerInfoCard } from "@/components/serverDetail/ServerInfoCard";
 import { HtmlCard } from "@/components/serverDetail/HtmlCard";
@@ -78,7 +83,7 @@ export const ServerDetail = () => {
         return {
           ...old,
           ...(body.is_checked !== null && { is_checked: body.is_checked }),
-          ...(body.is_spoofable !== null && { is_spoofable: body.is_spoofable }),
+          ...(body.join_status !== null && { join_status: body.join_status }),
           ...(body.is_crashed !== null && { is_crashed: body.is_crashed }),
         };
       });
@@ -191,9 +196,14 @@ export const ServerDetail = () => {
 
   // -- Handlers --------------------------------------------------------------
 
-  const handleToggle = (field: ToggleField) => {
+  const handleFlagToggle = (field: ServerFlagField) => {
     if (!server) return;
-    updateMutation.mutate(buildToggleUpdate(server.ip, field, server[field]));
+    updateMutation.mutate(buildFlagUpdate(server.ip, field, server[field]));
+  };
+
+  const handleJoinStatusChange = (status: JoinStatus) => {
+    if (!server) return;
+    updateMutation.mutate(buildJoinStatusUpdate(server.ip, status));
   };
 
   const handlePingRequest = () => {
@@ -265,7 +275,8 @@ export const ServerDetail = () => {
                 isEditing={isEditing}
                 isEditPending={overwriteMutation.isPending}
                 editError={editError}
-                onToggle={handleToggle}
+                onFlagToggle={handleFlagToggle}
+                onJoinStatusChange={handleJoinStatusChange}
                 onPingRequest={handlePingRequest}
                 onWorkerSelect={handleWorkerSelect}
                 onPing={handlePing}

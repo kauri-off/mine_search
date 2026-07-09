@@ -16,7 +16,6 @@ export interface Translations {
     fields: {
       licensed: string;
       checked: string;
-      spoofable: string;
       crashed: string;
       has_players: string;
       online: string;
@@ -28,6 +27,24 @@ export interface Translations {
       all: string;
       yes: string;
       no: string;
+    };
+  };
+  joinStatus: {
+    label: string;
+    values: {
+      Undetermined: string;
+      Spoofable: string;
+      Whitelist: string;
+      Password: string;
+      Modded: string;
+    };
+  };
+  playerStatus: {
+    label: string;
+    values: {
+      None: string;
+      Regular: string;
+      Admin: string;
     };
   };
   workerSelect: {
@@ -78,7 +95,6 @@ export interface Translations {
     no: string;
     management: string;
     checked: string;
-    spoofable: string;
     crashed: string;
     ping: string;
     ms: string;

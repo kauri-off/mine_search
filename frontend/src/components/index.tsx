@@ -106,6 +106,14 @@ const STATUS_COLORS: Record<string, { active: string; inactive: string }> = {
     active: "bg-amber-500/20 text-amber-300 border-amber-500/40",
     inactive: "bg-surface text-slate-600 border-border",
   },
+  green: {
+    active: "bg-green-500/20 text-green-300 border-green-500/40",
+    inactive: "bg-surface text-slate-600 border-border",
+  },
+  purple: {
+    active: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+    inactive: "bg-surface text-slate-600 border-border",
+  },
 };
 
 interface StatusBlockProps {

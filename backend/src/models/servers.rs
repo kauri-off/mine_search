@@ -2,6 +2,20 @@ use chrono::Utc;
 use diesel::prelude::*;
 use serde_json::Value;
 
+/// Manual "how do I get in" classification for a server, set by an operator after
+/// probing it. Independent of `is_checked`/`is_crashed` and of the auto-detected
+/// `requires_mods`. Postgres enum `join_status`; variants lowercase to the DB
+/// labels via `diesel_derive_enum` (see [`crate::models::players::PlayerStatus`]).
+#[derive(diesel_derive_enum::DbEnum, Debug, Clone, Copy, PartialEq, Eq)]
+#[ExistingTypePath = "crate::schema::sql_types::JoinStatus"]
+pub enum JoinStatus {
+    Undetermined,
+    Spoofable,
+    Whitelist,
+    Password,
+    Modded,
+}
+
 #[derive(Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::servers)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -15,7 +29,7 @@ pub struct ServerModel {
     pub is_online_mode: bool,
     pub disconnect_reason: Option<Value>,
     pub is_checked: bool,
-    pub is_spoofable: Option<bool>,
+    pub join_status: JoinStatus,
     pub is_crashed: bool,
     pub is_online: bool,
     pub requires_mods: bool,

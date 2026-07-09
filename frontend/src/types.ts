@@ -48,6 +48,15 @@ export type PlayerSearchResponse = {
 
 // ----- Servers -----
 
+// Manual "how do I get in" classification, set by an operator. Independent of
+// is_checked / is_crashed and of the auto-detected requires_mods.
+export type JoinStatus =
+  | "Undetermined"
+  | "Spoofable"
+  | "Whitelist"
+  | "Password"
+  | "Modded";
+
 export type AddAddrRequest = { addr: string; quick: boolean };
 
 export type ServerDeleteRequest = { id: number };
@@ -67,7 +76,7 @@ export type ServerInfoResponse = {
   description_html: string;
   was_online: boolean;
   is_checked: boolean;
-  is_spoofable: boolean | null;
+  join_status: JoinStatus;
   is_crashed: boolean;
   requires_mods: boolean;
   favicon: string | null;
@@ -79,7 +88,7 @@ export type ServerListRequest = {
   offset_id: number | null;
   licensed: boolean | null;
   checked: boolean | null;
-  spoofable: boolean | null;
+  join_status: JoinStatus | null;
   crashed: boolean | null;
   has_players: boolean | null;
   online: boolean | null;
@@ -92,7 +101,7 @@ export type ServerListRequest = {
 export type UpdateServerRequest = {
   server_ip: string;
   is_checked: boolean | null;
-  is_spoofable: boolean | null;
+  join_status: JoinStatus | null;
   is_crashed: boolean | null;
 };
 
@@ -107,7 +116,7 @@ export type OverwriteServerRequest = {
   ping: bigint | null;
   favicon: string | null;
   is_checked: boolean | null;
-  is_spoofable: boolean | null;
+  join_status: JoinStatus | null;
   is_crashed: boolean | null;
 };
 

@@ -8,7 +8,7 @@ use crate::{
     models::{
         player_count_snapshots::SnapshotModel,
         players::{PlayerModel, PlayerStatus as DbStatus, PlayerUpdate},
-        servers::{ServerModel, ServerModelMini},
+        servers::{JoinStatus, ServerModel, ServerModelMini},
     },
     schema::{self, players, servers},
 };
@@ -83,6 +83,26 @@ fn db_status(i: i32) -> DbStatus {
     }
 }
 
+fn proto_join_status(s: JoinStatus) -> i32 {
+    match s {
+        JoinStatus::Undetermined => 0,
+        JoinStatus::Spoofable => 1,
+        JoinStatus::Whitelist => 2,
+        JoinStatus::Password => 3,
+        JoinStatus::Modded => 4,
+    }
+}
+
+fn db_join_status(i: i32) -> JoinStatus {
+    match i {
+        1 => JoinStatus::Spoofable,
+        2 => JoinStatus::Whitelist,
+        3 => JoinStatus::Password,
+        4 => JoinStatus::Modded,
+        _ => JoinStatus::Undetermined,
+    }
+}
+
 /// Escapes the LIKE/ILIKE wildcards (`%`, `_`) and the escape char (`\`) in a
 /// user-supplied search needle so it is matched literally inside `%...%`.
 fn escape_like(input: &str) -> String {
@@ -106,7 +126,7 @@ fn server_info(server: ServerModel, snap: SnapshotModel) -> ServerInfo {
         description_html: parse_html(server.description),
         was_online: server.is_online,
         is_checked: server.is_checked,
-        is_spoofable: server.is_spoofable,
+        join_status: proto_join_status(server.join_status),
         is_crashed: server.is_crashed,
         requires_mods: server.requires_mods,
         favicon: server.favicon,
@@ -241,9 +261,8 @@ impl Api for ApiService {
 
         // All per-`servers` counts (plus avg ping and total favicon bytes) fold
         // into one aggregate pass using `count(*) FILTER (...)`, replacing the
-        // former ~8 sequential round-trips with a single query. `is_spoofable`
-        // is nullable — `FILTER (WHERE is_spoofable)` counts only TRUE rows,
-        // matching the old `.eq(true)`.
+        // former ~8 sequential round-trips with a single query. The "spoofable"
+        // count is the servers manually classified as `join_status = 'spoofable'`.
         #[derive(diesel::QueryableByName)]
         struct ServerAgg {
             #[diesel(sql_type = BigInt)]
@@ -270,7 +289,7 @@ impl Api for ApiService {
                 count(*) FILTER (WHERE is_online) AS online, \
                 count(*) FILTER (WHERE is_crashed) AS crashed, \
                 count(*) FILTER (WHERE requires_mods) AS mod_required, \
-                count(*) FILTER (WHERE is_spoofable) AS spoofable, \
+                count(*) FILTER (WHERE join_status = 'spoofable') AS spoofable, \
                 AVG(ping)::float8 AS avg_ping, \
                 COALESCE(SUM(octet_length(favicon)), 0) AS favicon_bytes \
              FROM servers",
@@ -363,8 +382,8 @@ impl Api for ApiService {
             Some(v) => Box::new(servers::is_checked.assume_not_null().eq(v)),
             None => Box::new(sql::<Bool>("TRUE")),
         };
-        let spoofable: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.spoofable {
-            Some(v) => Box::new(servers::is_spoofable.assume_not_null().eq(v)),
+        let join_status: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.join_status {
+            Some(v) => Box::new(servers::join_status.eq(db_join_status(v))),
             None => Box::new(sql::<Bool>("TRUE")),
         };
         let crashed: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.crashed {
@@ -425,7 +444,7 @@ impl Api for ApiService {
             .filter(pagination)
             .filter(license)
             .filter(checked)
-            .filter(spoofable)
+            .filter(join_status)
             .filter(crashed)
             .filter(has_players)
             .filter(has_none_players)
@@ -545,7 +564,7 @@ impl Api for ApiService {
         #[diesel(table_name = servers)]
         struct Options {
             is_checked: Option<bool>,
-            is_spoofable: Option<bool>,
+            join_status: Option<JoinStatus>,
             is_crashed: Option<bool>,
         }
 
@@ -553,7 +572,7 @@ impl Api for ApiService {
             .filter(servers::ip.eq(&body.server_ip))
             .set(Options {
                 is_checked: body.is_checked,
-                is_spoofable: body.is_spoofable,
+                join_status: body.join_status.map(db_join_status),
                 is_crashed: body.is_crashed,
             })
             .execute(&mut conn)
@@ -589,7 +608,7 @@ impl Api for ApiService {
             ping: Option<i64>,
             favicon: Option<String>,
             is_checked: Option<bool>,
-            is_spoofable: Option<bool>,
+            join_status: Option<JoinStatus>,
             is_crashed: Option<bool>,
         }
 
@@ -605,7 +624,7 @@ impl Api for ApiService {
                 ping: body.ping,
                 favicon: body.favicon,
                 is_checked: body.is_checked,
-                is_spoofable: body.is_spoofable,
+                join_status: body.join_status.map(db_join_status),
                 is_crashed: body.is_crashed,
             })
             .execute(&mut conn)

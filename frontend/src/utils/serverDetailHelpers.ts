@@ -1,23 +1,36 @@
-import type { UpdateServerRequest } from "@/types";
-import {
-  EXCLUSIVE_TOGGLE_FIELDS,
-  type ToggleField,
-} from "@/constants/serverDetail";
+import type { JoinStatus, UpdateServerRequest } from "@/types";
+import type { ServerFlagField } from "@/constants/serverDetail";
 
 /**
- * Builds an UpdateServerRequest that flips `field` and resets all other
- * exclusive fields to null (the API treats them as mutually exclusive).
+ * Builds an UpdateServerRequest that flips a single boolean flag (checked /
+ * crashed). The other fields are left null, and the backend skips null columns
+ * (Diesel `AsChangeset` treats `None` as "don't touch"), so each flag is
+ * independent — toggling one no longer clears the others.
  */
-export function buildToggleUpdate(
+export function buildFlagUpdate(
   serverIp: string,
-  field: ToggleField,
-  currentValue: boolean | null,
+  field: ServerFlagField,
+  currentValue: boolean,
 ): UpdateServerRequest {
-  const resets = Object.fromEntries(
-    EXCLUSIVE_TOGGLE_FIELDS.filter((f) => f !== field).map((f) => [f, null]),
-  ) as Record<ToggleField, null>;
+  return {
+    server_ip: serverIp,
+    is_checked: field === "is_checked" ? !currentValue : null,
+    join_status: null,
+    is_crashed: field === "is_crashed" ? !currentValue : null,
+  };
+}
 
-  return { server_ip: serverIp, ...resets, [field]: !currentValue };
+/** Builds an UpdateServerRequest that sets only the join_status enum. */
+export function buildJoinStatusUpdate(
+  serverIp: string,
+  status: JoinStatus,
+): UpdateServerRequest {
+  return {
+    server_ip: serverIp,
+    is_checked: null,
+    join_status: status,
+    is_crashed: null,
+  };
 }
 
 export function buildChartData(

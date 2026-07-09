@@ -2,6 +2,10 @@
 
 pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "join_status"))]
+    pub struct JoinStatus;
+
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "player_status"))]
     pub struct PlayerStatus;
 }
@@ -36,6 +40,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::JoinStatus;
+
     servers (id) {
         id -> Int4,
         ip -> Varchar,
@@ -45,7 +52,6 @@ diesel::table! {
         description -> Jsonb,
         is_online_mode -> Bool,
         is_checked -> Bool,
-        is_spoofable -> Nullable<Bool>,
         is_crashed -> Bool,
         is_online -> Bool,
         created_at -> Timestamptz,
@@ -55,6 +61,7 @@ diesel::table! {
         favicon -> Nullable<Text>,
         ping -> Nullable<Int8>,
         motd -> Text,
+        join_status -> JoinStatus,
     }
 }
 

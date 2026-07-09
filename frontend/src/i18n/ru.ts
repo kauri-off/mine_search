@@ -17,7 +17,6 @@ export const ru: Translations = {
     fields: {
       licensed: "Лицензия",
       checked: "Проверен",
-      spoofable: "Без авторизации",
       crashed: "Загриферен",
       has_players: "С игроками",
       online: "Онлайн",
@@ -26,6 +25,24 @@ export const ru: Translations = {
     },
     reset: "Сбросить",
     triState: { all: "Все", yes: "Да", no: "Нет" },
+  },
+  joinStatus: {
+    label: "Тип доступа",
+    values: {
+      Undetermined: "Не определён",
+      Spoofable: "Без авторизации",
+      Whitelist: "Белый список",
+      Password: "Пароль",
+      Modded: "Моды",
+    },
+  },
+  playerStatus: {
+    label: "Статус игрока",
+    values: {
+      None: "Без статуса",
+      Regular: "Игрок",
+      Admin: "Админ",
+    },
   },
   workerSelect: {
     label: "Воркер",
@@ -75,7 +92,6 @@ export const ru: Translations = {
     no: "Нет",
     management: "Управление",
     checked: "Проверен",
-    spoofable: "Без авторизации",
     crashed: "Загриферен",
     ping: "Пинг",
     ms: "мс",

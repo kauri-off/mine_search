@@ -140,7 +140,7 @@ export const Players = () => {
                   onClick={() => setStatusFilter(statusFilter === s ? null : s)}
                   className={filterBtnClass(statusFilter === s)}
                 >
-                  {s}
+                  {t.playerStatus.values[s]}
                 </button>
               ))}
             </div>
@@ -251,7 +251,7 @@ export const Players = () => {
                       <div className="py-2.5 pl-5 pr-3">
                         <div className="flex items-center gap-2">
                           <StatusBlock
-                            label={player.status}
+                            label={t.playerStatus.values[player.status]}
                             active={true}
                             activeColor={PLAYER_STATUS_COLOR[player.status]}
                           />

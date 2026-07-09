@@ -8,7 +8,7 @@ export const DEFAULT_FILTERS: Filters = {
   limit: 50,
   licensed: null,
   checked: null,
-  spoofable: null,
+  join_status: null,
   crashed: null,
   has_players: null,
   online: null,
@@ -19,10 +19,10 @@ export const DEFAULT_FILTERS: Filters = {
 
 /** Returns true when every filter is at its default value. */
 export function areFiltersDefault(filters: Filters): boolean {
-  const boolKeys = Object.keys(DEFAULT_FILTERS).filter(
+  const keys = Object.keys(DEFAULT_FILTERS).filter(
     (k) => k !== "limit" && k !== "query",
   ) as (keyof Omit<Filters, "limit" | "query">)[];
-  const boolsDefault = boolKeys.every((k) => filters[k] === null);
+  const restDefault = keys.every((k) => filters[k] === null);
   const queryDefault = !filters.query;
-  return boolsDefault && queryDefault;
+  return restDefault && queryDefault;
 }
