@@ -194,7 +194,12 @@ impl Engine {
     /// accepts but never replies) must not block its update slot until the OS
     /// connection timeout fires. A timeout is treated as offline.
     pub async fn ping(&self, ip: String, port: u16, with_connection: bool) {
-        match timeout(PROBE_TIMEOUT, probe(&ip, port, None, with_connection, false)).await {
+        match timeout(
+            PROBE_TIMEOUT,
+            probe(&ip, port, None, with_connection, false),
+        )
+        .await
+        {
             Ok(Ok(report)) => self.sink.updated(report).await,
             Ok(Err(_)) | Err(_) => self.sink.offline(&ip).await,
         }

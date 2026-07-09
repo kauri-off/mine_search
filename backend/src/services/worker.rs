@@ -31,7 +31,8 @@ const UPDATE_TARGET_BATCH: i64 = 1000;
 #[tonic::async_trait]
 impl WorkerControl for WorkerService {
     type SessionStream = Pin<Box<dyn Stream<Item = Result<ServerCommand, Status>> + Send>>;
-    type FetchUpdateTargetsStream = Pin<Box<dyn Stream<Item = Result<UpdateTarget, Status>> + Send>>;
+    type FetchUpdateTargetsStream =
+        Pin<Box<dyn Stream<Item = Result<UpdateTarget, Status>> + Send>>;
 
     async fn session(
         &self,
@@ -147,7 +148,9 @@ impl WorkerControl for WorkerService {
                 {
                     Ok(rows) => rows,
                     Err(e) => {
-                        let _ = tx.send(Err(Status::internal(format!("db error: {e}")))).await;
+                        let _ = tx
+                            .send(Err(Status::internal(format!("db error: {e}"))))
+                            .await;
                         return;
                     }
                 };

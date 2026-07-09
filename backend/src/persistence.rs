@@ -12,7 +12,6 @@
 
 use std::time::Duration;
 
-use chrono::Utc;
 use crate::{
     chat::ChatObject,
     models::{
@@ -22,6 +21,7 @@ use crate::{
     },
     schema,
 };
+use chrono::Utc;
 use diesel::{dsl::insert_into, pg::Pg, prelude::*, sql_types::Bool};
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use proto::worker::ServerReport;
@@ -74,7 +74,9 @@ where
         match op().await {
             Ok(v) => return Ok(v),
             Err(e) if attempt < RETRY_ATTEMPTS => {
-                tracing::warn!("db write failed (attempt {attempt}/{RETRY_ATTEMPTS}): {e}; retrying");
+                tracing::warn!(
+                    "db write failed (attempt {attempt}/{RETRY_ATTEMPTS}): {e}; retrying"
+                );
                 tokio::time::sleep(delay).await;
                 delay *= 2;
             }
@@ -304,10 +306,7 @@ async fn write_snapshot_and_players(
         .player_names
         .iter()
         .filter(|n| seen.insert(n.as_str()))
-        .map(|n| PlayerInsert {
-            server_id,
-            name: n,
-        })
+        .map(|n| PlayerInsert { server_id, name: n })
         .collect();
 
     if update_last_seen {
@@ -335,8 +334,7 @@ pub async fn prune_processed_results(db: &DatabaseWrapper) -> DbResult<usize> {
     let mut conn = db.conn().await?;
     let cutoff = Utc::now() - chrono::Duration::hours(PROCESSED_RETENTION_HOURS);
     let n = diesel::delete(
-        schema::processed_results::table
-            .filter(schema::processed_results::processed_at.lt(cutoff)),
+        schema::processed_results::table.filter(schema::processed_results::processed_at.lt(cutoff)),
     )
     .execute(&mut conn)
     .await?;

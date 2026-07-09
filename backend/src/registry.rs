@@ -8,7 +8,9 @@ use std::collections::HashMap;
 use chrono::Utc;
 use proto::{
     api::{WorkerInfo, WorkerList},
-    worker::{PingTask, ScanTask, ServerCommand, SetName, WorkerConfig, WorkerMetrics, server_command},
+    worker::{
+        PingTask, ScanTask, ServerCommand, SetName, WorkerConfig, WorkerMetrics, server_command,
+    },
 };
 use tokio::sync::{RwLock, mpsc};
 use tonic::Status;

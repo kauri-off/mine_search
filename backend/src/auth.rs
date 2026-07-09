@@ -37,7 +37,10 @@ pub struct Claims {
 }
 
 pub fn jwt_encode(claims: &Claims) -> Result<String, Status> {
-    let secret = BACKEND_SECRET.lock().expect("secret mutex poisoned").clone();
+    let secret = BACKEND_SECRET
+        .lock()
+        .expect("secret mutex poisoned")
+        .clone();
     encode(
         &Header::default(),
         claims,
@@ -47,7 +50,10 @@ pub fn jwt_encode(claims: &Claims) -> Result<String, Status> {
 }
 
 pub fn jwt_decode(token: &str) -> Result<Claims, ()> {
-    let secret = BACKEND_SECRET.lock().expect("secret mutex poisoned").clone();
+    let secret = BACKEND_SECRET
+        .lock()
+        .expect("secret mutex poisoned")
+        .clone();
     decode::<Claims>(
         token,
         &DecodingKey::from_secret(secret.as_ref()),
@@ -77,7 +83,10 @@ pub fn require_session<T>(req: &Request<T>) -> Result<(), Status> {
 /// configured the request is rejected unless the operator explicitly opted into
 /// insecure workers (see [`ALLOW_INSECURE_WORKERS`]).
 pub fn require_worker_token<T>(req: &Request<T>) -> Result<(), Status> {
-    let expected = WORKER_TOKEN.lock().expect("worker token mutex poisoned").clone();
+    let expected = WORKER_TOKEN
+        .lock()
+        .expect("worker token mutex poisoned")
+        .clone();
     let Some(expected) = expected else {
         if ALLOW_INSECURE_WORKERS.load(Ordering::Relaxed) {
             return Ok(());

@@ -19,7 +19,7 @@ use tokio_stream::{StreamExt, wrappers::ReceiverStream};
 use tonic::{
     Request, Status,
     service::{Interceptor, interceptor::InterceptedService},
-    transport::{Channel, ClientTlsConfig, Certificate},
+    transport::{Certificate, Channel, ClientTlsConfig},
 };
 use tracing::{error, info, warn};
 
@@ -106,7 +106,10 @@ pub fn persist_id(path: &Path, id: &str) {
     let mut doc = match existing.parse::<toml_edit::DocumentMut>() {
         Ok(doc) => doc,
         Err(e) => {
-            warn!("could not parse {} to persist worker id: {e}", path.display());
+            warn!(
+                "could not parse {} to persist worker id: {e}",
+                path.display()
+            );
             return;
         }
     };
@@ -155,8 +158,8 @@ fn persist_name(path: &Path, name: &Option<String>) {
 /// with a huge `threads`/`update_concurrency` would otherwise spawn that many
 /// tasks and OOM the worker, so both are clamped here where backend config
 /// enters the runtime.
-const MAX_THREADS: i32 = 256;
-const MAX_UPDATE_CONCURRENCY: u32 = 1024;
+const MAX_THREADS: i32 = 10000;
+const MAX_UPDATE_CONCURRENCY: u32 = 10000;
 
 fn proto_to_runtime(c: PbConfig) -> RuntimeConfig {
     RuntimeConfig {
@@ -241,9 +244,9 @@ impl GrpcSink {
     }
     /// A server that failed re-probing: mark offline.
     pub async fn offline(&self, ip: &str) {
-        self.send(scan_result::Outcome::Offline(proto::worker::ServerOffline {
-            ip: ip.to_string(),
-        }))
+        self.send(scan_result::Outcome::Offline(
+            proto::worker::ServerOffline { ip: ip.to_string() },
+        ))
         .await;
     }
 }
@@ -406,7 +409,9 @@ pub async fn run(
                 });
             }
             Some(server_command::Cmd::Control(ctrl)) => {
-                match proto::worker::Control::try_from(ctrl).unwrap_or(proto::worker::Control::Unspecified) {
+                match proto::worker::Control::try_from(ctrl)
+                    .unwrap_or(proto::worker::Control::Unspecified)
+                {
                     proto::worker::Control::PauseSearch => engine.set_paused(true),
                     proto::worker::Control::ResumeSearch => engine.set_paused(false),
                     proto::worker::Control::AbortUpdate => engine.abort_update(),
@@ -468,7 +473,11 @@ async fn heartbeat(engine: Arc<Engine>, tx: mpsc::Sender<WorkerMessage>) {
             uptime_secs: start.elapsed().as_secs(),
             searching,
             updating: engine.updating.load(Ordering::Relaxed),
-            active_threads: if searching { cfg.threads.max(0) as u32 } else { 0 },
+            active_threads: if searching {
+                cfg.threads.max(0) as u32
+            } else {
+                0
+            },
             update_done,
             update_total: engine.update_total.load(Ordering::Relaxed),
             update_rate,

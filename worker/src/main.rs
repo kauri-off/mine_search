@@ -34,9 +34,8 @@ async fn main() {
     // Durable store of scan results awaiting backend acks; survives reconnects
     // and restarts, so discovered servers are not lost when the link drops.
     let outbox_path = config_path.with_file_name("outbox.log");
-    let outbox = std::sync::Arc::new(
-        outbox::Outbox::open(&outbox_path).expect("Failed to open outbox log"),
-    );
+    let outbox =
+        std::sync::Arc::new(outbox::Outbox::open(&outbox_path).expect("Failed to open outbox log"));
 
     loop {
         match grpc_backend::run(

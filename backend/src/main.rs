@@ -31,7 +31,10 @@ mod state;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt().with_target(false).compact().init();
+    tracing_subscriber::fmt()
+        .with_target(false)
+        .compact()
+        .init();
 
     let config = crate::config::Config::load().expect("Failed to load config.toml");
     let backend_cfg = config
@@ -55,18 +58,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Install shared secrets used by the auth helpers.
     {
         *BACKEND_PASSWORD.lock().unwrap() = backend_cfg.password.clone();
-        *BACKEND_SECRET.lock().unwrap() =
-            match backend_cfg.jwt_secret.filter(|s| !s.is_empty()) {
-                Some(secret) => secret,
-                None => {
-                    tracing::warn!(
-                        "No [backend].jwt_secret configured — generating a random one. \
+        *BACKEND_SECRET.lock().unwrap() = match backend_cfg.jwt_secret.filter(|s| !s.is_empty()) {
+            Some(secret) => secret,
+            None => {
+                tracing::warn!(
+                    "No [backend].jwt_secret configured — generating a random one. \
                          All sessions will be invalidated on every restart. \
                          Set a stable secret (e.g. `openssl rand -hex 32`) for production."
-                    );
-                    generate_random_string(32)
-                }
-            };
+                );
+                generate_random_string(32)
+            }
+        };
         let token = backend_cfg.worker_token.filter(|s| !s.is_empty());
         let allow_insecure = backend_cfg.allow_insecure_workers.unwrap_or(false);
         if token.is_none() {
@@ -162,7 +164,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let cert = std::fs::read(cert_path)?;
         let key = std::fs::read(key_path)?;
         let identity = tonic::transport::Identity::from_pem(cert, key);
-        builder = builder.tls_config(tonic::transport::ServerTlsConfig::new().identity(identity))?;
+        builder =
+            builder.tls_config(tonic::transport::ServerTlsConfig::new().identity(identity))?;
         tracing::info!("TLS enabled");
     }
 

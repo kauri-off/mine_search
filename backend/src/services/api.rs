@@ -4,7 +4,6 @@
 
 use std::{pin::Pin, sync::Arc, time::Duration};
 
-use chrono::Utc;
 use crate::{
     models::{
         player_count_snapshots::SnapshotModel,
@@ -13,6 +12,7 @@ use crate::{
     },
     schema::{self, players, servers},
 };
+use chrono::Utc;
 use diesel::{
     PgTextExpressionMethods,
     dsl::sql,
@@ -24,15 +24,17 @@ use diesel_async::RunQueryDsl;
 use futures::Stream;
 use proto::api::{
     AddAddrRequest, AddTargetListRequest, ControlWorkerRequest, DeletePlayerRequest, Empty,
-    GetWorkerRequest,
-    LoginRequest, LoginResponse, Player, PlayerListRequest, PlayerListResponse,
-    PlayerSearchRequest, PlayerSearchResponse, PlayerSearchResult, PingServerRequest,
-    OverwriteServerRequest, ServerDeleteRequest, ServerInfo, ServerInfoRequest, ServerListRequest,
+    GetWorkerRequest, LoginRequest, LoginResponse, OverwriteServerRequest, PingServerRequest,
+    Player, PlayerListRequest, PlayerListResponse, PlayerSearchRequest, PlayerSearchResponse,
+    PlayerSearchResult, ServerDeleteRequest, ServerInfo, ServerInfoRequest, ServerListRequest,
     ServerListResponse, ServerSnapshot, ServerSnapshotsRequest, ServerSnapshotsResponse,
     SetWorkerNameRequest, StatsResponse, UpdatePlayerRequest, UpdateServerRequest,
     UpdateWorkerConfigRequest, VersionStat, WorkerInfo, WorkerList, api_server::Api,
 };
-use tokio_stream::{StreamExt, wrappers::{BroadcastStream, IntervalStream}};
+use tokio_stream::{
+    StreamExt,
+    wrappers::{BroadcastStream, IntervalStream},
+};
 use tonic::{Request, Response, Status};
 
 use crate::{
@@ -198,10 +200,7 @@ impl Api for ApiService {
         Ok(Response::new(Empty {}))
     }
 
-    async fn trigger_update(
-        &self,
-        request: Request<Empty>,
-    ) -> Result<Response<Empty>, Status> {
+    async fn trigger_update(&self, request: Request<Empty>) -> Result<Response<Empty>, Status> {
         auth::require_session(&request)?;
         let cfg = self
             .state
@@ -372,7 +371,8 @@ impl Api for ApiService {
             Some(v) => Box::new(servers::is_crashed.assume_not_null().eq(v)),
             None => Box::new(sql::<Bool>("TRUE")),
         };
-        let has_players: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.has_players {
+        let has_players: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.has_players
+        {
             Some(true) => Box::new(diesel::dsl::exists(
                 players::table.filter(players::server_id.eq(servers::id)),
             )),
@@ -845,12 +845,11 @@ impl Api for ApiService {
     ) -> Result<Response<Self::StreamWorkersStream>, Status> {
         auth::require_session(&request)?;
         let registry = self.state.registry.clone();
-        let stream = IntervalStream::new(tokio::time::interval(Duration::from_secs(2))).then(
-            move |_| {
+        let stream =
+            IntervalStream::new(tokio::time::interval(Duration::from_secs(2))).then(move |_| {
                 let registry = registry.clone();
                 async move { Ok(registry.list().await) }
-            },
-        );
+            });
         Ok(Response::new(Box::pin(stream)))
     }
 
@@ -872,7 +871,10 @@ impl Api for ApiService {
         let config = body
             .config
             .ok_or_else(|| Status::invalid_argument("missing config"))?;
-        self.state.registry.set_config(&body.worker_id, config).await?;
+        self.state
+            .registry
+            .set_config(&body.worker_id, config)
+            .await?;
         Ok(Response::new(Empty {}))
     }
 

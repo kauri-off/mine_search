@@ -68,7 +68,10 @@ impl Outbox {
         let count = entries.len();
         let file = compact_to_disk(&path, &entries)?;
         if count > 0 {
-            info!("outbox: recovered {count} pending scan result(s) from {}", path.display());
+            info!(
+                "outbox: recovered {count} pending scan result(s) from {}",
+                path.display()
+            );
         }
         Ok(Self {
             path,
@@ -100,7 +103,11 @@ impl Outbox {
         st.appends_since_compact += 1;
         st.entries.insert(
             id.to_string(),
-            Entry { msg: msg.clone(), created: now, last_sent: now },
+            Entry {
+                msg: msg.clone(),
+                created: now,
+                last_sent: now,
+            },
         );
 
         maybe_compact(&mut st, &self.path);
@@ -135,7 +142,10 @@ impl Outbox {
             st.entries.remove(&id);
             let _ = append(&mut st.file, OP_ACK, 0, &id, &[]);
             st.appends_since_compact += 1;
-            warn!("outbox: gave up on result {id} (un-acked for > {}h)", MAX_AGE.as_secs() / 3600);
+            warn!(
+                "outbox: gave up on result {id} (un-acked for > {}h)",
+                MAX_AGE.as_secs() / 3600
+            );
         }
 
         // Select due entries and stamp them as sent.
@@ -240,7 +250,14 @@ fn load_entries(path: &Path) -> HashMap<String, Entry> {
         match read_record(&mut r) {
             Ok(Some((OP_PUT, created, id, payload))) => match WorkerMessage::decode(&payload[..]) {
                 Ok(msg) => {
-                    entries.insert(id, Entry { msg, created, last_sent: UNIX_EPOCH });
+                    entries.insert(
+                        id,
+                        Entry {
+                            msg,
+                            created,
+                            last_sent: UNIX_EPOCH,
+                        },
+                    );
                 }
                 Err(e) => warn!("outbox: skipping undecodable record {id}: {e}"),
             },
