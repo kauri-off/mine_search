@@ -21,7 +21,7 @@ use tonic::{
     service::{Interceptor, interceptor::InterceptedService},
     transport::{Certificate, Channel, ClientTlsConfig},
 };
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 use crate::{
     config::WorkerConfig,
@@ -228,7 +228,10 @@ impl GrpcSink {
         // never acked), the periodic sweep / reconnect replay re-sends it.
         self.outbox.add(&result_id, &msg).await;
         if self.tx.send(msg).await.is_err() {
-            warn!("session channel closed; scan result retained in outbox for replay");
+            // Expected during a session teardown: the result is safe in the
+            // outbox and the next session replays it. `run` watches the same
+            // closure and reconnects, so this is a handled condition, not a fault.
+            debug!("session channel closed; scan result retained in outbox for replay");
         }
     }
 
@@ -375,7 +378,21 @@ pub async fn run(
     // so completed handles don't accumulate over a long-lived session.
     let mut cmd_tasks: JoinSet<()> = JoinSet::new();
 
-    while let Some(cmd) = inbound.message().await? {
+    loop {
+        let cmd = tokio::select! {
+            // The backend dropped our outbound (request) half while keeping the
+            // inbound half open: the session is half-dead — scan results can no
+            // longer be delivered and only accumulate in the outbox. Tear down now
+            // so `main` reconnects and re-establishes a working link, instead of
+            // spinning (and flooding logs) until the inbound half also closes.
+            _ = msg_tx.closed() => {
+                return Err(anyhow!("session outbound channel closed by backend"));
+            }
+            msg = inbound.message() => match msg? {
+                Some(cmd) => cmd,
+                None => break,
+            },
+        };
         while cmd_tasks.try_join_next().is_some() {}
         match cmd.cmd {
             Some(server_command::Cmd::SetConfig(c)) => {
