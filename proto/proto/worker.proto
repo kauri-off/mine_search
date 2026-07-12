@@ -18,16 +18,35 @@ service WorkerControl {
   rpc FetchUpdateTargets(FetchUpdateTargetsRequest) returns (stream UpdateTarget);
 }
 
+// Mirrors the dashboard's server filters. Every field is tri-state via `optional`:
+// unset = "any". Reused for both the update target query (server-side WHERE) and the
+// search acceptance filter (worker-side, on freshly discovered servers). `join_status`
+// carries the DB enum text ("spoofable", "whitelist", ...); `query` is free-text over
+// ip/version/motd and only applies to the update path.
+message ServerFilter {
+  optional bool online = 1;
+  optional bool licensed = 2; // is_online_mode
+  optional bool checked = 3;
+  optional bool crashed = 4;
+  optional bool requires_mods = 5;
+  optional bool has_players = 6;
+  optional bool has_none_players = 7;
+  optional string join_status = 8;
+  optional string query = 9;
+}
+
 // Mirrors `[worker]` in config.toml — the live-tunable knobs the frontend can edit.
 message WorkerConfig {
   int32 threads = 1;
   bool search_module = 2;
   bool update_module = 3;
   bool update_with_connection = 4;
-  bool only_update_spoofable = 5;
-  bool only_update_cracked = 6;
+  reserved 5, 6; // was only_update_spoofable / only_update_cracked (folded into update_filter)
+  reserved "only_update_spoofable", "only_update_cracked";
   uint32 update_interval_secs = 7; // seconds between update cycles
   uint32 update_concurrency = 8;   // max concurrent re-probes during an update cycle
+  ServerFilter update_filter = 9;  // which existing servers the update cycle re-probes
+  ServerFilter search_filter = 10; // acceptance filter applied to freshly discovered servers
 }
 
 // Worker -> backend, multiplexed over the Session stream.
@@ -155,8 +174,9 @@ enum Control {
 
 message FetchUpdateTargetsRequest {
   string worker_id = 1;
-  bool only_spoofable = 2;
-  bool only_cracked = 3;
+  reserved 2, 3; // was only_spoofable / only_cracked
+  reserved "only_spoofable", "only_cracked";
+  ServerFilter filter = 4;
 }
 
 message UpdateTarget {

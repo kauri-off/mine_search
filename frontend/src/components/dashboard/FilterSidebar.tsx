@@ -1,13 +1,14 @@
 import { useTranslation } from "@/i18n";
-import type { Filters } from "@/constants/dashboardFilters";
+import type {
+  BoolFilterKey,
+  FilterFieldKey,
+  Filters,
+} from "@/constants/dashboardFilters";
 import type { JoinStatus } from "@/types";
-import { JOIN_STATUSES } from "@/constants/serverDetail";
 import { X } from "lucide-react";
-import { TriStateSelect } from "./TriStateSelect";
+import { ServerFilterFields } from "./ServerFilterFields";
 
-type BoolFilterKey = keyof Omit<Filters, "limit" | "query" | "join_status">;
-
-const BOOL_FILTERS: BoolFilterKey[] = [
+const SIDEBAR_FIELDS: FilterFieldKey[] = [
   "online",
   "licensed",
   "checked",
@@ -15,6 +16,7 @@ const BOOL_FILTERS: BoolFilterKey[] = [
   "requires_mods",
   "has_players",
   "has_none_players",
+  "join_status",
 ];
 
 interface FilterSidebarProps {
@@ -62,41 +64,13 @@ export const FilterSidebar = ({
       </div>
 
       <div className="flex-1 px-4 py-3 space-y-3">
-        {BOOL_FILTERS.map((key) => {
-          const current = filters[key];
-          return (
-            <div key={key} className="flex flex-col gap-1">
-              <label className="text-xs text-slate-400">
-                {t.filters.fields[key]}
-              </label>
-              <TriStateSelect
-                value={current}
-                onChange={(next) => onBoolChange(key, next)}
-                labelAll={t.filters.triState.all}
-                labelYes={t.filters.triState.yes}
-                labelNo={t.filters.triState.no}
-              />
-            </div>
-          );
-        })}
-
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-400">{t.joinStatus.label}</label>
-          <select
-            value={filters.join_status ?? ""}
-            onChange={(e) =>
-              onJoinStatusChange((e.target.value || null) as JoinStatus | null)
-            }
-            className="w-full bg-surface border border-border rounded-lg px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-          >
-            <option value="">{t.filters.triState.all}</option>
-            {JOIN_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {t.joinStatus.values[status]}
-              </option>
-            ))}
-          </select>
-        </div>
+        <ServerFilterFields
+          value={filters}
+          fields={SIDEBAR_FIELDS}
+          onBoolChange={onBoolChange}
+          onJoinStatusChange={onJoinStatusChange}
+          onQueryChange={onQueryChange}
+        />
       </div>
 
       {filtersActive && (

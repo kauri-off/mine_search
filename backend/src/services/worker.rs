@@ -13,7 +13,7 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status, Streaming};
 
-use crate::{auth, persistence, state::AppState};
+use crate::{auth, persistence, server_filters::ServerFilters, state::AppState};
 
 /// Capacity of the per-session result queue feeding the writer task. Sized to
 /// absorb short DB hiccups; on overflow results are dropped and replayed from
@@ -129,6 +129,9 @@ impl WorkerControl for WorkerService {
             .map(|c| c.update_with_connection)
             .unwrap_or(false);
 
+        // Which existing servers this cycle re-probes. Absent filter = re-probe all.
+        let filters: ServerFilters = req.filter.as_ref().map(ServerFilters::from).unwrap_or_default();
+
         // Page through the servers table and stream one target per row. Each
         // batch re-acquires (and releases) a pooled connection, so a slow worker
         // draining the stream never pins a connection for the whole cycle.
@@ -139,8 +142,7 @@ impl WorkerControl for WorkerService {
             loop {
                 let rows = match persistence::fetch_update_targets_batch(
                     &state.db,
-                    req.only_spoofable,
-                    req.only_cracked,
+                    &filters,
                     after_id,
                     UPDATE_TARGET_BATCH,
                 )

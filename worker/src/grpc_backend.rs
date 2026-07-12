@@ -3,15 +3,15 @@
 //! pushed back over the same bidirectional `Session` stream.
 
 use std::{
-    path::{Path, PathBuf},
-    sync::{Arc, atomic::Ordering},
-    time::{Duration, Instant},
+    path::Path,
+    sync::{Arc, Mutex, atomic::Ordering},
+    time::Duration,
 };
 
 use anyhow::anyhow;
 use proto::worker::{
-    Heartbeat, Register, ScanResult, ServerExtra, ServerReport, WorkerConfig as PbConfig,
-    WorkerMessage, WorkerMetrics, scan_result, server_command,
+    Heartbeat, Register, ScanResult, ServerExtra, ServerFilter as PbFilter, ServerReport,
+    WorkerConfig as PbConfig, WorkerMessage, WorkerMetrics, scan_result, server_command,
     worker_control_client::WorkerControlClient, worker_message,
 };
 use tokio::{sync::mpsc, task::JoinSet};
@@ -54,17 +54,69 @@ impl Interceptor for AuthInterceptor {
 
 type Client = WorkerControlClient<InterceptedService<Channel, AuthInterceptor>>;
 
+/// Converts a config-file [`crate::config::ServerFilter`] into its proto form.
+/// `pub(crate)` so [`crate::engine::RuntimeConfig`] can reuse it.
+pub(crate) fn filter_to_proto(f: &crate::config::ServerFilter) -> PbFilter {
+    PbFilter {
+        online: f.online,
+        licensed: f.licensed,
+        checked: f.checked,
+        crashed: f.crashed,
+        requires_mods: f.requires_mods,
+        has_players: f.has_players,
+        has_none_players: f.has_none_players,
+        join_status: f.join_status.clone(),
+        query: f.query.clone(),
+    }
+}
+
 fn config_to_proto(c: &WorkerConfig) -> PbConfig {
     PbConfig {
         threads: c.threads,
         search_module: c.search_module,
         update_module: c.update_module,
         update_with_connection: c.update_with_connection,
-        only_update_spoofable: c.only_update_spoofable,
-        only_update_cracked: c.only_update_cracked,
         update_interval_secs: c.update_interval_secs,
         update_concurrency: c.update_concurrency,
+        update_filter: Some(filter_to_proto(&c.update_filter)),
+        search_filter: Some(filter_to_proto(&c.search_filter)),
     }
+}
+
+/// Renders a proto [`PbFilter`] into a `toml_edit` table, emitting only the set
+/// fields so an unset filter stays absent from the file.
+fn filter_to_toml(f: &Option<PbFilter>) -> toml_edit::Table {
+    let mut t = toml_edit::Table::new();
+    if let Some(f) = f {
+        if let Some(v) = f.online {
+            t["online"] = toml_edit::value(v);
+        }
+        if let Some(v) = f.licensed {
+            t["licensed"] = toml_edit::value(v);
+        }
+        if let Some(v) = f.checked {
+            t["checked"] = toml_edit::value(v);
+        }
+        if let Some(v) = f.crashed {
+            t["crashed"] = toml_edit::value(v);
+        }
+        if let Some(v) = f.requires_mods {
+            t["requires_mods"] = toml_edit::value(v);
+        }
+        if let Some(v) = f.has_players {
+            t["has_players"] = toml_edit::value(v);
+        }
+        if let Some(v) = f.has_none_players {
+            t["has_none_players"] = toml_edit::value(v);
+        }
+        if let Some(v) = &f.join_status {
+            t["join_status"] = toml_edit::value(v.as_str());
+        }
+        if let Some(v) = &f.query {
+            t["query"] = toml_edit::value(v.as_str());
+        }
+    }
+    t
 }
 
 /// Surgically rewrites the live-tunable `[worker]` keys in the worker's config
@@ -86,10 +138,11 @@ fn persist_config(path: &Path, c: &PbConfig) {
     worker["search_module"] = toml_edit::value(c.search_module);
     worker["update_module"] = toml_edit::value(c.update_module);
     worker["update_with_connection"] = toml_edit::value(c.update_with_connection);
-    worker["only_update_spoofable"] = toml_edit::value(c.only_update_spoofable);
-    worker["only_update_cracked"] = toml_edit::value(c.only_update_cracked);
     worker["update_interval_secs"] = toml_edit::value(c.update_interval_secs as i64);
     worker["update_concurrency"] = toml_edit::value(c.update_concurrency as i64);
+    // Replace the whole subtable each time so clearing a filter drops its key.
+    worker["update_filter"] = toml_edit::Item::Table(filter_to_toml(&c.update_filter));
+    worker["search_filter"] = toml_edit::Item::Table(filter_to_toml(&c.search_filter));
 
     if let Err(e) = std::fs::write(path, doc.to_string()) {
         warn!("could not persist config to {}: {e}", path.display());
@@ -161,15 +214,16 @@ fn persist_name(path: &Path, name: &Option<String>) {
 const MAX_THREADS: i32 = 10000;
 const MAX_UPDATE_CONCURRENCY: u32 = 10000;
 
-fn proto_to_runtime(c: PbConfig) -> RuntimeConfig {
+fn proto_to_runtime(c: &PbConfig) -> RuntimeConfig {
     RuntimeConfig {
         threads: c.threads.clamp(0, MAX_THREADS),
         search_module: c.search_module,
         update_module: c.update_module,
-        only_update_spoofable: c.only_update_spoofable,
-        only_update_cracked: c.only_update_cracked,
+        update_with_connection: c.update_with_connection,
         update_interval_secs: c.update_interval_secs,
         update_concurrency: c.update_concurrency.min(MAX_UPDATE_CONCURRENCY),
+        update_filter: c.update_filter.clone().unwrap_or_default(),
+        search_filter: c.search_filter.clone().unwrap_or_default(),
     }
 }
 
@@ -193,25 +247,63 @@ fn report_to_proto(report: ScanReport) -> ServerReport {
     }
 }
 
-/// Aborts the per-session engine tasks (search supervisor, update loop,
-/// heartbeat) when `run` returns by any path. Aborting the supervisor drops its
-/// local `JoinSet`, which in turn aborts all search threads; without this the
-/// tasks keep an `Arc<Engine>` alive and every reconnect leaks another pool.
-struct AbortOnDrop(Vec<tokio::task::JoinHandle<()>>);
+/// Shared, swappable handle to the *current* gRPC session's transport.
+///
+/// The [`Engine`] and its tasks (search pool, update loop) are long-lived — they
+/// are created once and outlive any individual connection. A single session, by
+/// contrast, owns an outbound channel and an RPC client that die when the link
+/// drops. This handle bridges the two: on each (re)connect `run` [`set`](Self::set)s
+/// the new session's sender/client, and [`clear`](Self::clear)s them when it ends.
+/// The engine therefore keeps its state (update-cycle timer, search pool, counters)
+/// across reconnects instead of being torn down and rebuilt every time.
+#[derive(Clone, Default)]
+pub struct SessionLink {
+    tx: Arc<Mutex<Option<mpsc::Sender<WorkerMessage>>>>,
+    client: Arc<Mutex<Option<Client>>>,
+}
 
-impl Drop for AbortOnDrop {
-    fn drop(&mut self) {
-        for h in &self.0 {
-            h.abort();
-        }
+impl SessionLink {
+    fn set(&self, tx: mpsc::Sender<WorkerMessage>, client: Client) {
+        *self.tx.lock().unwrap() = Some(tx);
+        *self.client.lock().unwrap() = Some(client);
+    }
+
+    fn clear(&self) {
+        *self.tx.lock().unwrap() = None;
+        *self.client.lock().unwrap() = None;
+    }
+
+    fn sender(&self) -> Option<mpsc::Sender<WorkerMessage>> {
+        self.tx.lock().unwrap().clone()
+    }
+
+    fn client(&self) -> Option<Client> {
+        self.client.lock().unwrap().clone()
     }
 }
 
-/// Streams the engine's scan outcomes to the backend over the session channel,
-/// persisting each to the durable [`Outbox`] first so nothing is lost if the
-/// link is down.
+/// Aborts the per-session tasks (heartbeat, replay sweep) and clears the shared
+/// [`SessionLink`] when `run` returns by any path, so a stale sender/client is
+/// never handed to the long-lived engine after the link drops.
+struct SessionGuard {
+    handles: Vec<tokio::task::JoinHandle<()>>,
+    link: SessionLink,
+}
+
+impl Drop for SessionGuard {
+    fn drop(&mut self) {
+        for h in &self.handles {
+            h.abort();
+        }
+        self.link.clear();
+    }
+}
+
+/// Streams the engine's scan outcomes to the backend over the current session's
+/// channel, persisting each to the durable [`Outbox`] first so nothing is lost
+/// if the link is down.
 pub struct GrpcSink {
-    tx: mpsc::Sender<WorkerMessage>,
+    link: SessionLink,
     outbox: Arc<Outbox>,
 }
 
@@ -224,14 +316,18 @@ impl GrpcSink {
                 result_id: result_id.clone(),
             })),
         };
-        // Persist before sending: if the channel is closed (or the result is
+        // Persist before sending: if there is no live session (or the result is
         // never acked), the periodic sweep / reconnect replay re-sends it.
         self.outbox.add(&result_id, &msg).await;
-        if self.tx.send(msg).await.is_err() {
-            // Expected during a session teardown: the result is safe in the
-            // outbox and the next session replays it. `run` watches the same
-            // closure and reconnects, so this is a handled condition, not a fault.
-            debug!("session channel closed; scan result retained in outbox for replay");
+        let delivered = match self.link.sender() {
+            Some(tx) => tx.send(msg).await.is_ok(),
+            None => false,
+        };
+        if !delivered {
+            // Expected while disconnected or during a teardown: the result is safe
+            // in the outbox and the next session replays it. A handled condition,
+            // not a fault, so it stays at debug level.
+            debug!("no active session; scan result retained in outbox for replay");
         }
     }
 
@@ -254,9 +350,11 @@ impl GrpcSink {
     }
 }
 
-/// Asks the backend which servers to re-probe during an update cycle.
+/// Asks the backend which servers to re-probe during an update cycle. Pulls the
+/// current session's client from the shared [`SessionLink`] so update cycles keep
+/// working across reconnects (and fail gracefully while disconnected).
 pub struct GrpcTargetSource {
-    client: Client,
+    link: SessionLink,
     worker_id: String,
 }
 
@@ -267,16 +365,17 @@ impl GrpcTargetSource {
     /// means neither side has to buffer the whole `servers` table.
     pub async fn update_targets(
         &self,
-        only_spoofable: bool,
-        only_cracked: bool,
+        filter: PbFilter,
     ) -> anyhow::Result<impl tokio_stream::Stream<Item = anyhow::Result<UpdateTarget>> + Send + use<>>
     {
-        let mut client = self.client.clone();
+        let mut client = self
+            .link
+            .client()
+            .ok_or_else(|| anyhow!("no active backend session"))?;
         let stream = client
             .fetch_update_targets(proto::worker::FetchUpdateTargetsRequest {
                 worker_id: self.worker_id.clone(),
-                only_spoofable,
-                only_cracked,
+                filter: Some(filter),
             })
             .await?
             .into_inner();
@@ -307,14 +406,44 @@ async fn build_channel(url: &str, cfg: &WorkerConfig) -> anyhow::Result<Channel>
     Ok(endpoint.connect().await?)
 }
 
-/// Connects, registers, and runs the session until the stream closes or a
-/// shutdown command arrives. Returns `Ok` on a clean shutdown; the caller may
-/// retry on `Err`.
-pub async fn run(
-    cfg: WorkerConfig,
-    worker_id: String,
-    config_path: PathBuf,
+/// Builds the long-lived engine and the [`SessionLink`] its sink/target source
+/// share. Called once at startup; the engine's search pool and update loop then
+/// run for the whole process, surviving every reconnect. `run` swaps each new
+/// session's transport into the returned link.
+pub fn build_engine(
+    cfg: &WorkerConfig,
+    worker_id: &str,
     outbox: Arc<Outbox>,
+) -> (Arc<Engine>, SessionLink) {
+    let link = SessionLink::default();
+    let sink = GrpcSink {
+        link: link.clone(),
+        outbox,
+    };
+    let targets = GrpcTargetSource {
+        link: link.clone(),
+        worker_id: worker_id.to_string(),
+    };
+    let engine = Engine::new(sink, targets, RuntimeConfig::from(cfg));
+    // Start the search supervisor and update loop once. Dropping the handles
+    // detaches the tasks: they must outlive any single session and are only
+    // stopped when the process exits.
+    let _ = engine.start();
+    (engine, link)
+}
+
+/// Connects and registers a session for the already-running `engine`, publishes
+/// the session's transport into `link`, and pumps commands/heartbeats until the
+/// stream closes or a shutdown command arrives. Returns `Ok` on a clean shutdown;
+/// the caller may retry on `Err`. The engine itself is untouched, so its state
+/// (update-cycle timer, search pool, counters) carries across reconnects.
+pub async fn run(
+    cfg: &WorkerConfig,
+    worker_id: &str,
+    config_path: &Path,
+    outbox: &Arc<Outbox>,
+    engine: &Arc<Engine>,
+    link: &SessionLink,
 ) -> anyhow::Result<()> {
     let backend_url = cfg
         .backend_url
@@ -322,7 +451,7 @@ pub async fn run(
         .ok_or_else(|| anyhow!("[worker].backend_url is required in gRPC mode"))?;
 
     info!("connecting to backend at {backend_url}");
-    let channel = build_channel(&backend_url, &cfg).await?;
+    let channel = build_channel(&backend_url, cfg).await?;
     let interceptor = AuthInterceptor {
         token: cfg.token.clone(),
     };
@@ -330,23 +459,15 @@ pub async fn run(
 
     let (msg_tx, msg_rx) = mpsc::channel::<WorkerMessage>(256);
 
-    let sink = GrpcSink {
-        tx: msg_tx.clone(),
-        outbox: outbox.clone(),
-    };
-    let targets = GrpcTargetSource {
-        client: client.clone(),
-        worker_id: worker_id.clone(),
-    };
-    let engine = Engine::new(sink, targets, RuntimeConfig::from(&cfg));
-
-    // Register first so it is the first message the backend sees.
+    // Register first so it is the first message the backend sees. Sent before the
+    // link is published and the heartbeat is spawned so nothing can jump ahead of
+    // it in the channel buffer.
     msg_tx
         .send(WorkerMessage {
             kind: Some(worker_message::Kind::Register(Register {
-                worker_id: worker_id.clone(),
+                worker_id: worker_id.to_string(),
                 name: cfg.name.clone(),
-                config: Some(config_to_proto(&cfg)),
+                config: Some(config_to_proto(cfg)),
                 version: env!("CARGO_PKG_VERSION").to_string(),
             })),
         })
@@ -358,11 +479,19 @@ pub async fn run(
         .await?
         .into_inner();
 
-    let mut handles = engine.start();
-    handles.push(tokio::spawn(heartbeat(engine.clone(), msg_tx.clone())));
-    handles.push(tokio::spawn(replay_sweep(outbox.clone(), msg_tx.clone())));
-    // Tears the tasks down on every exit path below (clean shutdown, `?`, stream close).
-    let _guard = AbortOnDrop(handles);
+    // Session is up: publish its transport to the long-lived engine (its
+    // sink/target source now route through this connection) and start the
+    // per-session tasks. The guard clears the link and aborts these tasks on
+    // every exit path below.
+    link.set(msg_tx.clone(), client.clone());
+    let _guard = SessionGuard {
+        handles: vec![
+            tokio::spawn(heartbeat(engine.clone(), msg_tx.clone())),
+            tokio::spawn(replay_sweep(outbox.clone(), msg_tx.clone())),
+        ],
+        link: link.clone(),
+    };
+
     info!(worker = %worker_id, "session established");
 
     // Replay every result still awaiting an ack from a previous session.
@@ -396,11 +525,17 @@ pub async fn run(
         while cmd_tasks.try_join_next().is_some() {}
         match cmd.cmd {
             Some(server_command::Cmd::SetConfig(c)) => {
-                persist_config(&config_path, &c);
-                engine.set_config(proto_to_runtime(c));
+                // Only persist/apply when the runtime config actually changed, so a
+                // reconnect that re-pushes identical config doesn't rewrite the file
+                // or churn the search pool.
+                let rc = proto_to_runtime(&c);
+                if engine.config() != rc {
+                    persist_config(config_path, &c);
+                    engine.set_config(rc);
+                }
             }
             Some(server_command::Cmd::SetName(s)) => {
-                persist_name(&config_path, &s.name);
+                persist_name(config_path, &s.name);
             }
             Some(server_command::Cmd::Ack(ack)) => {
                 outbox.ack(&ack.result_id).await;
@@ -464,9 +599,11 @@ async fn replay_sweep(outbox: Arc<Outbox>, tx: mpsc::Sender<WorkerMessage>) {
 }
 
 async fn heartbeat(engine: Arc<Engine>, tx: mpsc::Sender<WorkerMessage>) {
-    let start = Instant::now();
-    let mut prev_scanned = 0u64;
-    let mut prev_update_done = 0u64;
+    // Counters are cumulative across the engine's whole life (it outlives the
+    // session), so seed the rate baselines from their current values — otherwise
+    // the first heartbeat of a reconnected session would report a huge spike.
+    let mut prev_scanned = engine.ips_scanned.load(Ordering::Relaxed);
+    let mut prev_update_done = engine.update_done.load(Ordering::Relaxed);
     let period = Duration::from_secs(5);
     let mut interval = tokio::time::interval(period);
 
@@ -487,7 +624,7 @@ async fn heartbeat(engine: Arc<Engine>, tx: mpsc::Sender<WorkerMessage>) {
             servers_found: engine.servers_found.load(Ordering::Relaxed),
             ips_scanned: scanned,
             scan_rate: rate,
-            uptime_secs: start.elapsed().as_secs(),
+            uptime_secs: engine.started.elapsed().as_secs(),
             searching,
             updating: engine.updating.load(Ordering::Relaxed),
             active_threads: if searching {
@@ -510,5 +647,66 @@ async fn heartbeat(engine: Arc<Engine>, tx: mpsc::Sender<WorkerMessage>) {
             error!("heartbeat channel closed");
             break;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{ServerFilter as FileFilter, WorkerConfig as FileConfig};
+
+    fn file_config() -> FileConfig {
+        FileConfig {
+            threads: 42,
+            search_module: true,
+            update_module: true,
+            update_with_connection: true,
+            update_interval_secs: 300,
+            update_concurrency: 25,
+            update_filter: FileFilter {
+                licensed: Some(true),
+                ..FileFilter::default()
+            },
+            search_filter: FileFilter::default(),
+            log_level: None,
+            backend_url: Some("http://backend:50051".into()),
+            token: Some("secret".into()),
+            id: Some("worker-1".into()),
+            name: Some("Alpha".into()),
+            tls_ca: None,
+            insecure: None,
+        }
+    }
+
+    // Guards the "update_with_connection change is silently dropped" bug: this
+    // knob must be part of the runtime config so a UI toggle of only this field is
+    // detected as a change (and thus persisted + re-registered), instead of the
+    // `engine.config() != rc` guard treating it as a no-op.
+    #[test]
+    fn proto_to_runtime_tracks_update_with_connection() {
+        let mut a = config_to_proto(&file_config());
+        a.update_with_connection = false;
+        let mut b = a.clone();
+        b.update_with_connection = true;
+        assert_ne!(
+            proto_to_runtime(&a),
+            proto_to_runtime(&b),
+            "toggling update_with_connection must change the runtime config"
+        );
+    }
+
+    // The backend re-pushes the worker's own config on every (re)connect. That
+    // echo must compare equal to the config the engine already built at startup,
+    // otherwise every reconnect would needlessly churn the search pool. This holds
+    // only if every proto field is mirrored in RuntimeConfig on both paths.
+    #[test]
+    fn register_echo_is_a_noop_for_unchanged_config() {
+        let cfg = file_config();
+        let from_file = RuntimeConfig::from(&cfg);
+        let via_proto = proto_to_runtime(&config_to_proto(&cfg));
+        assert_eq!(
+            from_file, via_proto,
+            "startup config and the register echo must be identical"
+        );
     }
 }

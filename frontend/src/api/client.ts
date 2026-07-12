@@ -4,6 +4,8 @@ import { Api } from "@/gen/api_pb";
 import { PlayerStatus as PbPlayerStatus, JoinStatus as PbJoinStatus } from "@/gen/api_pb";
 import type { WorkerInfo } from "@/gen/api_pb";
 import { Control } from "@/gen/worker_pb";
+import type { ServerFilter } from "@/gen/worker_pb";
+import type { ServerFilterValue } from "@/constants/dashboardFilters";
 import type {
   AuthBody,
   StatsResponse,
@@ -293,11 +295,39 @@ export interface WorkerConfigInput {
   search_module: boolean;
   update_module: boolean;
   update_with_connection: boolean;
-  only_update_spoofable: boolean;
-  only_update_cracked: boolean;
   update_interval_secs: number;
   update_concurrency: number;
+  update_filter: ServerFilterValue;
+  search_filter: ServerFilterValue;
 }
+
+// The snake-case UI filter shape maps to the camelCase protobuf `ServerFilter`;
+// `null` (no constraint) becomes an omitted optional field on the wire.
+const toProtoFilter = (f: ServerFilterValue): ServerFilter =>
+  ({
+    online: f.online ?? undefined,
+    licensed: f.licensed ?? undefined,
+    checked: f.checked ?? undefined,
+    crashed: f.crashed ?? undefined,
+    requiresMods: f.requires_mods ?? undefined,
+    hasPlayers: f.has_players ?? undefined,
+    hasNonePlayers: f.has_none_players ?? undefined,
+    joinStatus: f.join_status ?? undefined,
+    query: f.query ?? undefined,
+  }) as ServerFilter;
+
+// Inverse of `toProtoFilter` for reading a worker's live config into the form.
+export const protoToFilterValue = (f?: ServerFilter): ServerFilterValue => ({
+  online: f?.online ?? null,
+  licensed: f?.licensed ?? null,
+  checked: f?.checked ?? null,
+  crashed: f?.crashed ?? null,
+  requires_mods: f?.requiresMods ?? null,
+  has_players: f?.hasPlayers ?? null,
+  has_none_players: f?.hasNonePlayers ?? null,
+  join_status: (f?.joinStatus as JoinStatus | undefined) ?? null,
+  query: f?.query ?? null,
+});
 
 export const workerApi = {
   listWorkers: async (): Promise<WorkerInfo[]> => {
@@ -313,10 +343,10 @@ export const workerApi = {
         searchModule: config.search_module,
         updateModule: config.update_module,
         updateWithConnection: config.update_with_connection,
-        onlyUpdateSpoofable: config.only_update_spoofable,
-        onlyUpdateCracked: config.only_update_cracked,
         updateIntervalSecs: config.update_interval_secs,
         updateConcurrency: config.update_concurrency,
+        updateFilter: toProtoFilter(config.update_filter),
+        searchFilter: toProtoFilter(config.search_filter),
       },
     }),
 

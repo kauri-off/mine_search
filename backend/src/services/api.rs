@@ -11,6 +11,7 @@ use crate::{
         servers::{JoinStatus, ServerModel, ServerModelMini},
     },
     schema::{self, players, servers},
+    server_filters::ServerFilters,
 };
 use chrono::Utc;
 use diesel::{
@@ -103,15 +104,6 @@ fn db_join_status(i: i32) -> JoinStatus {
         5 => JoinStatus::Broken,
         _ => JoinStatus::Undetermined,
     }
-}
-
-/// Escapes the LIKE/ILIKE wildcards (`%`, `_`) and the escape char (`\`) in a
-/// user-supplied search needle so it is matched literally inside `%...%`.
-fn escape_like(input: &str) -> String {
-    input
-        .replace('\\', "\\\\")
-        .replace('%', "\\%")
-        .replace('_', "\\_")
 }
 
 fn server_info(server: ServerModel, snap: SnapshotModel) -> ServerInfo {
@@ -365,94 +357,32 @@ impl Api for ApiService {
         // populated at write time and ip/version_name/motd each carry a pg_trgm
         // GIN index, so an `ILIKE %needle%` predicate is index-backed — no more
         // scanning the whole table in-process and deserializing JSONB per row.
-        let needle = body
-            .query
-            .as_deref()
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(str::to_string);
+        // The server-property predicates (licensed/checked/join_status/... plus
+        // the free-text needle) are built by the shared `apply_server_filters!`
+        // macro so this and the worker update-target query never drift.
+        let filters = ServerFilters {
+            online: body.online,
+            licensed: body.licensed,
+            checked: body.checked,
+            crashed: body.crashed,
+            requires_mods: body.requires_mods,
+            has_players: body.has_players,
+            has_none_players: body.has_none_players,
+            join_status: body.join_status.map(db_join_status),
+            query: body.query.clone(),
+        };
 
         let pagination: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.offset_id {
             Some(id) => Box::new(servers::id.lt(id)),
             None => Box::new(sql::<Bool>("TRUE")),
         };
-        let license: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.licensed {
-            Some(v) => Box::new(servers::is_online_mode.eq(v)),
-            None => Box::new(sql::<Bool>("TRUE")),
-        };
-        let checked: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.checked {
-            Some(v) => Box::new(servers::is_checked.assume_not_null().eq(v)),
-            None => Box::new(sql::<Bool>("TRUE")),
-        };
-        let join_status: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.join_status {
-            Some(v) => Box::new(servers::join_status.eq(db_join_status(v))),
-            None => Box::new(sql::<Bool>("TRUE")),
-        };
-        let crashed: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.crashed {
-            Some(v) => Box::new(servers::is_crashed.assume_not_null().eq(v)),
-            None => Box::new(sql::<Bool>("TRUE")),
-        };
-        let has_players: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.has_players
-        {
-            Some(true) => Box::new(diesel::dsl::exists(
-                players::table.filter(players::server_id.eq(servers::id)),
-            )),
-            Some(false) => Box::new(diesel::dsl::not(diesel::dsl::exists(
-                players::table.filter(players::server_id.eq(servers::id)),
-            ))),
-            None => Box::new(sql::<Bool>("TRUE")),
-        };
-        let has_none_players: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
-            match body.has_none_players {
-                Some(true) => Box::new(diesel::dsl::exists(
-                    players::table
-                        .filter(players::server_id.eq(servers::id))
-                        .filter(players::status.eq(DbStatus::None)),
-                )),
-                Some(false) => Box::new(diesel::dsl::not(diesel::dsl::exists(
-                    players::table
-                        .filter(players::server_id.eq(servers::id))
-                        .filter(players::status.eq(DbStatus::None)),
-                ))),
-                None => Box::new(sql::<Bool>("TRUE")),
-            };
-        let online: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match body.online {
-            Some(v) => Box::new(servers::is_online.eq(v)),
-            None => Box::new(sql::<Bool>("TRUE")),
-        };
-        let requires_mods: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> =
-            match body.requires_mods {
-                Some(v) => Box::new(servers::requires_mods.eq(v)),
-                None => Box::new(sql::<Bool>("TRUE")),
-            };
-        let search: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match &needle {
-            Some(n) => {
-                let pattern = format!("%{}%", escape_like(n));
-                Box::new(
-                    servers::ip
-                        .ilike(pattern.clone())
-                        .or(servers::version_name.ilike(pattern.clone()))
-                        .or(servers::motd.ilike(pattern)),
-                )
-            }
-            None => Box::new(sql::<Bool>("TRUE")),
-        };
 
-        let rows = servers::table
-            .inner_join(
-                schema::player_count_snapshots::table
-                    .on(schema::player_count_snapshots::server_id.eq(servers::id)),
-            )
+        let base = servers::table.inner_join(
+            schema::player_count_snapshots::table
+                .on(schema::player_count_snapshots::server_id.eq(servers::id)),
+        );
+        let rows = crate::apply_server_filters!(base, &filters)
             .filter(pagination)
-            .filter(license)
-            .filter(checked)
-            .filter(join_status)
-            .filter(crashed)
-            .filter(has_players)
-            .filter(has_none_players)
-            .filter(online)
-            .filter(requires_mods)
-            .filter(search)
             .order((
                 servers::id.desc(),
                 schema::player_count_snapshots::recorded_at.desc(),

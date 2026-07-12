@@ -18,7 +18,7 @@ use crate::{
         player_count_snapshots::SnapshotInsert,
         players::PlayerInsert,
         servers::{
-            JoinStatus, ServerExtraUpdate, ServerInsert, ServerModel, ServerModelMini, ServerUpdate,
+            ServerExtraUpdate, ServerInsert, ServerModel, ServerModelMini, ServerUpdate,
         },
     },
     schema,
@@ -352,37 +352,27 @@ pub async fn prune_processed_results(db: &DatabaseWrapper) -> DbResult<usize> {
 /// duration of this one batch query.
 pub async fn fetch_update_targets_batch(
     db: &DatabaseWrapper,
-    only_spoofable: bool,
-    only_cracked: bool,
+    filters: &crate::server_filters::ServerFilters,
     after_id: Option<i32>,
     limit: i64,
 ) -> DbResult<Vec<ServerModelMini>> {
     let mut conn = db.conn().await?;
 
-    let spoofable_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = if only_spoofable {
-        Box::new(schema::servers::join_status.eq(JoinStatus::Spoofable))
-    } else {
-        Box::new(diesel::dsl::sql::<Bool>("TRUE"))
-    };
-    let cracked_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = if only_cracked {
-        Box::new(schema::servers::is_online_mode.eq(false))
-    } else {
-        Box::new(diesel::dsl::sql::<Bool>("TRUE"))
-    };
     let cursor_filter: Box<dyn BoxableExpression<_, Pg, SqlType = Bool>> = match after_id {
         Some(id) => Box::new(schema::servers::id.gt(id)),
         None => Box::new(diesel::dsl::sql::<Bool>("TRUE")),
     };
 
-    let servers: Vec<ServerModelMini> = schema::servers::table
-        .filter(spoofable_filter)
-        .filter(cracked_filter)
-        .filter(cursor_filter)
-        .order(schema::servers::id.asc())
-        .limit(limit)
-        .select(ServerModelMini::as_select())
-        .load(&mut conn)
-        .await?;
+    // Same server-property predicates as the dashboard list query, via the shared
+    // macro, so update targeting and the UI filter set stay in lockstep.
+    let servers: Vec<ServerModelMini> =
+        crate::apply_server_filters!(schema::servers::table, filters)
+            .filter(cursor_filter)
+            .order(schema::servers::id.asc())
+            .limit(limit)
+            .select(ServerModelMini::as_select())
+            .load(&mut conn)
+            .await?;
 
     Ok(servers)
 }

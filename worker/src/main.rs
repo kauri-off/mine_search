@@ -37,12 +37,19 @@ async fn main() {
     let outbox =
         std::sync::Arc::new(outbox::Outbox::open(&outbox_path).expect("Failed to open outbox log"));
 
+    // The engine (search pool + update loop) is built once and runs for the whole
+    // process, so its state survives reconnects. Each session only swaps its
+    // transport into `link`; a dropped link never restarts the engine.
+    let (engine, link) = grpc_backend::build_engine(&worker_cfg, &worker_id, outbox.clone());
+
     loop {
         match grpc_backend::run(
-            worker_cfg.clone(),
-            worker_id.clone(),
-            config_path.clone(),
-            outbox.clone(),
+            &worker_cfg,
+            &worker_id,
+            &config_path,
+            &outbox,
+            &engine,
+            &link,
         )
         .await
         {

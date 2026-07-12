@@ -10,7 +10,72 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file worker.proto.
  */
 export const file_worker: GenFile = /*@__PURE__*/
-  fileDesc("Cgx3b3JrZXIucHJvdG8SBndvcmtlciLjAQoMV29ya2VyQ29uZmlnEg8KB3RocmVhZHMYASABKAUSFQoNc2VhcmNoX21vZHVsZRgCIAEoCBIVCg11cGRhdGVfbW9kdWxlGAMgASgIEh4KFnVwZGF0ZV93aXRoX2Nvbm5lY3Rpb24YBCABKAgSHQoVb25seV91cGRhdGVfc3Bvb2ZhYmxlGAUgASgIEhsKE29ubHlfdXBkYXRlX2NyYWNrZWQYBiABKAgSHAoUdXBkYXRlX2ludGVydmFsX3NlY3MYByABKA0SGgoSdXBkYXRlX2NvbmN1cnJlbmN5GAggASgNIosBCg1Xb3JrZXJNZXNzYWdlEiQKCHJlZ2lzdGVyGAEgASgLMhAud29ya2VyLlJlZ2lzdGVySAASJgoJaGVhcnRiZWF0GAIgASgLMhEud29ya2VyLkhlYXJ0YmVhdEgAEiQKBnJlc3VsdBgDIAEoCzISLndvcmtlci5TY2FuUmVzdWx0SABCBgoEa2luZCJwCghSZWdpc3RlchIRCgl3b3JrZXJfaWQYASABKAkSEQoEbmFtZRgCIAEoCUgAiAEBEiQKBmNvbmZpZxgDIAEoCzIULndvcmtlci5Xb3JrZXJDb25maWcSDwoHdmVyc2lvbhgEIAEoCUIHCgVfbmFtZSIzCglIZWFydGJlYXQSJgoHbWV0cmljcxgBIAEoCzIVLndvcmtlci5Xb3JrZXJNZXRyaWNzIvoBCg1Xb3JrZXJNZXRyaWNzEhUKDXNlcnZlcnNfZm91bmQYASABKAQSEwoLaXBzX3NjYW5uZWQYAiABKAQSEQoJc2Nhbl9yYXRlGAMgASgBEhMKC3VwdGltZV9zZWNzGAQgASgEEhEKCXNlYXJjaGluZxgFIAEoCBIQCgh1cGRhdGluZxgGIAEoCBIWCg5hY3RpdmVfdGhyZWFkcxgHIAEoDRITCgt1cGRhdGVfZG9uZRgIIAEoBBIUCgx1cGRhdGVfdG90YWwYCSABKAQSEwoLdXBkYXRlX3JhdGUYCiABKAESGAoQbGFzdF91cGRhdGVfdW5peBgLIAEoAyKpAQoKU2NhblJlc3VsdBIqCgpkaXNjb3ZlcmVkGAEgASgLMhQud29ya2VyLlNlcnZlclJlcG9ydEgAEicKB3VwZGF0ZWQYAiABKAsyFC53b3JrZXIuU2VydmVyUmVwb3J0SAASKAoHb2ZmbGluZRgDIAEoCzIVLndvcmtlci5TZXJ2ZXJPZmZsaW5lSAASEQoJcmVzdWx0X2lkGAQgASgJQgkKB291dGNvbWUitQIKDFNlcnZlclJlcG9ydBIKCgJpcBgBIAEoCRIMCgRwb3J0GAIgASgFEhQKDHZlcnNpb25fbmFtZRgDIAEoCRIQCghwcm90b2NvbBgEIAEoBRIYChBkZXNjcmlwdGlvbl9qc29uGAUgASgJEhYKDnBsYXllcnNfb25saW5lGAYgASgFEhMKC3BsYXllcnNfbWF4GAcgASgFEhQKDHBsYXllcl9uYW1lcxgIIAMoCRIVCg1yZXF1aXJlc19tb2RzGAkgASgIEhQKB2Zhdmljb24YCiABKAlIAIgBARIRCgRwaW5nGAsgASgDSAGIAQESJwoFZXh0cmEYDCABKAsyEy53b3JrZXIuU2VydmVyRXh0cmFIAogBAUIKCghfZmF2aWNvbkIHCgVfcGluZ0IICgZfZXh0cmEiZQoLU2VydmVyRXh0cmESFgoOaXNfb25saW5lX21vZGUYASABKAgSIwoWZGlzY29ubmVjdF9yZWFzb25fanNvbhgCIAEoCUgAiAEBQhkKF19kaXNjb25uZWN0X3JlYXNvbl9qc29uIhsKDVNlcnZlck9mZmxpbmUSCgoCaXAYASABKAki6wEKDVNlcnZlckNvbW1hbmQSIAoEcGluZxgBIAEoCzIQLndvcmtlci5QaW5nVGFza0gAEiAKBHNjYW4YAiABKAsyEC53b3JrZXIuU2NhblRhc2tIABIqCgpzZXRfY29uZmlnGAMgASgLMhQud29ya2VyLldvcmtlckNvbmZpZ0gAEiIKB2NvbnRyb2wYBCABKA4yDy53b3JrZXIuQ29udHJvbEgAEiMKCHNldF9uYW1lGAUgASgLMg8ud29ya2VyLlNldE5hbWVIABIaCgNhY2sYBiABKAsyCy53b3JrZXIuQWNrSABCBQoDY21kIhgKA0FjaxIRCglyZXN1bHRfaWQYASABKAkiJQoHU2V0TmFtZRIRCgRuYW1lGAEgASgJSACIAQFCBwoFX25hbWUiPQoIUGluZ1Rhc2sSCgoCaXAYASABKAkSDAoEcG9ydBgCIAEoBRIXCg93aXRoX2Nvbm5lY3Rpb24YAyABKAgiJAoIU2NhblRhc2sSCgoCaXAYASABKAkSDAoEcG9ydBgCIAEoBSJcChlGZXRjaFVwZGF0ZVRhcmdldHNSZXF1ZXN0EhEKCXdvcmtlcl9pZBgBIAEoCRIWCg5vbmx5X3Nwb29mYWJsZRgCIAEoCBIUCgxvbmx5X2NyYWNrZWQYAyABKAgiQQoMVXBkYXRlVGFyZ2V0EgoKAmlwGAEgASgJEgwKBHBvcnQYAiABKAUSFwoPd2l0aF9jb25uZWN0aW9uGAMgASgIKqMBCgdDb250cm9sEhcKE0NPTlRST0xfVU5TUEVDSUZJRUQQABIYChRDT05UUk9MX1BBVVNFX1NFQVJDSBABEhkKFUNPTlRST0xfUkVTVU1FX1NFQVJDSBACEhQKEENPTlRST0xfU0hVVERPV04QAxIYChRDT05UUk9MX0FCT1JUX1VQREFURRAEEhoKFkNPTlRST0xfVFJJR0dFUl9VUERBVEUQBTKdAQoNV29ya2VyQ29udHJvbBI7CgdTZXNzaW9uEhUud29ya2VyLldvcmtlck1lc3NhZ2UaFS53b3JrZXIuU2VydmVyQ29tbWFuZCgBMAESTwoSRmV0Y2hVcGRhdGVUYXJnZXRzEiEud29ya2VyLkZldGNoVXBkYXRlVGFyZ2V0c1JlcXVlc3QaFC53b3JrZXIuVXBkYXRlVGFyZ2V0MAFiBnByb3RvMw");
+  fileDesc("Cgx3b3JrZXIucHJvdG8SBndvcmtlciLqAgoMU2VydmVyRmlsdGVyEhMKBm9ubGluZRgBIAEoCEgAiAEBEhUKCGxpY2Vuc2VkGAIgASgISAGIAQESFAoHY2hlY2tlZBgDIAEoCEgCiAEBEhQKB2NyYXNoZWQYBCABKAhIA4gBARIaCg1yZXF1aXJlc19tb2RzGAUgASgISASIAQESGAoLaGFzX3BsYXllcnMYBiABKAhIBYgBARIdChBoYXNfbm9uZV9wbGF5ZXJzGAcgASgISAaIAQESGAoLam9pbl9zdGF0dXMYCCABKAlIB4gBARISCgVxdWVyeRgJIAEoCUgIiAEBQgkKB19vbmxpbmVCCwoJX2xpY2Vuc2VkQgoKCF9jaGVja2VkQgoKCF9jcmFzaGVkQhAKDl9yZXF1aXJlc19tb2RzQg4KDF9oYXNfcGxheWVyc0ITChFfaGFzX25vbmVfcGxheWVyc0IOCgxfam9pbl9zdGF0dXNCCAoGX3F1ZXJ5IrkCCgxXb3JrZXJDb25maWcSDwoHdGhyZWFkcxgBIAEoBRIVCg1zZWFyY2hfbW9kdWxlGAIgASgIEhUKDXVwZGF0ZV9tb2R1bGUYAyABKAgSHgoWdXBkYXRlX3dpdGhfY29ubmVjdGlvbhgEIAEoCBIcChR1cGRhdGVfaW50ZXJ2YWxfc2VjcxgHIAEoDRIaChJ1cGRhdGVfY29uY3VycmVuY3kYCCABKA0SKwoNdXBkYXRlX2ZpbHRlchgJIAEoCzIULndvcmtlci5TZXJ2ZXJGaWx0ZXISKwoNc2VhcmNoX2ZpbHRlchgKIAEoCzIULndvcmtlci5TZXJ2ZXJGaWx0ZXJKBAgFEAZKBAgGEAdSFW9ubHlfdXBkYXRlX3Nwb29mYWJsZVITb25seV91cGRhdGVfY3JhY2tlZCKLAQoNV29ya2VyTWVzc2FnZRIkCghyZWdpc3RlchgBIAEoCzIQLndvcmtlci5SZWdpc3RlckgAEiYKCWhlYXJ0YmVhdBgCIAEoCzIRLndvcmtlci5IZWFydGJlYXRIABIkCgZyZXN1bHQYAyABKAsyEi53b3JrZXIuU2NhblJlc3VsdEgAQgYKBGtpbmQicAoIUmVnaXN0ZXISEQoJd29ya2VyX2lkGAEgASgJEhEKBG5hbWUYAiABKAlIAIgBARIkCgZjb25maWcYAyABKAsyFC53b3JrZXIuV29ya2VyQ29uZmlnEg8KB3ZlcnNpb24YBCABKAlCBwoFX25hbWUiMwoJSGVhcnRiZWF0EiYKB21ldHJpY3MYASABKAsyFS53b3JrZXIuV29ya2VyTWV0cmljcyL6AQoNV29ya2VyTWV0cmljcxIVCg1zZXJ2ZXJzX2ZvdW5kGAEgASgEEhMKC2lwc19zY2FubmVkGAIgASgEEhEKCXNjYW5fcmF0ZRgDIAEoARITCgt1cHRpbWVfc2VjcxgEIAEoBBIRCglzZWFyY2hpbmcYBSABKAgSEAoIdXBkYXRpbmcYBiABKAgSFgoOYWN0aXZlX3RocmVhZHMYByABKA0SEwoLdXBkYXRlX2RvbmUYCCABKAQSFAoMdXBkYXRlX3RvdGFsGAkgASgEEhMKC3VwZGF0ZV9yYXRlGAogASgBEhgKEGxhc3RfdXBkYXRlX3VuaXgYCyABKAMiqQEKClNjYW5SZXN1bHQSKgoKZGlzY292ZXJlZBgBIAEoCzIULndvcmtlci5TZXJ2ZXJSZXBvcnRIABInCgd1cGRhdGVkGAIgASgLMhQud29ya2VyLlNlcnZlclJlcG9ydEgAEigKB29mZmxpbmUYAyABKAsyFS53b3JrZXIuU2VydmVyT2ZmbGluZUgAEhEKCXJlc3VsdF9pZBgEIAEoCUIJCgdvdXRjb21lIrUCCgxTZXJ2ZXJSZXBvcnQSCgoCaXAYASABKAkSDAoEcG9ydBgCIAEoBRIUCgx2ZXJzaW9uX25hbWUYAyABKAkSEAoIcHJvdG9jb2wYBCABKAUSGAoQZGVzY3JpcHRpb25fanNvbhgFIAEoCRIWCg5wbGF5ZXJzX29ubGluZRgGIAEoBRITCgtwbGF5ZXJzX21heBgHIAEoBRIUCgxwbGF5ZXJfbmFtZXMYCCADKAkSFQoNcmVxdWlyZXNfbW9kcxgJIAEoCBIUCgdmYXZpY29uGAogASgJSACIAQESEQoEcGluZxgLIAEoA0gBiAEBEicKBWV4dHJhGAwgASgLMhMud29ya2VyLlNlcnZlckV4dHJhSAKIAQFCCgoIX2Zhdmljb25CBwoFX3BpbmdCCAoGX2V4dHJhImUKC1NlcnZlckV4dHJhEhYKDmlzX29ubGluZV9tb2RlGAEgASgIEiMKFmRpc2Nvbm5lY3RfcmVhc29uX2pzb24YAiABKAlIAIgBAUIZChdfZGlzY29ubmVjdF9yZWFzb25fanNvbiIbCg1TZXJ2ZXJPZmZsaW5lEgoKAmlwGAEgASgJIusBCg1TZXJ2ZXJDb21tYW5kEiAKBHBpbmcYASABKAsyEC53b3JrZXIuUGluZ1Rhc2tIABIgCgRzY2FuGAIgASgLMhAud29ya2VyLlNjYW5UYXNrSAASKgoKc2V0X2NvbmZpZxgDIAEoCzIULndvcmtlci5Xb3JrZXJDb25maWdIABIiCgdjb250cm9sGAQgASgOMg8ud29ya2VyLkNvbnRyb2xIABIjCghzZXRfbmFtZRgFIAEoCzIPLndvcmtlci5TZXROYW1lSAASGgoDYWNrGAYgASgLMgsud29ya2VyLkFja0gAQgUKA2NtZCIYCgNBY2sSEQoJcmVzdWx0X2lkGAEgASgJIiUKB1NldE5hbWUSEQoEbmFtZRgBIAEoCUgAiAEBQgcKBV9uYW1lIj0KCFBpbmdUYXNrEgoKAmlwGAEgASgJEgwKBHBvcnQYAiABKAUSFwoPd2l0aF9jb25uZWN0aW9uGAMgASgIIiQKCFNjYW5UYXNrEgoKAmlwGAEgASgJEgwKBHBvcnQYAiABKAUifgoZRmV0Y2hVcGRhdGVUYXJnZXRzUmVxdWVzdBIRCgl3b3JrZXJfaWQYASABKAkSJAoGZmlsdGVyGAQgASgLMhQud29ya2VyLlNlcnZlckZpbHRlckoECAIQA0oECAMQBFIOb25seV9zcG9vZmFibGVSDG9ubHlfY3JhY2tlZCJBCgxVcGRhdGVUYXJnZXQSCgoCaXAYASABKAkSDAoEcG9ydBgCIAEoBRIXCg93aXRoX2Nvbm5lY3Rpb24YAyABKAgqowEKB0NvbnRyb2wSFwoTQ09OVFJPTF9VTlNQRUNJRklFRBAAEhgKFENPTlRST0xfUEFVU0VfU0VBUkNIEAESGQoVQ09OVFJPTF9SRVNVTUVfU0VBUkNIEAISFAoQQ09OVFJPTF9TSFVURE9XThADEhgKFENPTlRST0xfQUJPUlRfVVBEQVRFEAQSGgoWQ09OVFJPTF9UUklHR0VSX1VQREFURRAFMp0BCg1Xb3JrZXJDb250cm9sEjsKB1Nlc3Npb24SFS53b3JrZXIuV29ya2VyTWVzc2FnZRoVLndvcmtlci5TZXJ2ZXJDb21tYW5kKAEwARJPChJGZXRjaFVwZGF0ZVRhcmdldHMSIS53b3JrZXIuRmV0Y2hVcGRhdGVUYXJnZXRzUmVxdWVzdBoULndvcmtlci5VcGRhdGVUYXJnZXQwAWIGcHJvdG8z");
+
+/**
+ * Mirrors the dashboard's server filters. Every field is tri-state via `optional`:
+ * unset = "any". Reused for both the update target query (server-side WHERE) and the
+ * search acceptance filter (worker-side, on freshly discovered servers). `join_status`
+ * carries the DB enum text ("spoofable", "whitelist", ...); `query` is free-text over
+ * ip/version/motd and only applies to the update path.
+ *
+ * @generated from message worker.ServerFilter
+ */
+export type ServerFilter = Message<"worker.ServerFilter"> & {
+  /**
+   * @generated from field: optional bool online = 1;
+   */
+  online?: boolean | undefined;
+
+  /**
+   * is_online_mode
+   *
+   * @generated from field: optional bool licensed = 2;
+   */
+  licensed?: boolean | undefined;
+
+  /**
+   * @generated from field: optional bool checked = 3;
+   */
+  checked?: boolean | undefined;
+
+  /**
+   * @generated from field: optional bool crashed = 4;
+   */
+  crashed?: boolean | undefined;
+
+  /**
+   * @generated from field: optional bool requires_mods = 5;
+   */
+  requiresMods?: boolean | undefined;
+
+  /**
+   * @generated from field: optional bool has_players = 6;
+   */
+  hasPlayers?: boolean | undefined;
+
+  /**
+   * @generated from field: optional bool has_none_players = 7;
+   */
+  hasNonePlayers?: boolean | undefined;
+
+  /**
+   * @generated from field: optional string join_status = 8;
+   */
+  joinStatus?: string | undefined;
+
+  /**
+   * @generated from field: optional string query = 9;
+   */
+  query?: string | undefined;
+};
+
+/**
+ * Describes the message worker.ServerFilter.
+ * Use `create(ServerFilterSchema)` to create a new message.
+ */
+export const ServerFilterSchema: GenMessage<ServerFilter> = /*@__PURE__*/
+  messageDesc(file_worker, 0);
 
 /**
  * Mirrors `[worker]` in config.toml — the live-tunable knobs the frontend can edit.
@@ -39,16 +104,6 @@ export type WorkerConfig = Message<"worker.WorkerConfig"> & {
   updateWithConnection: boolean;
 
   /**
-   * @generated from field: bool only_update_spoofable = 5;
-   */
-  onlyUpdateSpoofable: boolean;
-
-  /**
-   * @generated from field: bool only_update_cracked = 6;
-   */
-  onlyUpdateCracked: boolean;
-
-  /**
    * seconds between update cycles
    *
    * @generated from field: uint32 update_interval_secs = 7;
@@ -61,6 +116,20 @@ export type WorkerConfig = Message<"worker.WorkerConfig"> & {
    * @generated from field: uint32 update_concurrency = 8;
    */
   updateConcurrency: number;
+
+  /**
+   * which existing servers the update cycle re-probes
+   *
+   * @generated from field: worker.ServerFilter update_filter = 9;
+   */
+  updateFilter?: ServerFilter | undefined;
+
+  /**
+   * acceptance filter applied to freshly discovered servers
+   *
+   * @generated from field: worker.ServerFilter search_filter = 10;
+   */
+  searchFilter?: ServerFilter | undefined;
 };
 
 /**
@@ -68,7 +137,7 @@ export type WorkerConfig = Message<"worker.WorkerConfig"> & {
  * Use `create(WorkerConfigSchema)` to create a new message.
  */
 export const WorkerConfigSchema: GenMessage<WorkerConfig> = /*@__PURE__*/
-  messageDesc(file_worker, 0);
+  messageDesc(file_worker, 1);
 
 /**
  * Worker -> backend, multiplexed over the Session stream.
@@ -105,7 +174,7 @@ export type WorkerMessage = Message<"worker.WorkerMessage"> & {
  * Use `create(WorkerMessageSchema)` to create a new message.
  */
 export const WorkerMessageSchema: GenMessage<WorkerMessage> = /*@__PURE__*/
-  messageDesc(file_worker, 1);
+  messageDesc(file_worker, 2);
 
 /**
  * @generated from message worker.Register
@@ -139,7 +208,7 @@ export type Register = Message<"worker.Register"> & {
  * Use `create(RegisterSchema)` to create a new message.
  */
 export const RegisterSchema: GenMessage<Register> = /*@__PURE__*/
-  messageDesc(file_worker, 2);
+  messageDesc(file_worker, 3);
 
 /**
  * @generated from message worker.Heartbeat
@@ -156,7 +225,7 @@ export type Heartbeat = Message<"worker.Heartbeat"> & {
  * Use `create(HeartbeatSchema)` to create a new message.
  */
 export const HeartbeatSchema: GenMessage<Heartbeat> = /*@__PURE__*/
-  messageDesc(file_worker, 3);
+  messageDesc(file_worker, 4);
 
 /**
  * @generated from message worker.WorkerMetrics
@@ -237,7 +306,7 @@ export type WorkerMetrics = Message<"worker.WorkerMetrics"> & {
  * Use `create(WorkerMetricsSchema)` to create a new message.
  */
 export const WorkerMetricsSchema: GenMessage<WorkerMetrics> = /*@__PURE__*/
-  messageDesc(file_worker, 4);
+  messageDesc(file_worker, 5);
 
 /**
  * Worker -> backend: the outcome of probing a single address.
@@ -291,7 +360,7 @@ export type ScanResult = Message<"worker.ScanResult"> & {
  * Use `create(ScanResultSchema)` to create a new message.
  */
 export const ScanResultSchema: GenMessage<ScanResult> = /*@__PURE__*/
-  messageDesc(file_worker, 5);
+  messageDesc(file_worker, 6);
 
 /**
  * @generated from message worker.ServerReport
@@ -368,7 +437,7 @@ export type ServerReport = Message<"worker.ServerReport"> & {
  * Use `create(ServerReportSchema)` to create a new message.
  */
 export const ServerReportSchema: GenMessage<ServerReport> = /*@__PURE__*/
-  messageDesc(file_worker, 6);
+  messageDesc(file_worker, 7);
 
 /**
  * @generated from message worker.ServerExtra
@@ -390,7 +459,7 @@ export type ServerExtra = Message<"worker.ServerExtra"> & {
  * Use `create(ServerExtraSchema)` to create a new message.
  */
 export const ServerExtraSchema: GenMessage<ServerExtra> = /*@__PURE__*/
-  messageDesc(file_worker, 7);
+  messageDesc(file_worker, 8);
 
 /**
  * @generated from message worker.ServerOffline
@@ -407,7 +476,7 @@ export type ServerOffline = Message<"worker.ServerOffline"> & {
  * Use `create(ServerOfflineSchema)` to create a new message.
  */
 export const ServerOfflineSchema: GenMessage<ServerOffline> = /*@__PURE__*/
-  messageDesc(file_worker, 8);
+  messageDesc(file_worker, 9);
 
 /**
  * Backend -> worker, over the Session stream.
@@ -472,7 +541,7 @@ export type ServerCommand = Message<"worker.ServerCommand"> & {
  * Use `create(ServerCommandSchema)` to create a new message.
  */
 export const ServerCommandSchema: GenMessage<ServerCommand> = /*@__PURE__*/
-  messageDesc(file_worker, 9);
+  messageDesc(file_worker, 10);
 
 /**
  * Backend -> worker: confirms a ScanResult (by its `result_id`) is durably
@@ -492,7 +561,7 @@ export type Ack = Message<"worker.Ack"> & {
  * Use `create(AckSchema)` to create a new message.
  */
 export const AckSchema: GenMessage<Ack> = /*@__PURE__*/
-  messageDesc(file_worker, 10);
+  messageDesc(file_worker, 11);
 
 /**
  * Operator-supplied display name pushed from the frontend. The worker persists
@@ -513,7 +582,7 @@ export type SetName = Message<"worker.SetName"> & {
  * Use `create(SetNameSchema)` to create a new message.
  */
 export const SetNameSchema: GenMessage<SetName> = /*@__PURE__*/
-  messageDesc(file_worker, 11);
+  messageDesc(file_worker, 12);
 
 /**
  * @generated from message worker.PingTask
@@ -540,7 +609,7 @@ export type PingTask = Message<"worker.PingTask"> & {
  * Use `create(PingTaskSchema)` to create a new message.
  */
 export const PingTaskSchema: GenMessage<PingTask> = /*@__PURE__*/
-  messageDesc(file_worker, 12);
+  messageDesc(file_worker, 13);
 
 /**
  * @generated from message worker.ScanTask
@@ -562,7 +631,7 @@ export type ScanTask = Message<"worker.ScanTask"> & {
  * Use `create(ScanTaskSchema)` to create a new message.
  */
 export const ScanTaskSchema: GenMessage<ScanTask> = /*@__PURE__*/
-  messageDesc(file_worker, 13);
+  messageDesc(file_worker, 14);
 
 /**
  * @generated from message worker.FetchUpdateTargetsRequest
@@ -574,14 +643,9 @@ export type FetchUpdateTargetsRequest = Message<"worker.FetchUpdateTargetsReques
   workerId: string;
 
   /**
-   * @generated from field: bool only_spoofable = 2;
+   * @generated from field: worker.ServerFilter filter = 4;
    */
-  onlySpoofable: boolean;
-
-  /**
-   * @generated from field: bool only_cracked = 3;
-   */
-  onlyCracked: boolean;
+  filter?: ServerFilter | undefined;
 };
 
 /**
@@ -589,7 +653,7 @@ export type FetchUpdateTargetsRequest = Message<"worker.FetchUpdateTargetsReques
  * Use `create(FetchUpdateTargetsRequestSchema)` to create a new message.
  */
 export const FetchUpdateTargetsRequestSchema: GenMessage<FetchUpdateTargetsRequest> = /*@__PURE__*/
-  messageDesc(file_worker, 14);
+  messageDesc(file_worker, 15);
 
 /**
  * @generated from message worker.UpdateTarget
@@ -616,7 +680,7 @@ export type UpdateTarget = Message<"worker.UpdateTarget"> & {
  * Use `create(UpdateTargetSchema)` to create a new message.
  */
 export const UpdateTargetSchema: GenMessage<UpdateTarget> = /*@__PURE__*/
-  messageDesc(file_worker, 15);
+  messageDesc(file_worker, 16);
 
 /**
  * @generated from enum worker.Control

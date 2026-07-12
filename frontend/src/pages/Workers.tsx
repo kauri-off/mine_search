@@ -2,9 +2,18 @@ import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Cpu, Circle } from "lucide-react";
-import { workerApi, type WorkerConfigInput } from "@/api/client";
+import { workerApi, protoToFilterValue, type WorkerConfigInput } from "@/api/client";
 import type { WorkerInfo } from "@/gen/api_pb";
 import { Spinner, ToggleButton } from "@/components";
+import { SegmentedSwitch } from "@/components/SegmentedSwitch";
+import { ServerFilterFields } from "@/components/dashboard/ServerFilterFields";
+import {
+  SEARCH_FILTER_FIELDS,
+  UPDATE_FILTER_FIELDS,
+  type BoolFilterKey,
+  type ServerFilterValue,
+} from "@/constants/dashboardFilters";
+import type { JoinStatus } from "@/types";
 import { useTranslation } from "@/i18n";
 import { cn } from "@/cn";
 
@@ -34,11 +43,21 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
     search_module: cfg?.searchModule ?? false,
     update_module: cfg?.updateModule ?? false,
     update_with_connection: cfg?.updateWithConnection ?? false,
-    only_update_spoofable: cfg?.onlyUpdateSpoofable ?? false,
-    only_update_cracked: cfg?.onlyUpdateCracked ?? false,
     update_interval_secs: cfg?.updateIntervalSecs ?? 600,
     update_concurrency: cfg?.updateConcurrency ?? 50,
+    update_filter: protoToFilterValue(cfg?.updateFilter),
+    search_filter: protoToFilterValue(cfg?.searchFilter),
   }));
+
+  // Which module's config panel is shown (view toggle only; both can run).
+  const [module, setModule] = useState<"search" | "update">("search");
+
+  // Merge a single field into one of the two filter objects. Split by handler so
+  // the tri-state/dropdown/text callbacks stay strongly typed.
+  const patchSearch = (patch: Partial<ServerFilterValue>) =>
+    setForm((p) => ({ ...p, search_filter: { ...p.search_filter, ...patch } }));
+  const patchUpdate = (patch: Partial<ServerFilterValue>) =>
+    setForm((p) => ({ ...p, update_filter: { ...p.update_filter, ...patch } }));
 
   const mutation = useMutation({
     mutationFn: () => workerApi.updateWorkerConfig(worker.workerId, form),
@@ -191,44 +210,80 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
       <div className="border-t border-border pt-3 space-y-2">
         <div className="text-xs font-medium text-slate-400">{t.workers.config}</div>
 
-        <label className="flex items-center justify-between gap-3">
-          <span className="text-sm text-slate-400">{t.workers.threads}</span>
-          <input
-            type="number"
-            min={0}
-            value={form.threads}
-            onChange={(e) => setForm({ ...form, threads: Number(e.target.value) })}
-            className="w-24 px-2 py-1 bg-surface border border-border rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
-        </label>
+        <SegmentedSwitch
+          value={module}
+          onChange={setModule}
+          options={[
+            { value: "search", label: t.workers.searchTab },
+            { value: "update", label: t.workers.updateTab },
+          ]}
+        />
 
-        <label className="flex items-center justify-between gap-3">
-          <span className="text-sm text-slate-400">{t.workers.updateInterval}</span>
-          <input
-            type="number"
-            min={0}
-            value={form.update_interval_secs}
-            onChange={(e) => setForm({ ...form, update_interval_secs: Number(e.target.value) })}
-            className="w-24 px-2 py-1 bg-surface border border-border rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
-        </label>
+        {module === "search" ? (
+          <div className="space-y-2">
+            <ToggleButton label={t.workers.searchModule} active={form.search_module} onClick={() => setForm({ ...form, search_module: !form.search_module })} />
 
-        <label className="flex items-center justify-between gap-3">
-          <span className="text-sm text-slate-400">{t.workers.updateConcurrency}</span>
-          <input
-            type="number"
-            min={0}
-            value={form.update_concurrency}
-            onChange={(e) => setForm({ ...form, update_concurrency: Number(e.target.value) })}
-            className="w-24 px-2 py-1 bg-surface border border-border rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
-        </label>
+            <label className="flex items-center justify-between gap-3">
+              <span className="text-sm text-slate-400">{t.workers.threads}</span>
+              <input
+                type="number"
+                min={0}
+                value={form.threads}
+                onChange={(e) => setForm({ ...form, threads: Number(e.target.value) })}
+                className="w-24 px-2 py-1 bg-surface border border-border rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </label>
 
-        <ToggleButton label={t.workers.searchModule} active={form.search_module} onClick={() => setForm({ ...form, search_module: !form.search_module })} />
-        <ToggleButton label={t.workers.updateModule} active={form.update_module} onClick={() => setForm({ ...form, update_module: !form.update_module })} />
-        <ToggleButton label={t.workers.withConnection} active={form.update_with_connection} onClick={() => setForm({ ...form, update_with_connection: !form.update_with_connection })} />
-        <ToggleButton label={t.workers.onlySpoofable} active={form.only_update_spoofable} onClick={() => setForm({ ...form, only_update_spoofable: !form.only_update_spoofable })} />
-        <ToggleButton label={t.workers.onlyCracked} active={form.only_update_cracked} onClick={() => setForm({ ...form, only_update_cracked: !form.only_update_cracked })} />
+            <div className="pt-1 space-y-2">
+              <div className="text-xs font-medium text-slate-500">{t.workers.filters}</div>
+              <ServerFilterFields
+                value={form.search_filter}
+                fields={SEARCH_FILTER_FIELDS}
+                onBoolChange={(key: BoolFilterKey, val) => patchSearch({ [key]: val } as Partial<ServerFilterValue>)}
+                onJoinStatusChange={(val: JoinStatus | null) => patchSearch({ join_status: val })}
+                onQueryChange={(val) => patchSearch({ query: val || null })}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <ToggleButton label={t.workers.updateModule} active={form.update_module} onClick={() => setForm({ ...form, update_module: !form.update_module })} />
+            <ToggleButton label={t.workers.withConnection} active={form.update_with_connection} onClick={() => setForm({ ...form, update_with_connection: !form.update_with_connection })} />
+
+            <label className="flex items-center justify-between gap-3">
+              <span className="text-sm text-slate-400">{t.workers.updateInterval}</span>
+              <input
+                type="number"
+                min={0}
+                value={form.update_interval_secs}
+                onChange={(e) => setForm({ ...form, update_interval_secs: Number(e.target.value) })}
+                className="w-24 px-2 py-1 bg-surface border border-border rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </label>
+
+            <label className="flex items-center justify-between gap-3">
+              <span className="text-sm text-slate-400">{t.workers.updateConcurrency}</span>
+              <input
+                type="number"
+                min={0}
+                value={form.update_concurrency}
+                onChange={(e) => setForm({ ...form, update_concurrency: Number(e.target.value) })}
+                className="w-24 px-2 py-1 bg-surface border border-border rounded-md text-sm text-slate-200 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </label>
+
+            <div className="pt-1 space-y-2">
+              <div className="text-xs font-medium text-slate-500">{t.workers.filters}</div>
+              <ServerFilterFields
+                value={form.update_filter}
+                fields={UPDATE_FILTER_FIELDS}
+                onBoolChange={(key: BoolFilterKey, val) => patchUpdate({ [key]: val } as Partial<ServerFilterValue>)}
+                onJoinStatusChange={(val: JoinStatus | null) => patchUpdate({ join_status: val })}
+                onQueryChange={(val) => patchUpdate({ query: val || null })}
+              />
+            </div>
+          </div>
+        )}
 
         <button
           onClick={() => mutation.mutate()}

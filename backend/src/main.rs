@@ -26,6 +26,8 @@ mod models;
 mod persistence;
 mod registry;
 mod schema;
+#[macro_use]
+mod server_filters;
 mod services;
 mod state;
 

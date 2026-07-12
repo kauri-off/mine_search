@@ -217,11 +217,12 @@ export interface Translations {
     threads: string;
     updateInterval: string;
     updateConcurrency: string;
+    searchTab: string;
+    updateTab: string;
+    filters: string;
     searchModule: string;
     updateModule: string;
     withConnection: string;
-    onlySpoofable: string;
-    onlyCracked: string;
     save: string;
     saving: string;
     saved: string;

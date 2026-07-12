@@ -9,6 +9,22 @@ pub struct Config {
     pub worker: Option<WorkerConfig>,
 }
 
+/// Optional server-property filters (mirrors `worker.ServerFilter`), deserialized
+/// from the `[worker.update_filter]` / `[worker.search_filter]` tables. Every
+/// field defaults to `None` = "no constraint".
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct ServerFilter {
+    pub online: Option<bool>,
+    pub licensed: Option<bool>,
+    pub checked: Option<bool>,
+    pub crashed: Option<bool>,
+    pub requires_mods: Option<bool>,
+    pub has_players: Option<bool>,
+    pub has_none_players: Option<bool>,
+    pub join_status: Option<String>,
+    pub query: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct WorkerConfig {
     #[serde(default)]
@@ -19,14 +35,16 @@ pub struct WorkerConfig {
     pub update_module: bool,
     #[serde(default)]
     pub update_with_connection: bool,
-    #[serde(default)]
-    pub only_update_spoofable: bool,
-    #[serde(default)]
-    pub only_update_cracked: bool,
     #[serde(default = "default_update_interval")]
     pub update_interval_secs: u32,
     #[serde(default = "default_update_concurrency")]
     pub update_concurrency: u32,
+    // Which existing servers the update cycle re-probes.
+    #[serde(default)]
+    pub update_filter: ServerFilter,
+    // Acceptance filter applied to freshly discovered servers before reporting.
+    #[serde(default)]
+    pub search_filter: ServerFilter,
     pub log_level: Option<String>,
 
     // gRPC mode
