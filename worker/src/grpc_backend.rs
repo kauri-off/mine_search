@@ -25,7 +25,7 @@ use tracing::{debug, error, info, warn};
 
 use crate::{
     config::WorkerConfig,
-    engine::{Engine, RuntimeConfig, UpdateTarget},
+    engine::{Engine, RuntimeConfig, UpdateTarget, UpdateTargetItem},
     outbox::Outbox,
     report::ScanReport,
 };
@@ -359,15 +359,18 @@ pub struct GrpcTargetSource {
 }
 
 impl GrpcTargetSource {
-    /// Opens the server-streaming `FetchUpdateTargets` RPC and yields one target
-    /// at a time. The backend stamps each target's `with_connection` from this
-    /// worker's registered config, so the caller no longer supplies it. Streaming
-    /// means neither side has to buffer the whole `servers` table.
+    /// Opens the server-streaming `FetchUpdateTargets` RPC and yields the leading
+    /// total followed by one target at a time. The backend stamps each target's
+    /// `with_connection` from this worker's registered config, so the caller no
+    /// longer supplies it. Streaming means neither side has to buffer the whole
+    /// `servers` table.
     pub async fn update_targets(
         &self,
         filter: PbFilter,
-    ) -> anyhow::Result<impl tokio_stream::Stream<Item = anyhow::Result<UpdateTarget>> + Send + use<>>
-    {
+    ) -> anyhow::Result<
+        impl tokio_stream::Stream<Item = anyhow::Result<UpdateTargetItem>> + Send + use<>,
+    > {
+        use proto::worker::fetch_update_targets_response::Kind;
         let mut client = self
             .link
             .client()
@@ -381,12 +384,16 @@ impl GrpcTargetSource {
             .into_inner();
 
         Ok(stream.map(|res| {
-            res.map(|t| UpdateTarget {
-                ip: t.ip,
-                port: t.port as u16,
-                with_connection: t.with_connection,
-            })
-            .map_err(anyhow::Error::from)
+            let msg = res.map_err(anyhow::Error::from)?;
+            match msg.kind {
+                Some(Kind::Total(n)) => Ok(UpdateTargetItem::Total(n)),
+                Some(Kind::Target(t)) => Ok(UpdateTargetItem::Target(UpdateTarget {
+                    ip: t.ip,
+                    port: t.port as u16,
+                    with_connection: t.with_connection,
+                })),
+                None => Err(anyhow!("empty FetchUpdateTargets frame")),
+            }
         }))
     }
 }

@@ -14,8 +14,9 @@ service WorkerControl {
   rpc Session(stream WorkerMessage) returns (stream ServerCommand);
   // Server-streaming: the backend yields one UpdateTarget per row instead of
   // buffering the whole `servers` table into a single message (which would blow
-  // the gRPC message-size limit as the table grows).
-  rpc FetchUpdateTargets(FetchUpdateTargetsRequest) returns (stream UpdateTarget);
+  // the gRPC message-size limit as the table grows). The very first message
+  // carries the total row count so the worker can show real progress up front.
+  rpc FetchUpdateTargets(FetchUpdateTargetsRequest) returns (stream FetchUpdateTargetsResponse);
 }
 
 // Mirrors the dashboard's server filters. Every field is tri-state via `optional`:
@@ -183,4 +184,15 @@ message UpdateTarget {
   string ip = 1;
   int32 port = 2;
   bool with_connection = 3;
+}
+
+// One frame of the FetchUpdateTargets stream. The backend sends exactly one
+// `total` frame first (the count of servers matching the filter), then one
+// `target` frame per server. Splitting total from the targets lets the worker
+// display a fixed denominator instead of a number that climbs as rows arrive.
+message FetchUpdateTargetsResponse {
+  oneof kind {
+    uint64 total = 1;
+    UpdateTarget target = 2;
+  }
 }

@@ -97,6 +97,14 @@ pub struct UpdateTarget {
     pub with_connection: bool,
 }
 
+/// One frame of the update-target stream: either the leading total (count of
+/// servers this cycle will re-probe) or a single target.
+#[derive(Debug, Clone)]
+pub enum UpdateTargetItem {
+    Total(u64),
+    Target(UpdateTarget),
+}
+
 const SEARCH_PORT: u16 = 25565;
 const DEFAULT_UPDATE_INTERVAL_SECS: u64 = 600;
 const DEFAULT_UPDATE_CONCURRENCY: usize = 50;
@@ -451,8 +459,10 @@ async fn run_update_cycle(engine: &Arc<Engine>) -> bool {
             // alive — no matter how many servers the backend streams (the old
             // code spawned one task per target up front). Reserved/invalid
             // addresses are dropped so a compromised backend can't aim the
-            // worker at internal hosts. `update_total` now counts probeable
-            // targets as they arrive rather than being known up front.
+            // worker at internal hosts. `update_total` is set once from the
+            // stream's leading frame (the backend's row count) so progress has a
+            // fixed denominator; skipped addresses still count as done so
+            // `update_done` reaches `update_total` at the end of the cycle.
             let dispatch_engine = engine.clone();
             let dispatcher = tokio::spawn(async move {
                 let semaphore = Arc::new(Semaphore::new(concurrency));
@@ -460,16 +470,20 @@ async fn run_update_cycle(engine: &Arc<Engine>) -> bool {
                 tokio::pin!(stream);
                 while let Some(item) = stream.next().await {
                     let t = match item {
-                        Ok(t) => t,
+                        Ok(UpdateTargetItem::Total(n)) => {
+                            dispatch_engine.update_total.store(n, Ordering::Relaxed);
+                            continue;
+                        }
+                        Ok(UpdateTargetItem::Target(t)) => t,
                         Err(e) => {
                             error!(target: "updater", "target stream error: {}", e);
                             break;
                         }
                     };
                     if !worker::is_probeable_ip(&t.ip) {
+                        dispatch_engine.update_done.fetch_add(1, Ordering::Relaxed);
                         continue;
                     }
-                    dispatch_engine.update_total.fetch_add(1, Ordering::Relaxed);
                     let Ok(permit) = semaphore.clone().acquire_owned().await else {
                         break;
                     };

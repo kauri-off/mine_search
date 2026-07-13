@@ -200,12 +200,17 @@ export interface Translations {
     metrics: string;
     searchMetrics: string;
     updateMetrics: string;
+    version: string;
     serversFound: string;
+    ipsScanned: string;
+    hitRate: string;
     scanRate: string;
     uptime: string;
     uptimeUnits: { h: string; m: string; s: string };
     activeThreads: string;
     searching: string;
+    scanning: string;
+    paused: string;
     updating: string;
     updateStatus: string;
     updateProgress: string;

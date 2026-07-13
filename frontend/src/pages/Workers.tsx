@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Cpu, Circle } from "lucide-react";
@@ -24,11 +24,55 @@ function formatUptime(secs: number, u: { h: string; m: string; s: string }): str
   return `${m}${u.m} ${secs % 60}${u.s}`;
 }
 
-const Metric = ({ label, value }: { label: string; value: string }) => (
+const Metric = ({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: string;
+}) => (
   <div className="flex flex-col">
     <span className="text-xs text-slate-500">{label}</span>
-    <span className="text-sm text-slate-200 font-medium tabular-nums">{value}</span>
+    <span className={cn("text-sm font-medium tabular-nums", accent ?? "text-slate-200")}>
+      {value}
+    </span>
   </div>
+);
+
+// Section title with a live state chip on the right (mirrors the online badge).
+const SectionHeader = ({ label, chip }: { label: string; chip: ReactNode }) => (
+  <div className="flex items-center justify-between mb-2">
+    <span className="text-xs font-medium text-slate-400">{label}</span>
+    {chip}
+  </div>
+);
+
+// A module's on/off state, shown as a pill next to its section title. When active
+// the dot fills and pulses so a running module reads at a glance.
+const StateChip = ({
+  active,
+  label,
+  tone,
+}: {
+  active: boolean;
+  label: string;
+  tone: "green" | "indigo";
+}) => (
+  <span
+    className={cn(
+      "flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-md border",
+      active
+        ? tone === "green"
+          ? "bg-green-900/30 text-green-400 border-green-700/40"
+          : "bg-indigo-900/30 text-indigo-300 border-indigo-700/40"
+        : "bg-surface text-slate-500 border-border",
+    )}
+  >
+    <Circle className={cn("w-2 h-2", active && "fill-current animate-pulse")} />
+    {label}
+  </span>
 );
 
 const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
@@ -65,6 +109,23 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
   });
 
   const m = worker.metrics;
+
+  // Search productivity: discoveries per IP probed. Typically a tiny fraction on
+  // random-IP scanning, so keep extra precision below 1%.
+  const ipsScanned = m ? Number(m.ipsScanned) : 0;
+  const serversFound = m ? Number(m.serversFound) : 0;
+  const hitRate =
+    m && ipsScanned > 0
+      ? (() => {
+          const pct = (serversFound / ipsScanned) * 100;
+          return `${pct >= 1 ? pct.toFixed(1) : pct.toPrecision(2)}%`;
+        })()
+      : "-";
+
+  // Update-cycle progress → fill bar + percent.
+  const updateDone = m ? Number(m.updateDone) : 0;
+  const updateTotal = m ? Number(m.updateTotal) : 0;
+  const updatePct = updateTotal > 0 ? (updateDone / updateTotal) * 100 : 0;
 
   // Double-click the header to rename. The draft lives in the uncontrolled input;
   // `cancelRef` lets Escape blur without committing the edit.
@@ -136,30 +197,61 @@ const WorkerCard = ({ worker }: { worker: WorkerInfo }) => {
 
       {rename.isError && <p className="text-xs text-red-400">{t.workers.renameError}</p>}
 
-      {/* Search metrics */}
+      {/* Tier 1 — worker-level facts (whole process, module-independent) */}
+      <div className="grid grid-cols-3 gap-3 border-b border-border pb-3">
+        <Metric label={t.workers.uptime} value={m ? formatUptime(Number(m.uptimeSecs), t.workers.uptimeUnits) : "-"} />
+        <Metric label={t.workers.activeThreads} value={m ? String(m.activeThreads) : "-"} />
+        <Metric label={t.workers.version} value={worker.version ? `v${worker.version}` : "-"} />
+      </div>
+
+      {/* Tier 2 — Search module */}
       <div>
-        <div className="text-xs font-medium text-slate-400 mb-2">{t.workers.searchMetrics}</div>
-        <div className="grid grid-cols-3 gap-3">
-          <Metric label={t.workers.serversFound} value={m ? Number(m.serversFound).toLocaleString() : "-"} />
+        <SectionHeader
+          label={t.workers.searchMetrics}
+          chip={
+            <StateChip
+              active={!!m?.searching}
+              tone="green"
+              label={m?.searching ? t.workers.scanning : t.workers.paused}
+            />
+          }
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <Metric label={t.workers.serversFound} value={m ? serversFound.toLocaleString() : "-"} />
+          <Metric label={t.workers.ipsScanned} value={m ? ipsScanned.toLocaleString() : "-"} />
           <Metric label={t.workers.scanRate} value={m ? `${m.scanRate.toFixed(1)}/s` : "-"} />
-          <Metric label={t.workers.uptime} value={m ? formatUptime(Number(m.uptimeSecs), t.workers.uptimeUnits) : "-"} />
-          <Metric label={t.workers.activeThreads} value={m ? String(m.activeThreads) : "-"} />
-          <Metric label={t.workers.searching} value={m?.searching ? "✓" : "—"} />
+          <Metric label={t.workers.hitRate} value={hitRate} accent="text-slate-100" />
         </div>
       </div>
 
-      {/* Update metrics */}
+      {/* Tier 3 — Update module */}
       <div>
-        <div className="text-xs font-medium text-slate-400 mb-2">{t.workers.updateMetrics}</div>
-        <div className="grid grid-cols-3 gap-3">
-          <Metric
-            label={t.workers.updateStatus}
-            value={m ? (m.updating ? t.workers.updating : t.workers.idle) : "-"}
-          />
-          <Metric
-            label={t.workers.updateProgress}
-            value={m ? `${Number(m.updateDone).toLocaleString()} / ${Number(m.updateTotal).toLocaleString()}` : "-"}
-          />
+        <SectionHeader
+          label={t.workers.updateMetrics}
+          chip={
+            <StateChip
+              active={!!m?.updating}
+              tone="indigo"
+              label={m?.updating ? t.workers.updating : t.workers.idle}
+            />
+          }
+        />
+        <div className="mb-3">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="text-slate-500">{t.workers.updateProgress}</span>
+            <span className="text-slate-300 tabular-nums">
+              {m ? `${updateDone.toLocaleString()} / ${updateTotal.toLocaleString()}` : "-"}
+              {m && updateTotal > 0 ? `  ·  ${updatePct.toFixed(0)}%` : ""}
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-surface overflow-hidden">
+            <div
+              className="h-full bg-indigo-500 rounded-full transition-all"
+              style={{ width: `${updatePct}%` }}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
           <Metric label={t.workers.updateRate} value={m ? `${m.updateRate.toFixed(1)}/s` : "-"} />
           <Metric
             label={t.workers.lastUpdate}

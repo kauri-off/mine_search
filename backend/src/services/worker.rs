@@ -6,8 +6,9 @@ use std::{pin::Pin, sync::Arc};
 
 use futures::Stream;
 use proto::worker::{
-    Ack, FetchUpdateTargetsRequest, ScanResult, ServerCommand, UpdateTarget, WorkerMessage,
-    scan_result, server_command, worker_control_server::WorkerControl, worker_message,
+    Ack, FetchUpdateTargetsRequest, FetchUpdateTargetsResponse, ScanResult, ServerCommand,
+    UpdateTarget, WorkerMessage, fetch_update_targets_response, scan_result, server_command,
+    worker_control_server::WorkerControl, worker_message,
 };
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
@@ -32,7 +33,7 @@ const UPDATE_TARGET_BATCH: i64 = 1000;
 impl WorkerControl for WorkerService {
     type SessionStream = Pin<Box<dyn Stream<Item = Result<ServerCommand, Status>> + Send>>;
     type FetchUpdateTargetsStream =
-        Pin<Box<dyn Stream<Item = Result<UpdateTarget, Status>> + Send>>;
+        Pin<Box<dyn Stream<Item = Result<FetchUpdateTargetsResponse, Status>> + Send>>;
 
     async fn session(
         &self,
@@ -134,10 +135,31 @@ impl WorkerControl for WorkerService {
 
         // Page through the servers table and stream one target per row. Each
         // batch re-acquires (and releases) a pooled connection, so a slow worker
-        // draining the stream never pins a connection for the whole cycle.
-        let (tx, rx) = mpsc::channel::<Result<UpdateTarget, Status>>(256);
+        // draining the stream never pins a connection for the whole cycle. The
+        // leading frame carries the total count so the worker's progress has a
+        // fixed denominator from the start.
+        let (tx, rx) = mpsc::channel::<Result<FetchUpdateTargetsResponse, Status>>(256);
         let state = self.state.clone();
         tokio::spawn(async move {
+            let total = match persistence::count_update_targets(&state.db, &filters).await {
+                Ok(n) => n.max(0) as u64,
+                Err(e) => {
+                    let _ = tx
+                        .send(Err(Status::internal(format!("db error: {e}"))))
+                        .await;
+                    return;
+                }
+            };
+            if tx
+                .send(Ok(FetchUpdateTargetsResponse {
+                    kind: Some(fetch_update_targets_response::Kind::Total(total)),
+                }))
+                .await
+                .is_err()
+            {
+                return; // worker dropped the stream
+            }
+
             let mut after_id: Option<i32> = None;
             loop {
                 let rows = match persistence::fetch_update_targets_batch(
@@ -165,7 +187,13 @@ impl WorkerControl for WorkerService {
                         port: row.port,
                         with_connection,
                     };
-                    if tx.send(Ok(target)).await.is_err() {
+                    if tx
+                        .send(Ok(FetchUpdateTargetsResponse {
+                            kind: Some(fetch_update_targets_response::Kind::Target(target)),
+                        }))
+                        .await
+                        .is_err()
+                    {
                         return; // worker dropped the stream
                     }
                 }

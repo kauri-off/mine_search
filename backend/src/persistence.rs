@@ -343,6 +343,22 @@ pub async fn prune_processed_results(db: &DatabaseWrapper) -> DbResult<usize> {
     Ok(n)
 }
 
+/// Counts the servers a worker should re-probe this cycle, honouring the same
+/// filters as `fetch_update_targets_batch`. Run once at the start of a cycle so
+/// the worker can report a fixed total instead of a count that climbs as rows
+/// stream in.
+pub async fn count_update_targets(
+    db: &DatabaseWrapper,
+    filters: &crate::server_filters::ServerFilters,
+) -> DbResult<i64> {
+    let mut conn = db.conn().await?;
+    let n: i64 = crate::apply_server_filters!(schema::servers::table, filters)
+        .count()
+        .get_result(&mut conn)
+        .await?;
+    Ok(n)
+}
+
 /// Fetches one keyset-paginated batch of servers a worker should re-probe this
 /// cycle, honouring the spoofable/cracked filters. Rows are ordered by ascending
 /// id and start strictly after `after_id`; the caller pages by passing the last
