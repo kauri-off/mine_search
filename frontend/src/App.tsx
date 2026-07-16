@@ -1,4 +1,3 @@
-import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LanguageProvider } from "./i18n";
@@ -6,23 +5,11 @@ import { Login } from "./pages/Login";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AppShell } from "./components/AppShell";
-import { Spinner } from "./components";
-
-const Dashboard = lazy(() =>
-  import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })),
-);
-const ServerDetail = lazy(() =>
-  import("./pages/ServerDetail").then((m) => ({ default: m.ServerDetail })),
-);
-const Stats = lazy(() =>
-  import("./pages/Stats").then((m) => ({ default: m.Stats })),
-);
-const Players = lazy(() =>
-  import("./pages/Players").then((m) => ({ default: m.Players })),
-);
-const Workers = lazy(() =>
-  import("./pages/Workers").then((m) => ({ default: m.Workers })),
-);
+import { Dashboard } from "./pages/Dashboard";
+import { ServerDetail } from "./pages/ServerDetail";
+import { Stats } from "./pages/Stats";
+import { Players } from "./pages/Players";
+import { Workers } from "./pages/Workers";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,12 +19,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-const fallback = (
-  <div className="flex-1 flex items-center justify-center">
-    <Spinner className="w-10 h-10" />
-  </div>
-);
 
 function App() {
   return (
@@ -53,15 +34,13 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <AppShell>
-                        <Suspense fallback={fallback}>
-                          <Routes>
-                            <Route path="/" element={<Dashboard />} />
-                            <Route path="/server/:ip" element={<ServerDetail />} />
-                            <Route path="/stats" element={<Stats />} />
-                            <Route path="/players" element={<Players />} />
-                            <Route path="/workers" element={<Workers />} />
-                          </Routes>
-                        </Suspense>
+                        <Routes>
+                          <Route path="/" element={<Dashboard />} />
+                          <Route path="/server/:ip" element={<ServerDetail />} />
+                          <Route path="/stats" element={<Stats />} />
+                          <Route path="/players" element={<Players />} />
+                          <Route path="/workers" element={<Workers />} />
+                        </Routes>
                       </AppShell>
                     </ProtectedRoute>
                   }
