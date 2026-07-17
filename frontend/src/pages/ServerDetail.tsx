@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { InfiniteData } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import type {
   PlayerStatus,
@@ -42,11 +43,28 @@ export const ServerDetail = () => {
 
   // -- Queries ---------------------------------------------------------------
 
+  // The dashboard list returns the same full ServerInfo payload as the detail
+  // RPC, so seed from any cached ["servers", filters] page. This paints the
+  // page instantly on navigation from the dashboard; initialDataUpdatedAt
+  // keeps staleTime honest so old list data still refetches in the background,
+  // and the streamServerInfo subscription below overwrites the seed with
+  // authoritative state within one round-trip either way.
+  const findCachedServer = () => {
+    for (const query of queryClient.getQueryCache().findAll({ queryKey: ["servers"] })) {
+      const data = query.state.data as InfiniteData<ServerInfoResponse[]> | undefined;
+      const hit = data?.pages.flat().find((s) => s.ip === ip);
+      if (hit) return { server: hit, updatedAt: query.state.dataUpdatedAt };
+    }
+    return undefined;
+  };
+
   const { data: server, isLoading: isInfoLoading } = useQuery({
     queryKey: ["server", ip],
     queryFn: () => serverApi.fetchServerInfo(ip!),
     enabled: !!ip,
     staleTime: 10 * 60 * 1000,
+    initialData: () => findCachedServer()?.server,
+    initialDataUpdatedAt: () => findCachedServer()?.updatedAt,
   });
 
   const { data: history, isLoading: isHistoryLoading } = useQuery({
