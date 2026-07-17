@@ -86,6 +86,7 @@ export const Players = () => {
   // Virtualize the rows so an unbounded infinite-scroll list keeps only the
   // visible window mounted instead of every row.
   const scrollRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line react-hooks/incompatible-library -- useVirtualizer is known-incompatible with React Compiler; memoization is skipped for this component, which is fine
   const virtualizer = useVirtualizer({
     count: allPlayers.length,
     getScrollElement: () => scrollRef.current,

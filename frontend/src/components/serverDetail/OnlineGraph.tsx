@@ -29,8 +29,18 @@ export const OnlineGraph = ({ data, isLoading }: OnlineGraphProps) => {
       onMouseDown={(e) => e.preventDefault()}
     >
       <h3 className="text-sm font-semibold text-slate-300 mb-4">{t.onlineGraph.title}</h3>
+      {isLoading || data === undefined ? (
+        <div className="h-[calc(100%-2.25rem)] animate-pulse flex flex-col justify-between pb-1">
+          <div className="flex-1 bg-surface rounded-lg" />
+          <div className="flex justify-between mt-3 px-8">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-2.5 w-10 bg-surface rounded" />
+            ))}
+          </div>
+        </div>
+      ) : (
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={isLoading || data === undefined ? [] : data} style={{ userSelect: "none" }}>
+        <AreaChart data={data} style={{ userSelect: "none" }}>
           <defs>
             <linearGradient id="colorOnline" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="var(--color-accent)" stopOpacity={0.4} />
@@ -61,6 +71,7 @@ export const OnlineGraph = ({ data, isLoading }: OnlineGraphProps) => {
           />
         </AreaChart>
       </ResponsiveContainer>
+      )}
     </div>
   );
 };

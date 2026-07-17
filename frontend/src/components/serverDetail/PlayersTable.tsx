@@ -8,12 +8,31 @@ import { useTranslation } from "@/i18n";
 
 interface PlayersTableProps {
   players: PlayerResponse[] | undefined;
+  isLoading?: boolean;
   onUpdateStatus: (playerId: number, status: PlayerStatus) => void;
   onDeletePlayer: (playerId: number) => void;
 }
 
+const SkeletonRows = () => (
+  <div className="animate-pulse">
+    {Array.from({ length: 3 }).map((_, i) => (
+      <div
+        key={i}
+        className="flex items-center justify-between py-2.5 px-1 border-b border-surface last:border-0"
+      >
+        <div className="space-y-1.5">
+          <div className="h-3.5 w-28 bg-surface rounded" />
+          <div className="h-2.5 w-20 bg-surface rounded" />
+        </div>
+        <div className="h-5 w-36 bg-surface rounded" />
+      </div>
+    ))}
+  </div>
+);
+
 export const PlayersTable = ({
   players,
+  isLoading,
   onUpdateStatus,
   onDeletePlayer,
 }: PlayersTableProps) => {
@@ -24,7 +43,9 @@ export const PlayersTable = ({
     <div className="bg-panel border border-border rounded-xl p-5">
       <h3 className="text-sm font-semibold text-slate-300 mb-4">{t.playersTable.title}</h3>
 
-      {players && players.length > 0 ? (
+      {isLoading ? (
+        <SkeletonRows />
+      ) : players && players.length > 0 ? (
         <div className="overflow-x-auto -mx-1">
           <table className="w-full text-sm min-w-full">
             <thead>

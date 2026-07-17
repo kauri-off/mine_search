@@ -67,7 +67,7 @@ export const ServerDetail = () => {
     initialDataUpdatedAt: () => findCachedServer()?.updatedAt,
   });
 
-  const { data: history, isLoading: isHistoryLoading } = useQuery({
+  const { data: history, isPending: isHistoryPending } = useQuery({
     queryKey: ["serverData", server?.id],
     queryFn: () =>
       serverApi.fetchServerSnapshots({ server_id: server!.id, limit: 100 }),
@@ -75,7 +75,7 @@ export const ServerDetail = () => {
     staleTime: 10 * 60 * 1000,
   });
 
-  const { data: players } = useQuery({
+  const { data: players, isPending: isPlayersPending } = useQuery({
     queryKey: ["playerList", server?.id],
     queryFn: () => serverApi.fetchPlayerList({ server_id: server!.id }),
     enabled: !!server?.id,
@@ -324,9 +324,10 @@ export const ServerDetail = () => {
 
             {/* Right column */}
             <div className="lg:col-span-2 space-y-4">
-              <OnlineGraph data={chartData} isLoading={isHistoryLoading} />
+              <OnlineGraph data={chartData} isLoading={isHistoryPending} />
               <PlayersTable
                 players={players}
+                isLoading={isPlayersPending}
                 onUpdateStatus={(id, status: PlayerStatus) =>
                   updatePlayerMutation.mutate({ id, status })
                 }

@@ -50,6 +50,7 @@ export const ServerGrid = ({
   const cols = useColumns();
 
   const rowCount = Math.ceil(servers.length / cols);
+  // eslint-disable-next-line react-hooks/incompatible-library -- useVirtualizer is known-incompatible with React Compiler; memoization is skipped for this component, which is fine
   const virtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => scrollRef.current,
