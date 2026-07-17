@@ -281,6 +281,7 @@ export const serverApi = {
       name: p.name,
       status: STATUS_TO_STR[p.status] ?? "None",
       last_seen_at: p.lastSeenAt,
+      licensed: p.licensed,
     }));
   },
 };

@@ -176,10 +176,15 @@ export interface Translations {
     licenseAll: string;
     loaded: string;
     empty: string;
+    emptyFiltered: string;
+    clearFilters: string;
     end: string;
     server: string;
     name: string;
     lastSeen: string;
+    license: string;
+    copyName: string;
+    viewOnNamemc: string;
     error: string;
     retry: string;
   };

@@ -732,6 +732,7 @@ impl Api for ApiService {
                     name: player.name,
                     status: proto_status(player.status),
                     last_seen_at: player.last_seen_at.to_rfc3339(),
+                    licensed: server.is_online_mode,
                 })
                 .collect(),
         }))

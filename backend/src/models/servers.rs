@@ -47,6 +47,7 @@ pub struct ServerModelMini {
     pub id: i32,
     pub ip: String,
     pub port: i32,
+    pub is_online_mode: bool,
 }
 
 #[derive(Insertable)]

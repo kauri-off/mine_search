@@ -222,6 +222,7 @@ message PlayerSearchResult {
   string name = 4;
   PlayerStatus status = 5;
   string last_seen_at = 6; // RFC3339
+  bool licensed = 7; // mirrors the server's is_online_mode
 }
 message PlayerSearchResponse {
   repeated PlayerSearchResult players = 1;

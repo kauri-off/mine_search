@@ -4,18 +4,22 @@ import type { InfiniteData } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { Search, ExternalLink } from "lucide-react";
+import { Search, ExternalLink, X } from "lucide-react";
 import type { PlayerSearchResponse, PlayerStatus } from "@/types";
 import { serverApi } from "@/api/client";
 import { useTranslation } from "@/i18n";
-import { Spinner, StatusBlock } from "@/components";
+import { CopyButton, Spinner, StatusBlock } from "@/components";
 import { PLAYER_STATUSES, PLAYER_STATUS_COLOR } from "@/constants/serverDetail";
 import { cn } from "@/cn";
 
 const LIMIT = 50;
 
-/** Shared column layout for the header and the virtualized rows so they align. */
-const ROW_GRID = "grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]";
+/** Shared column layout for the header and the virtualized rows so they align.
+ * Rows fall back to a wrapped flex layout below `sm` (see the row/header
+ * markup), so this grid only applies on wider viewports. The last track must
+ * be a fixed width (not `auto`): header and rows are independent grids, so an
+ * `auto` track sized to each grid's own content makes the columns drift. */
+const ROW_GRID = "sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_10rem]";
 
 type LicenseFilter = boolean | null;
 
@@ -79,6 +83,17 @@ export const Players = () => {
         ? "bg-indigo-600/20 border-indigo-600/30 text-indigo-300"
         : "bg-surface border-border text-slate-400 hover:text-slate-200 hover:border-border-hover",
     );
+
+  const hasActiveFilters =
+    statusFilter !== null || licenseFilter !== null || nameDebounced !== "";
+
+  const clearAllFilters = () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    setNameInput("");
+    setNameDebounced("");
+    setStatusFilter(null);
+    setLicenseFilter(null);
+  };
 
   const allPlayers = data?.pages.flat() ?? [];
   const isEmpty = !isLoading && !isError && allPlayers.length === 0;
@@ -171,6 +186,17 @@ export const Players = () => {
                 {t.players.cracked}
               </button>
             </div>
+
+            {/* Clear filters */}
+            {hasActiveFilters && (
+              <button
+                onClick={clearAllFilters}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                {t.players.clearFilters}
+              </button>
+            )}
           </div>
         </div>
 
@@ -200,16 +226,27 @@ export const Players = () => {
             </button>
           </div>
         ) : isEmpty ? (
-          <p className="text-sm text-slate-600 py-10 text-center">
-            {t.players.empty}
-          </p>
+          <div className="flex flex-col items-center gap-3 py-10 text-center">
+            <p className="text-sm text-slate-600">
+              {hasActiveFilters ? t.players.emptyFiltered : t.players.empty}
+            </p>
+            {hasActiveFilters && (
+              <button
+                onClick={clearAllFilters}
+                className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium bg-surface border border-border text-slate-300 hover:border-border-hover transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                {t.players.clearFilters}
+              </button>
+            )}
+          </div>
         ) : (
           <div className="bg-panel border border-border rounded-xl overflow-hidden flex flex-col flex-1 min-h-0">
-            {/* Header */}
+            {/* Header (hidden on mobile where rows stack) */}
             <div
               role="row"
               className={cn(
-                "grid border-b border-border text-slate-500 text-xs font-medium flex-shrink-0",
+                "hidden sm:grid border-b border-border text-slate-500 text-xs font-medium flex-shrink-0",
                 ROW_GRID,
               )}
             >
@@ -238,7 +275,7 @@ export const Players = () => {
                       ref={virtualizer.measureElement}
                       role="row"
                       className={cn(
-                        "grid items-center border-b border-surface hover:bg-white/[0.02] transition-colors",
+                        "group flex flex-wrap items-center gap-y-1 py-3 px-4 sm:py-0 sm:px-0 sm:grid sm:items-center border-b border-surface hover:bg-white/[0.02] transition-colors",
                         ROW_GRID,
                       )}
                       style={{
@@ -249,36 +286,64 @@ export const Players = () => {
                         transform: `translateY(${vr.start}px)`,
                       }}
                     >
-                      <div className="py-2.5 pl-5 pr-3">
-                        <div className="flex items-center gap-2">
+                      {/* Name cell — full width on mobile so server/last-seen
+                          wrap onto the next line together. */}
+                      <div className="w-full sm:w-auto sm:py-2.5 sm:pl-5 sm:pr-3 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <img
+                            src={`https://mc-heads.net/avatar/${encodeURIComponent(player.name)}/28`}
+                            alt=""
+                            loading="lazy"
+                            width={28}
+                            height={28}
+                            className="w-7 h-7 rounded bg-surface shrink-0"
+                          />
                           <StatusBlock
                             label={t.playerStatus.values[player.status]}
                             active={true}
                             activeColor={PLAYER_STATUS_COLOR[player.status]}
                           />
-                          <span className="text-slate-200 font-medium">
+                          <span className="text-slate-200 font-medium truncate">
                             {player.name}
                           </span>
-                          <a
-                            href={`https://namemc.com/profile/${player.name}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-slate-600 hover:text-indigo-400 transition-colors"
-                            title="View on NameMC"
+                          <span
+                            className={cn(
+                              "px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0",
+                              player.licensed
+                                ? "bg-green-500/15 text-green-300 border-green-500/30"
+                                : "bg-red-500/15 text-red-300 border-red-500/30",
+                            )}
                           >
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
+                            {player.licensed
+                              ? t.players.licensed
+                              : t.players.cracked}
+                          </span>
+                          {/* Actions — always visible on touch, hover-revealed
+                              on pointer devices to keep rows clean. */}
+                          <span className="flex items-center gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
+                            <CopyButton text={player.name} />
+                            <a
+                              href={`https://namemc.com/profile/${player.name}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-surface hover:bg-border text-slate-500 hover:text-indigo-400 transition-colors"
+                              title={t.players.viewOnNamemc}
+                              aria-label={t.players.viewOnNamemc}
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </span>
                         </div>
                       </div>
-                      <div className="py-2.5 px-3">
+                      <div className="flex-1 min-w-0 sm:py-2.5 sm:px-3">
                         <Link
                           to={`/server/${player.server_ip}`}
-                          className="text-indigo-400 hover:text-indigo-300 hover:underline text-xs transition-colors"
+                          className="text-indigo-400 hover:text-indigo-300 hover:underline text-xs transition-colors truncate block"
                         >
                           {player.server_ip}
                         </Link>
                       </div>
-                      <div className="py-2.5 pr-5 text-right">
+                      <div className="ml-auto sm:ml-0 sm:py-2.5 sm:pr-5 text-right shrink-0">
                         <span className="text-xs text-slate-500">
                           {formatDistanceToNow(new Date(player.last_seen_at), {
                             addSuffix: true,

@@ -44,6 +44,7 @@ export type PlayerSearchResponse = {
   name: string;
   status: PlayerStatus;
   last_seen_at: string;
+  licensed: boolean;
 };
 
 // ----- Servers -----
